@@ -1,4 +1,25 @@
-# Welcome to your Lovable project
+# Minimal Idea Spark
+
+React + TypeScript app with **Canvas**-style second brain: War Room dashboard, Strategic Consultant (AI chat), Opportunities, Journal, Analytics, XP gamification, time blocking, and Deep Work mode with Pomodoro.
+
+## Quick start
+
+```sh
+npm i
+npm run dev
+```
+
+Open [http://localhost:8080](http://localhost:8080). Data is mock by default. To use Supabase, copy `.env.example` to `.env` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, then run the migrations in `supabase/migrations/`.
+
+## Features
+
+- **War Room (Dashboard)** – Smart Capture, The One Thing, Opportunity Radar, XP widget, Time Blocking, Energy Balance, Quick Journal
+- **Consultant** – AI-style chat with mock responses
+- **Opportunities** – List/filter by status (Backlog, Doing, Review, Done)
+- **Journal** – Entries with mood and energy
+- **Analytics** – Weekly scorecard, level progress, achievements
+- **Deep Work** – Full-screen focus + Pomodoro (Esc or X to exit)
+- **Supabase** – Migrations and Edge Functions (RAG, smart-capture) under `supabase/`
 
 ## Project info
 

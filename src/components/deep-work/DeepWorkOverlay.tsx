@@ -1,3 +1,4 @@
+import { useEffect, useCallback } from 'react'
 import { useAppContext } from '@/contexts/AppContext'
 import { PomodoroTimer } from './PomodoroTimer'
 import { Button } from '@/components/ui/button'
@@ -10,12 +11,21 @@ export function DeepWorkOverlay() {
   const { deepWorkMode, currentOpportunity, toggleDeepWorkMode, setCurrentOpportunity } =
     useAppContext()
 
-  if (!deepWorkMode) return null
-
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     toggleDeepWorkMode()
     setCurrentOpportunity(null)
-  }
+  }, [toggleDeepWorkMode, setCurrentOpportunity])
+
+  useEffect(() => {
+    if (!deepWorkMode) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleClose()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [deepWorkMode, handleClose])
+
+  if (!deepWorkMode) return null
 
   const priorityStars = currentOpportunity
     ? Math.min(Math.max(Math.round(currentOpportunity.priority / 2), 1), 5)

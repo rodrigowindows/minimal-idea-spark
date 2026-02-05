@@ -82,6 +82,8 @@ export function WeeklyScorecard({ opportunities, domains, className }: WeeklySco
     deepWorkMinutes,
     opportunitiesCompleted,
     level,
+    weekScore,
+    setWeekScore,
   } = useXPSystem()
 
   // Calculate domain balance
