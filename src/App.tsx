@@ -29,19 +29,19 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AppProvider>
-        <Routes>
-          <Route element={<AppLayout />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/consultant" element={<Consultant />} />
-            <Route path="/opportunities" element={<Opportunities />} />
-            <Route path="/journal" element={<Journal />} />
-            <Route path="/analytics" element={<Analytics />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+          <Routes>
+            <Route element={<AppLayout />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/consultant" element={<Consultant />} />
+              <Route path="/opportunities" element={<Opportunities />} />
+              <Route path="/journal" element={<Journal />} />
+              <Route path="/analytics" element={<Analytics />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <DeepWorkOverlay />
         </AppProvider>
       </BrowserRouter>
-      <DeepWorkOverlay />
     </TooltipProvider>
   </QueryClientProvider>
 );

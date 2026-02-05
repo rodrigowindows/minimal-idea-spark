@@ -38,13 +38,13 @@ export const GAMIFICATION_CONFIG = {
 
   // XP rewards for different actions
   XP_RULES: {
-    capture: 5,           // Log anything
-    complete_task: 25,    // Finish opportunity
-    daily_streak: 10,     // Login + 1 log/day
-    weekly_goal: 100,     // 7+ days active
-    deep_work_25min: 50,  // Pomodoro session
-    insight_added: 15,    // Add an insight
-    networking: 20,       // Networking activity
+    capture: 5 as number,           // Log anything
+    complete_task: 25 as number,    // Finish opportunity
+    daily_streak: 10 as number,     // Login + 1 log/day
+    weekly_goal: 100 as number,     // 7+ days active
+    deep_work_25min: 50 as number,  // Pomodoro session
+    insight_added: 15 as number,    // Add an insight
+    networking: 20 as number,       // Networking activity
   },
 
   // Daily goals for engagement
