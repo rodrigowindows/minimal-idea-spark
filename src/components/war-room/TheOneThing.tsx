@@ -149,7 +149,7 @@ export function TheOneThing({ opportunities, domains }: TheOneThingProps) {
           </div>
 
           {/* Focus button */}
-          <Button onClick={handleFocus} className="gap-2">
+          <Button onClick={handleFocus} className="gap-2 min-h-[44px] touch-manipulation">
             <Zap className="h-4 w-4" />
             Focus
           </Button>

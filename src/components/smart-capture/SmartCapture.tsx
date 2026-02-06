@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useXPSystem } from '@/hooks/useXPSystem'
 import { calculateXPReward } from '@/lib/constants'
+import { VoiceInput } from './VoiceInput'
 
 const QUICK_ACTIONS = [
   { label: 'Quick Log', icon: Zap, type: 'log' as const },
@@ -129,7 +130,11 @@ export function SmartCapture() {
               >+{lastXP} XP</motion.span>
             )}
           </AnimatePresence>
-          <Button type="submit" size="sm" disabled={!input.trim() || isProcessing} className="mr-2 gap-1.5">
+          <VoiceInput
+            onTranscript={(text) => setInput((prev) => prev + text)}
+            disabled={isProcessing}
+          />
+          <Button type="submit" size="sm" disabled={!input.trim() || isProcessing} className="mr-2 gap-1.5 min-h-[44px] min-w-[44px]">
             <Send className="h-4 w-4" />
             <span className="sr-only md:not-sr-only">Capture</span>
           </Button>
@@ -140,7 +145,7 @@ export function SmartCapture() {
         {QUICK_ACTIONS.map((action) => (
           <button key={action.type} onClick={() => handleQuickAction(action.type)} disabled={isProcessing}
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-card/50 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors',
+              'inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-card/50 px-3 py-2 text-xs font-medium text-muted-foreground transition-colors touch-manipulation min-h-[44px]',
               'hover:border-primary/50 hover:bg-primary/10 hover:text-primary',
               'disabled:cursor-not-allowed disabled:opacity-50'
             )}>

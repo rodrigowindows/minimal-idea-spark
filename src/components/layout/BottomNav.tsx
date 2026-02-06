@@ -20,7 +20,7 @@ export function BottomNav() {
             end={item.to === '/'}
             className={({ isActive }) =>
               cn(
-                'flex flex-col items-center gap-1 px-3 py-1.5 text-xs font-medium transition-colors',
+                'flex flex-col items-center gap-1 px-3 py-1.5 text-xs font-medium transition-colors touch-manipulation min-h-[44px] min-w-[44px]',
                 isActive
                   ? 'text-primary'
                   : 'text-muted-foreground hover:text-sidebar-foreground'
