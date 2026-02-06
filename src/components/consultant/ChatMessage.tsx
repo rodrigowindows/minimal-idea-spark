@@ -1,17 +1,12 @@
 import type { ChatMessage as ChatMessageType } from '@/types'
 import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-import { User, Sparkles, FileText, BookOpen, Target } from 'lucide-react'
+import { User, Sparkles } from 'lucide-react'
+import { SourcesUsed } from './SourcesUsed'
+import { MarkdownContent } from './MarkdownContent'
 
 interface ChatMessageProps {
   message: ChatMessageType
-}
-
-const sourceIcons = {
-  opportunity: Target,
-  journal: BookOpen,
-  knowledge: FileText,
 }
 
 export function ChatMessage({ message }: ChatMessageProps) {
@@ -55,27 +50,16 @@ export function ChatMessage({ message }: ChatMessageProps) {
               : 'bg-card text-card-foreground'
           )}
         >
-          <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+          {isUser ? (
+            <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+          ) : (
+            <MarkdownContent content={message.content} className="text-sm" />
+          )}
         </Card>
 
         {/* Context sources (for assistant messages) */}
         {!isUser && message.sources && message.sources.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            <span className="text-xs text-muted-foreground">Sources:</span>
-            {message.sources.map((source, idx) => {
-              const Icon = sourceIcons[source.type]
-              return (
-                <Badge
-                  key={idx}
-                  variant="secondary"
-                  className="gap-1 text-xs"
-                >
-                  <Icon className="h-3 w-3" />
-                  {source.title}
-                </Badge>
-              )
-            })}
-          </div>
+          <SourcesUsed sources={message.sources} />
         )}
 
         {/* Timestamp */}

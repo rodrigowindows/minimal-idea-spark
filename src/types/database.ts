@@ -73,6 +73,7 @@ export interface ContextSource {
   title: string
   type: 'opportunity' | 'journal' | 'knowledge'
   relevance: number
+  metadata?: Record<string, unknown>
 }
 
 export interface UserStats {

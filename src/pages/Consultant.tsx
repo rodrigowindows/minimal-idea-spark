@@ -2,9 +2,12 @@ import { useState, useRef, useEffect } from 'react'
 import type { ChatMessage as ChatMessageType, ContextSource } from '@/types'
 import { ChatMessage } from '@/components/consultant/ChatMessage'
 import { ChatInput } from '@/components/consultant/ChatInput'
+import { SourcesUsed } from '@/components/consultant/SourcesUsed'
+import { MarkdownContent } from '@/components/consultant/MarkdownContent'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Sparkles, Brain, Wifi, WifiOff } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Sparkles, Brain, Wifi, WifiOff, RotateCcw, Trash2, AlertCircle } from 'lucide-react'
 import { useLocalData } from '@/hooks/useLocalData'
 import { useXPSystem } from '@/hooks/useXPSystem'
 import { useRagChat } from '@/hooks/useRagChat'
@@ -48,7 +51,7 @@ function generateContextualResponse(
     const recentMoods = dailyLogs.slice(0, 3).map(l => l.mood).filter(Boolean)
     const moodSummary = recentMoods.length > 0 ? `Your recent moods: ${recentMoods.join(', ')}.` : ''
     return {
-      content: `Your deep work total is **${deepHours}h**. ${deepHours > 8 ? 'That is quite intensive - consider lighter tasks or a break.' : 'You still have capacity for focused work.'} ${moodSummary} Your streak is at **${streakDays} days**. Energy management tips: 1) Switch to low-SV tasks (networking, small actions), 2) Take a 5-min walk, 3) Write a quick journal entry about how you feel, 4) Try a shorter 15-min Pomodoro instead of 25.`,
+      content: `Your deep work total is **${deepHours}h**. ${deepHours > 8 ? 'That is quite intensive - consider lighter tasks or a break.' : 'You still have capacity for focused work.'} ${moodSummary} Your streak is at **${streakDays} days**. Energy management tips:\n\n1. Switch to low-SV tasks (networking, small actions)\n2. Take a 5-min walk\n3. Write a quick journal entry about how you feel\n4. Try a shorter 15-min Pomodoro instead of 25`,
       sources: [
         { title: 'Deep Work History', type: 'journal' as const, relevance: 0.92 },
         { title: 'Energy Patterns', type: 'journal' as const, relevance: 0.85 },
@@ -146,7 +149,7 @@ function generateContextualResponse(
   // Weekly review
   if (lower.includes('week') || lower.includes('review') || lower.includes('semana') || lower.includes('revisão')) {
     return {
-      content: `This week's snapshot: **${doneTasks.length}** completed, **${doingTasks.length}** in progress, **${backlogTasks.length}** in backlog. Deep work: **${Math.floor(deepWorkMinutes / 60)}h**. Streak: **${streakDays} days**. Visit the Weekly Review page for a detailed analysis with insights and reflection prompts.`,
+      content: `This week's snapshot:\n\n- **${doneTasks.length}** completed\n- **${doingTasks.length}** in progress\n- **${backlogTasks.length}** in backlog\n- Deep work: **${Math.floor(deepWorkMinutes / 60)}h**\n- Streak: **${streakDays} days**\n\nVisit the Weekly Review page for a detailed analysis with insights and reflection prompts.`,
       sources: [
         { title: 'Weekly Summary', type: 'opportunity' as const, relevance: 0.95 },
         { title: 'Progress Analytics', type: 'knowledge' as const, relevance: 0.88 },
@@ -161,7 +164,7 @@ function generateContextualResponse(
     const morningList = morningTasks.map(t => `- "${t.title}" (SV:${t.strategic_value}, ${calculateXPReward(t.type, t.strategic_value ?? 5)} XP)`).join('\n')
     const afternoonList = afternoonTasks.map(t => `- "${t.title}" (SV:${t.strategic_value}, ${calculateXPReward(t.type, t.strategic_value ?? 5)} XP)`).join('\n')
     return {
-      content: `Here's an optimized day plan based on your priorities:\n\n**Morning (High Energy - Deep Work)**\n${morningList || '- No study tasks pending'}\n\n**Afternoon (Moderate Energy - Action Items)**\n${afternoonList || '- No action tasks pending'}\n\n**Evening**\n- Journal reflection (+15 XP)\n- Review tomorrow's priorities\n\nUse the Time Blocking calendar on your Dashboard to schedule these blocks.`,
+      content: `Here's an optimized day plan based on your priorities:\n\n### Morning (High Energy - Deep Work)\n${morningList || '- No study tasks pending'}\n\n### Afternoon (Moderate Energy - Action Items)\n${afternoonList || '- No action tasks pending'}\n\n### Evening\n- Journal reflection (+15 XP)\n- Review tomorrow's priorities\n\nUse the Time Blocking calendar on your Dashboard to schedule these blocks.`,
       sources: [
         { title: 'Daily Planning', type: 'knowledge' as const, relevance: 0.95 },
         { title: 'Energy Optimization', type: 'knowledge' as const, relevance: 0.85 },
@@ -175,7 +178,7 @@ function generateContextualResponse(
     const actionCount = opportunities.filter(o => o.type === 'action').length
     const highSVTasks = opportunities.filter(o => (o.strategic_value ?? 0) >= 8)
     return {
-      content: `Strategic overview: You have **${highSVTasks.length} high-impact tasks** (SV >= 8). Study-to-action ratio: **${studyCount}:${actionCount}**.\n\nRecommendations:\n1. ${studyCount > actionCount ? 'Good study focus! Make sure to convert learning into action.' : 'Consider adding more study tasks - they yield the highest XP.'}\n2. Focus on completing high-SV tasks first - they give disproportionate returns.\n3. Your streak (${streakDays} days) is ${streakDays >= 7 ? 'strong! Keep it going.' : 'building. Aim for 7+ days for the Daily Master achievement.'}\n4. Set 2-3 strategic goals with clear milestones on the Goals page.`,
+      content: `Strategic overview: You have **${highSVTasks.length} high-impact tasks** (SV >= 8). Study-to-action ratio: **${studyCount}:${actionCount}**.\n\n### Recommendations\n1. ${studyCount > actionCount ? 'Good study focus! Make sure to convert learning into action.' : 'Consider adding more study tasks - they yield the highest XP.'}\n2. Focus on completing high-SV tasks first - they give disproportionate returns.\n3. Your streak (${streakDays} days) is ${streakDays >= 7 ? 'strong! Keep it going.' : 'building. Aim for 7+ days for the Daily Master achievement.'}\n4. Set 2-3 strategic goals with clear milestones on the Goals page.`,
       sources: [
         { title: 'Strategic Analysis', type: 'knowledge' as const, relevance: 0.95 },
         { title: 'XP Optimization', type: 'knowledge' as const, relevance: 0.9 },
@@ -226,6 +229,7 @@ export function Consultant() {
     },
   ])
   const [isTyping, setIsTyping] = useState(false)
+  const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -238,9 +242,9 @@ export function Consultant() {
     }
     setMessages(prev => [...prev, userMessage])
     setIsTyping(true)
+    setLastFailedMessage(null)
 
     if (useAI) {
-      // RAG-powered AI response with streaming
       const result = await rag.sendMessage(content)
 
       if (result) {
@@ -252,6 +256,7 @@ export function Consultant() {
         setMessages(prev => [...prev, assistantMessage])
       } else if (rag.error) {
         // Fallback to local if RAG fails
+        setLastFailedMessage(content)
         await new Promise(resolve => setTimeout(resolve, 500))
         const response = generateContextualResponse(
           content, opportunities || [], deepWorkMinutes, streakDays,
@@ -283,6 +288,29 @@ export function Consultant() {
     setIsTyping(false)
   }
 
+  function handleRetry() {
+    if (lastFailedMessage) {
+      // Remove the last offline-mode message and retry
+      setMessages(prev => prev.slice(0, -1))
+      handleSend(lastFailedMessage)
+    }
+  }
+
+  function handleNewSession() {
+    rag.resetSession()
+    setMessages([
+      {
+        id: 'welcome',
+        role: 'assistant',
+        content: useAI
+          ? "New session started. I'm your **Strategic Advisor** powered by AI. How can I help you today?"
+          : "New session started. I'm your **Strategic Advisor**. What would you like to explore?",
+        timestamp: new Date(),
+      },
+    ])
+    setLastFailedMessage(null)
+  }
+
   const isBusy = isTyping || rag.isStreaming
 
   return (
@@ -295,19 +323,31 @@ export function Consultant() {
           <h1 className="text-xl font-bold tracking-tight">Strategic Advisor</h1>
           <p className="text-sm text-muted-foreground">AI-powered insights from your second brain</p>
         </div>
-        <Badge variant="outline" className="gap-1.5 text-xs">
-          {useAI ? (
-            <>
-              <Wifi className="h-3 w-3 text-green-500" />
-              RAG AI
-            </>
-          ) : (
-            <>
-              <WifiOff className="h-3 w-3 text-muted-foreground" />
-              Local
-            </>
-          )}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleNewSession}
+            disabled={isBusy}
+            title="New conversation"
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="sr-only">New conversation</span>
+          </Button>
+          <Badge variant="outline" className="gap-1.5 text-xs">
+            {useAI ? (
+              <>
+                <Wifi className="h-3 w-3 text-green-500" />
+                RAG AI
+              </>
+            ) : (
+              <>
+                <WifiOff className="h-3 w-3 text-muted-foreground" />
+                Local
+              </>
+            )}
+          </Badge>
+        </div>
       </header>
 
       <ScrollArea className="flex-1 pr-4">
@@ -322,17 +362,11 @@ export function Consultant() {
               </div>
               <div className="flex max-w-[80%] flex-col gap-2">
                 <div className="rounded-xl bg-card px-4 py-3 text-card-foreground">
-                  <p className="whitespace-pre-wrap text-sm">{rag.streamingContent}<span className="animate-pulse">|</span></p>
+                  <MarkdownContent content={rag.streamingContent} className="text-sm" />
+                  <span className="animate-pulse text-primary">|</span>
                 </div>
                 {rag.sources.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    <span className="text-xs text-muted-foreground">Sources:</span>
-                    {rag.sources.map((source, idx) => (
-                      <Badge key={idx} variant="secondary" className="gap-1 text-xs">
-                        {source.title}
-                      </Badge>
-                    ))}
-                  </div>
+                  <SourcesUsed sources={rag.sources} />
                 )}
               </div>
             </div>
@@ -349,6 +383,25 @@ export function Consultant() {
               </div>
             </div>
           )}
+
+          {/* Error display with retry */}
+          {rag.error && lastFailedMessage && (
+            <div className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span className="flex-1">AI connection failed: {rag.error}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRetry}
+                disabled={isBusy}
+                className="gap-1.5"
+              >
+                <RotateCcw className="h-3 w-3" />
+                Retry
+              </Button>
+            </div>
+          )}
+
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>

@@ -9,6 +9,15 @@ interface RagSource {
   metadata?: Record<string, unknown>
 }
 
+function mapSources(raw: RagSource[]): ContextSource[] {
+  return raw.map(s => ({
+    title: s.title,
+    type: s.type,
+    relevance: s.relevance,
+    metadata: s.metadata,
+  }))
+}
+
 interface StreamState {
   isStreaming: boolean
   streamingContent: string
@@ -112,11 +121,7 @@ export function useRagChat() {
 
               if (eventType === 'sources') {
                 newSessionId = parsed.sessionId ?? newSessionId
-                sources = (parsed.sources as RagSource[]).map(s => ({
-                  title: s.title,
-                  type: s.type,
-                  relevance: s.relevance,
-                }))
+                sources = mapSources(parsed.sources as RagSource[])
                 setState(prev => ({
                   ...prev,
                   sessionId: newSessionId,
@@ -154,11 +159,7 @@ export function useRagChat() {
       } else {
         // Non-streaming JSON response
         const data = await response.json()
-        const sources: ContextSource[] = (data.sources || []).map((s: RagSource) => ({
-          title: s.title,
-          type: s.type,
-          relevance: s.relevance,
-        }))
+        const sources: ContextSource[] = mapSources(data.sources || [])
 
         setState(prev => ({
           ...prev,
