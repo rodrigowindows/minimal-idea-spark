@@ -1,46 +1,63 @@
 import { useMemo } from 'react'
 import type { Opportunity, LifeDomain } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { PieChart as PieChartIcon } from 'lucide-react'
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
+import { PieChart as PieChartIcon, AlertTriangle } from 'lucide-react'
+import {
+  ResponsiveContainer,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+  Tooltip,
+} from 'recharts'
+import { SCORECARD_THRESHOLDS } from '@/lib/constants'
 
 interface EnergyBalanceProps {
   opportunities: Opportunity[] | undefined
   domains: LifeDomain[] | undefined
 }
 
-interface DomainSlice {
-  name: string
-  value: number
-  color: string
-}
-
 export function EnergyBalance({ opportunities, domains }: EnergyBalanceProps) {
-  const chartData = useMemo<DomainSlice[] | undefined>(() => {
-    if (!opportunities || !domains) return undefined
+  const { chartData, isImbalanced, maxDomain, maxPercent } = useMemo(() => {
+    if (!opportunities || !domains)
+      return { chartData: undefined, isImbalanced: false, maxDomain: '', maxPercent: 0 }
 
-    const domainMap = new Map(domains.map((d) => [d.id, d]))
     const counts = new Map<string, number>()
+    const total = opportunities.length || 1
 
     for (const opp of opportunities) {
       if (!opp.domain_id) continue
       counts.set(opp.domain_id, (counts.get(opp.domain_id) ?? 0) + 1)
     }
 
-    const slices: DomainSlice[] = []
-    for (const [domainId, count] of counts) {
-      const domain = domainMap.get(domainId)
-      if (domain) {
-        slices.push({
-          name: domain.name,
-          value: count,
-          color: domain.color_theme,
-        })
+    const data = domains.map((domain) => {
+      const count = counts.get(domain.id) || 0
+      const percent = Math.round((count / total) * 100)
+      const target = domain.target_percentage ?? 20
+      return {
+        name: domain.name,
+        actual: percent,
+        target,
+        count,
+        color: domain.color_theme,
+        fullMark: 100,
       }
-    }
+    })
 
-    return slices
+    const max = data.reduce(
+      (best, d) => (d.actual > best.actual ? d : best),
+      { actual: 0, name: '' } as { actual: number; name: string }
+    )
+
+    return {
+      chartData: data,
+      isImbalanced: max.actual > SCORECARD_THRESHOLDS.BURNOUT_THRESHOLD,
+      maxDomain: max.name,
+      maxPercent: max.actual,
+    }
   }, [opportunities, domains])
 
   // Loading state
@@ -82,30 +99,34 @@ export function EnergyBalance({ opportunities, domains }: EnergyBalanceProps) {
 
   return (
     <Card className="rounded-xl">
-      <CardHeader>
+      <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-lg">
           <PieChartIcon className="h-5 w-5 text-primary" />
           Energy Balance
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex justify-center">
-          <ResponsiveContainer width="100%" height={180}>
-            <PieChart>
-              <Pie
-                data={chartData}
-                cx="50%"
-                cy="50%"
-                innerRadius={45}
-                outerRadius={75}
-                paddingAngle={3}
-                dataKey="value"
-                stroke="none"
-              >
-                {chartData.map((entry) => (
-                  <Cell key={entry.name} fill={entry.color} />
-                ))}
-              </Pie>
+        {isImbalanced && (
+          <div className="mb-3 flex items-center gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-400">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span>Burnout risk: {maxDomain} at {maxPercent}% of total effort.</span>
+          </div>
+        )}
+
+        <div className="h-[200px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <RadarChart data={chartData}>
+              <PolarGrid stroke="hsl(var(--border))" />
+              <PolarAngleAxis
+                dataKey="name"
+                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+              />
+              <PolarRadiusAxis
+                angle={90}
+                domain={[0, 100]}
+                tick={false}
+                axisLine={false}
+              />
               <Tooltip
                 contentStyle={{
                   backgroundColor: 'hsl(var(--card))',
@@ -113,9 +134,29 @@ export function EnergyBalance({ opportunities, domains }: EnergyBalanceProps) {
                   borderRadius: '0.5rem',
                   fontSize: '0.75rem',
                 }}
-                labelStyle={{ color: 'hsl(var(--foreground))' }}
+                formatter={(value: number, name: string) => [
+                  `${value}%`,
+                  name === 'actual' ? 'Actual' : 'Target',
+                ]}
               />
-            </PieChart>
+              <Radar
+                name="target"
+                dataKey="target"
+                stroke="#6b7280"
+                fill="#6b7280"
+                fillOpacity={0.1}
+                strokeDasharray="4 4"
+                strokeWidth={1}
+              />
+              <Radar
+                name="actual"
+                dataKey="actual"
+                stroke="#8b5cf6"
+                fill="#8b5cf6"
+                fillOpacity={0.3}
+                strokeWidth={2}
+              />
+            </RadarChart>
           </ResponsiveContainer>
         </div>
 
@@ -130,9 +171,22 @@ export function EnergyBalance({ opportunities, domains }: EnergyBalanceProps) {
               <span className="text-xs text-muted-foreground">
                 {entry.name}
               </span>
-              <span className="text-xs font-semibold">{entry.value}</span>
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                {entry.count}
+              </Badge>
             </div>
           ))}
+        </div>
+
+        <div className="mt-2 flex items-center justify-center gap-3 text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <span className="inline-block h-2 w-4 rounded-sm bg-[#8b5cf6]/30" />
+            Actual
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="inline-block h-2 w-4 rounded-sm border border-dashed border-muted-foreground/40" />
+            Target
+          </div>
         </div>
       </CardContent>
     </Card>

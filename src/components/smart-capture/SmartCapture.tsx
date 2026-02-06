@@ -26,14 +26,15 @@ const TYPE_ICON_MAP = {
 }
 
 interface ClassificationResult {
+  title: string
   domain: string
   type: 'study' | 'action' | 'insight' | 'networking'
   strategicValue: number
   xpReward: number
 }
 
-function mockClassify(input: string): ClassificationResult {
-  const lower = input.toLowerCase()
+function classifySingle(text: string): Omit<ClassificationResult, 'title'> {
+  const lower = text.toLowerCase()
   let type: ClassificationResult['type'] = 'action'
   let domain = 'Career'
   let strategicValue = 5
@@ -71,6 +72,25 @@ function mockClassify(input: string): ClassificationResult {
   return { domain, type, strategicValue, xpReward: calculateXPReward(type, strategicValue) }
 }
 
+/** Split raw text into multiple items when conjunctions/separators are found */
+function splitIntoItems(input: string): string[] {
+  // Split on " e " (Portuguese "and"), " and ", semicolons
+  const parts = input
+    .split(/\s+e\s+|\s+and\s+|;\s*/i)
+    .map(s => s.trim())
+    .filter(s => s.length > 2)
+
+  return parts.length > 1 ? parts : [input.trim()]
+}
+
+function mockClassify(input: string): ClassificationResult[] {
+  const items = splitIntoItems(input)
+  return items.map(item => ({
+    title: item.charAt(0).toUpperCase() + item.slice(1),
+    ...classifySingle(item),
+  }))
+}
+
 interface SmartCaptureProps {
   onCapture?: (data: { title: string; type: string; domain: string; strategicValue: number }) => void
 }
@@ -78,7 +98,7 @@ interface SmartCaptureProps {
 export function SmartCapture({ onCapture }: SmartCaptureProps = {}) {
   const [input, setInput] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
-  const [classification, setClassification] = useState<ClassificationResult | null>(null)
+  const [classifications, setClassifications] = useState<ClassificationResult[]>([])
   const [showXP, setShowXP] = useState(false)
   const [lastXP, setLastXP] = useState(0)
   const { addXP, awardCapture, awardInsight } = useXPSystem()
@@ -87,37 +107,43 @@ export function SmartCapture({ onCapture }: SmartCaptureProps = {}) {
     e.preventDefault()
     if (!input.trim() || isProcessing) return
     setIsProcessing(true)
-    setClassification(null)
+    setClassifications([])
 
     await new Promise((resolve) => setTimeout(resolve, 1200))
 
-    const result = mockClassify(input)
-    setClassification(result)
-    addXP(result.xpReward)
-    if (result.type === 'insight') awardInsight()
-    else awardCapture()
+    const results = mockClassify(input)
+    setClassifications(results)
 
-    // Notify parent to save opportunity
-    onCapture?.({
-      title: input.trim(),
-      type: result.type,
-      domain: result.domain,
-      strategicValue: result.strategicValue,
-    })
+    let totalXP = 0
+    for (const result of results) {
+      addXP(result.xpReward)
+      totalXP += result.xpReward
+      if (result.type === 'insight') awardInsight()
+      else awardCapture()
 
-    setLastXP(result.xpReward)
+      // Notify parent to save each opportunity
+      onCapture?.({
+        title: result.title,
+        type: result.type,
+        domain: result.domain,
+        strategicValue: result.strategicValue,
+      })
+    }
+
+    setLastXP(totalXP)
     setShowXP(true)
 
+    const itemCount = results.length
     toast.success(
       <div className="flex items-center gap-2">
-        <span>Captured as <span className="capitalize font-medium">{result.type}</span> in {result.domain}</span>
+        <span>{itemCount > 1 ? `${itemCount} items captured` : `Captured as ${results[0].type} in ${results[0].domain}`}</span>
         <Badge variant="secondary" className="gap-1 bg-amber-500/20 text-amber-400">
-          <Zap className="h-3 w-3" />+{result.xpReward} XP
+          <Zap className="h-3 w-3" />+{totalXP} XP
         </Badge>
       </div>
     )
     setIsProcessing(false)
-    setTimeout(() => { setInput(''); setClassification(null); setShowXP(false) }, 2500)
+    setTimeout(() => { setInput(''); setClassifications([]); setShowXP(false) }, 2500)
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -133,7 +159,8 @@ export function SmartCapture({ onCapture }: SmartCaptureProps = {}) {
     }
   }
 
-  const TypeIcon = classification ? TYPE_ICON_MAP[classification.type] : null
+  const firstClassification = classifications.length > 0 ? classifications[0] : null
+  const TypeIcon = firstClassification ? TYPE_ICON_MAP[firstClassification.type] : null
 
   return (
     <div className="relative space-y-3">
@@ -195,22 +222,30 @@ export function SmartCapture({ onCapture }: SmartCaptureProps = {}) {
             <p className="mt-2 text-xs text-muted-foreground">Identifying domain, type, and strategic value...</p>
           </motion.div>
         )}
-        {classification && !isProcessing && (
+        {classifications.length > 0 && !isProcessing && (
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-            className="rounded-xl border border-primary/30 bg-primary/5 p-3">
-            <div className="flex items-center gap-3">
-              {TypeIcon && <TypeIcon className="h-5 w-5 text-primary" />}
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="capitalize text-xs">{classification.type}</Badge>
-                  <Badge variant="outline" className="text-xs">{classification.domain}</Badge>
-                  <span className="text-xs text-muted-foreground">SV: {classification.strategicValue}/10</span>
+            className="space-y-2">
+            {classifications.map((cls, idx) => {
+              const Icon = TYPE_ICON_MAP[cls.type]
+              return (
+                <div key={idx} className="rounded-xl border border-primary/30 bg-primary/5 p-3">
+                  <div className="flex items-center gap-3">
+                    {Icon && <Icon className="h-5 w-5 text-primary" />}
+                    <div className="flex-1">
+                      <p className="text-sm font-medium mb-1">{cls.title}</p>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="capitalize text-xs">{cls.type}</Badge>
+                        <Badge variant="outline" className="text-xs">{cls.domain}</Badge>
+                        <span className="text-xs text-muted-foreground">SV: {cls.strategicValue}/10</span>
+                      </div>
+                    </div>
+                    <Badge className="gap-1 bg-amber-500/20 text-amber-400 border-0">
+                      <Zap className="h-3 w-3" />+{cls.xpReward} XP
+                    </Badge>
+                  </div>
                 </div>
-              </div>
-              <Badge className="gap-1 bg-amber-500/20 text-amber-400 border-0">
-                <Zap className="h-3 w-3" />+{classification.xpReward} XP
-              </Badge>
-            </div>
+              )
+            })}
           </motion.div>
         )}
       </AnimatePresence>

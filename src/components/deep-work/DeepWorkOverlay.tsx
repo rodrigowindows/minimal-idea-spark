@@ -8,11 +8,13 @@ import { Badge } from '@/components/ui/badge'
 import { X, Target, Star, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useXPSystem } from '@/hooks/useXPSystem'
+import { useFocusSessions } from '@/hooks/useFocusSessions'
 import { calculateXPReward } from '@/lib/constants'
 
 export function DeepWorkOverlay() {
   const { deepWorkMode, currentOpportunity, toggleDeepWorkMode, setCurrentOpportunity } = useAppContext()
   const { addXP } = useXPSystem()
+  const { addSession } = useFocusSessions()
   const [xpEarned, setXpEarned] = useState(0)
 
   const handleClose = useCallback(() => {
@@ -32,7 +34,17 @@ export function DeepWorkOverlay() {
 
     addXP(totalXP)
     setXpEarned(prev => prev + totalXP)
-  }, [addXP, currentOpportunity])
+
+    // Save focus session to persistent storage
+    addSession({
+      user_id: 'mock-user-001',
+      opportunity_id: currentOpportunity?.id ?? null,
+      duration_minutes: minutes,
+      started_at: new Date(Date.now() - minutes * 60000).toISOString(),
+      notes: currentOpportunity ? `Focus on: ${currentOpportunity.title}` : null,
+      xp_earned: totalXP,
+    })
+  }, [addXP, currentOpportunity, addSession])
 
   useEffect(() => {
     if (!deepWorkMode) return

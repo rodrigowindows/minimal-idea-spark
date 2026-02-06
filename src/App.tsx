@@ -15,6 +15,7 @@ import { WeeklyReview } from "@/pages/WeeklyReview";
 import { Settings } from "@/pages/Settings";
 import { DeepWorkOverlay } from "@/components/deep-work/DeepWorkOverlay";
 import { ConfettiEffect } from "@/components/gamification/ConfettiEffect";
+import { XPNotificationListener } from "@/components/gamification/XPNotificationListener";
 import { AppProvider, useAppContext } from "@/contexts/AppContext";
 import NotFound from "./pages/NotFound";
 
@@ -47,6 +48,7 @@ function AppContent() {
       </Routes>
       <DeepWorkOverlay />
       <ConfettiEffect trigger={levelUpTriggered} />
+      <XPNotificationListener />
     </>
   );
 }
