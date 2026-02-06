@@ -8,6 +8,10 @@ import {
   Sparkles,
   Target,
   BarChart3,
+  Repeat,
+  Flag,
+  ClipboardCheck,
+  Settings2,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
@@ -24,7 +28,11 @@ const navItems = [
   { to: '/consultant', icon: MessageSquare, label: 'Consultant' },
   { to: '/opportunities', icon: Target, label: 'Opportunities' },
   { to: '/journal', icon: BookOpen, label: 'Journal' },
+  { to: '/habits', icon: Repeat, label: 'Habits' },
+  { to: '/goals', icon: Flag, label: 'Goals' },
   { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+  { to: '/weekly-review', icon: ClipboardCheck, label: 'Weekly Review' },
+  { to: '/settings', icon: Settings2, label: 'Settings' },
 ]
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {

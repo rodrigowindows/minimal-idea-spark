@@ -21,6 +21,7 @@ export default defineConfig(({ mode }) => ({
       includeAssets: ["favicon.ico"],
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        navigateFallback: "index.html",
       },
       manifest: {
         name: "Canvas - Second Brain",
@@ -55,6 +56,7 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "date-fns": path.resolve(__dirname, "./node_modules/date-fns/index.js"),
     },
   },
 }));

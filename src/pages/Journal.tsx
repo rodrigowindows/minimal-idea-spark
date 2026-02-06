@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useMockData } from '@/hooks/useMockData'
+import { useLocalData } from '@/hooks/useLocalData'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -7,12 +7,15 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { MOOD_OPTIONS } from '@/lib/constants'
-import { BookOpen, Plus, Calendar, Sparkles, Send } from 'lucide-react'
+import { useXPSystem } from '@/hooks/useXPSystem'
+import { BookOpen, Plus, Calendar, Sparkles, Send, Trash2, Zap } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { format, parseISO } from 'date-fns'
 import { toast } from 'sonner'
 
 export function Journal() {
-  const { dailyLogs, isLoading } = useMockData()
+  const { dailyLogs, isLoading, addDailyLog, deleteDailyLog } = useLocalData()
+  const { addXP } = useXPSystem()
   const [showNewEntry, setShowNewEntry] = useState(false)
   const [content, setContent] = useState('')
   const [selectedMood, setSelectedMood] = useState<string | null>(null)
@@ -31,11 +34,30 @@ export function Journal() {
       return
     }
 
-    toast.success('Journal entry saved!')
+    addDailyLog({
+      content: content.trim(),
+      mood: selectedMood,
+      energy_level: energyLevel,
+      log_date: new Date().toISOString().split('T')[0],
+    })
+    addXP(15)
+    toast.success(
+      <div className="flex items-center gap-2">
+        <span>Journal entry saved!</span>
+        <Badge variant="secondary" className="gap-1 bg-amber-500/20 text-amber-400">
+          <Zap className="h-3 w-3" />+15 XP
+        </Badge>
+      </div>
+    )
     setContent('')
     setSelectedMood(null)
     setEnergyLevel(5)
     setShowNewEntry(false)
+  }
+
+  function handleDelete(id: string) {
+    deleteDailyLog(id)
+    toast.success('Entry deleted')
   }
 
   const getMoodEmoji = (mood: string | null) => {
@@ -46,7 +68,6 @@ export function Journal() {
 
   return (
     <div className="min-h-screen p-4 md:p-6 lg:p-8">
-      {/* Header */}
       <header className="mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -60,7 +81,6 @@ export function Journal() {
         </div>
       </header>
 
-      {/* New entry form */}
       {showNewEntry && (
         <Card className="mb-6 rounded-xl">
           <CardHeader>
@@ -126,7 +146,6 @@ export function Journal() {
         </Card>
       )}
 
-      {/* Journal entries */}
       <ScrollArea className="h-[calc(100vh-200px)]">
         {isLoading ? (
           <div className="space-y-4">
@@ -159,9 +178,8 @@ export function Journal() {
               const formattedDate = format(parseISO(log.log_date), 'EEEE, MMMM d, yyyy')
 
               return (
-                <Card key={log.id} className="rounded-xl">
+                <Card key={log.id} className="group rounded-xl">
                   <CardContent className="py-4">
-                    {/* Header */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Calendar className="h-4 w-4" />
@@ -186,10 +204,16 @@ export function Journal() {
                             </span>
                           </div>
                         )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
+                          onClick={() => handleDelete(log.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
                       </div>
                     </div>
-
-                    {/* Content */}
                     <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">
                       {log.content}
                     </p>

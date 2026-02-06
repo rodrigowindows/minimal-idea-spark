@@ -38,22 +38,44 @@ function mockClassify(input: string): ClassificationResult {
   let domain = 'Career'
   let strategicValue = 5
 
-  if (lower.includes('study') || lower.includes('learn') || lower.includes('course') || lower.includes('aula') || lower.includes('revisar') || lower.includes('concurso')) {
+  // Study / Learning patterns
+  if (lower.includes('study') || lower.includes('learn') || lower.includes('course') || lower.includes('aula') || lower.includes('revisar') || lower.includes('concurso') || lower.includes('exam') || lower.includes('prova') || lower.includes('read') || lower.includes('book') || lower.includes('tutorial') || lower.includes('lecture') || lower.includes('estud')) {
     type = 'study'; domain = 'Learning'; strategicValue = 8
-  } else if (lower.includes('insight') || lower.includes('realized') || lower.includes('learned') || lower.includes('idea')) {
+    if (lower.includes('concurso') || lower.includes('sefaz') || lower.includes('exam') || lower.includes('prova')) strategicValue = 10
+  }
+  // Insight patterns
+  else if (lower.includes('insight') || lower.includes('realized') || lower.includes('learned') || lower.includes('idea') || lower.includes('thought') || lower.includes('discover') || lower.includes('percebi') || lower.includes('eureka')) {
     type = 'insight'; domain = 'Learning'; strategicValue = 6
-  } else if (lower.includes('met') || lower.includes('connect') || lower.includes('network') || lower.includes('call')) {
+  }
+  // Networking patterns
+  else if (lower.includes('met') || lower.includes('connect') || lower.includes('network') || lower.includes('call') || lower.includes('meeting') || lower.includes('coffee') || lower.includes('mentor') || lower.includes('reunião') || lower.includes('evento')) {
     type = 'networking'; domain = 'Career'; strategicValue = 4
-  } else if (lower.includes('health') || lower.includes('workout') || lower.includes('exercise') || lower.includes('medico') || lower.includes('gym')) {
+  }
+  // Health patterns
+  else if (lower.includes('health') || lower.includes('workout') || lower.includes('exercise') || lower.includes('medico') || lower.includes('gym') || lower.includes('run') || lower.includes('yoga') || lower.includes('diet') || lower.includes('sleep') || lower.includes('saude') || lower.includes('academia') || lower.includes('treino') || lower.includes('corrida')) {
     type = 'action'; domain = 'Health'; strategicValue = 7
-  } else if (lower.includes('finance') || lower.includes('invest') || lower.includes('money')) {
+  }
+  // Family patterns
+  else if (lower.includes('family') || lower.includes('familia') || lower.includes('mom') || lower.includes('dad') || lower.includes('mãe') || lower.includes('pai') || lower.includes('filho') || lower.includes('wife') || lower.includes('esposa') || lower.includes('vô') || lower.includes('avó') || lower.includes('avô') || lower.includes('kid') || lower.includes('son') || lower.includes('daughter')) {
+    type = 'action'; domain = 'Family'; strategicValue = 8
+  }
+  // Finance patterns
+  else if (lower.includes('finance') || lower.includes('invest') || lower.includes('money') || lower.includes('budget') || lower.includes('save') || lower.includes('dinheiro') || lower.includes('financ') || lower.includes('bitcoin') || lower.includes('crypto') || lower.includes('stock')) {
     type = 'action'; domain = 'Finance'; strategicValue = 6
+  }
+  // Career patterns
+  else if (lower.includes('portfolio') || lower.includes('resume') || lower.includes('project') || lower.includes('work') || lower.includes('client') || lower.includes('deploy') || lower.includes('code') || lower.includes('feature')) {
+    type = 'action'; domain = 'Career'; strategicValue = 7
   }
 
   return { domain, type, strategicValue, xpReward: calculateXPReward(type, strategicValue) }
 }
 
-export function SmartCapture() {
+interface SmartCaptureProps {
+  onCapture?: (data: { title: string; type: string; domain: string; strategicValue: number }) => void
+}
+
+export function SmartCapture({ onCapture }: SmartCaptureProps = {}) {
   const [input, setInput] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [classification, setClassification] = useState<ClassificationResult | null>(null)
@@ -74,6 +96,14 @@ export function SmartCapture() {
     addXP(result.xpReward)
     if (result.type === 'insight') awardInsight()
     else awardCapture()
+
+    // Notify parent to save opportunity
+    onCapture?.({
+      title: input.trim(),
+      type: result.type,
+      domain: result.domain,
+      strategicValue: result.strategicValue,
+    })
 
     setLastXP(result.xpReward)
     setShowXP(true)

@@ -2,22 +2,22 @@ import { WeeklyScorecard } from '@/components/analytics/WeeklyScorecard'
 import { ActivityHeatmap } from '@/components/analytics/ActivityHeatmap'
 import { XPProgressBar } from '@/components/gamification/XPProgressBar'
 import { useXPSystem } from '@/hooks/useXPSystem'
-import { useMockData } from '@/hooks/useMockData'
+import { useLocalData } from '@/hooks/useLocalData'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { GAMIFICATION_CONFIG } from '@/lib/constants'
 import {
-  Trophy, Flame, Brain, Footprints, Scale, Lightbulb, Crown, Star, RotateCcw,
+  Trophy, Flame, Brain, Footprints, Scale, Lightbulb, Crown, Star, RotateCcw, Zap,
 } from 'lucide-react'
 
 const ACHIEVEMENT_ICONS: Record<string, typeof Star> = {
   footprints: Footprints, flame: Flame, brain: Brain, trophy: Trophy,
-  scale: Scale, lightbulb: Lightbulb, crown: Crown,
+  scale: Scale, lightbulb: Lightbulb, crown: Crown, star: Star, zap: Zap,
 }
 
 export function Analytics() {
-  const { opportunities, domains, isLoading } = useMockData()
+  const { opportunities, domains, isLoading } = useLocalData()
   const {
     level, xpTotal, levelTitle, achievements, streakDays,
     deepWorkMinutes, opportunitiesCompleted, resetXP,

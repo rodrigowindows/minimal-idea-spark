@@ -65,8 +65,13 @@ export const GAMIFICATION_CONFIG = {
 
   ACHIEVEMENTS: [
     { name: 'First Steps', description: 'Reach 100 XP', xp_reward: 100, unlock_at_xp: 100, icon: 'footprints' },
+    { name: 'Rising Star', description: 'Reach 500 XP', xp_reward: 150, unlock_at_xp: 500, icon: 'star' },
+    { name: 'XP Machine', description: 'Reach 2000 XP', xp_reward: 300, unlock_at_xp: 2000, icon: 'zap' },
     { name: 'Daily Master', description: '7-day streak', xp_reward: 250, unlock_at_streak: 7, icon: 'flame' },
+    { name: 'Unstoppable', description: '30-day streak', xp_reward: 750, unlock_at_streak: 30, icon: 'flame' },
     { name: 'Deep Worker', description: '300min deep work', xp_reward: 500, unlock_at_deep_work: 300, icon: 'brain' },
+    { name: 'Flow State Master', description: '1000min deep work', xp_reward: 1000, unlock_at_deep_work: 1000, icon: 'brain' },
+    { name: 'First Ten', description: 'Complete 10 opportunities', xp_reward: 200, unlock_at_completed: 10, icon: 'trophy' },
     { name: 'Century Club', description: 'Complete 100 opportunities', xp_reward: 1000, unlock_at_completed: 100, icon: 'trophy' },
     { name: 'Life Balanced', description: 'Touch all domains in a day', xp_reward: 150, unlock_at_domains: 5, icon: 'scale' },
     { name: 'Insight Hunter', description: 'Log 50 insights', xp_reward: 300, unlock_at_insights: 50, icon: 'lightbulb' },
