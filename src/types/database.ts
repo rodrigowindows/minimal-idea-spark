@@ -10,8 +10,12 @@ export interface LifeDomain {
   user_id: string
   name: string
   color_theme: string
+  target_percentage?: number
   created_at: string
 }
+
+export type OpportunityTypeValue = 'action' | 'study' | 'insight' | 'networking'
+export type OpportunityStatusValue = 'backlog' | 'doing' | 'review' | 'done'
 
 export interface Opportunity {
   id: string
@@ -19,12 +23,24 @@ export interface Opportunity {
   domain_id: string | null
   title: string
   description: string | null
-  type: 'action' | 'study' | 'insight' | 'networking'
-  status: 'backlog' | 'doing' | 'review' | 'done'
+  type: OpportunityTypeValue
+  status: OpportunityStatusValue
   priority: number
   strategic_value: number | null
+  xp_reward?: number
   created_at: string
   domain?: LifeDomain
+}
+
+export interface FocusSession {
+  id: string
+  user_id: string
+  opportunity_id: string | null
+  duration_minutes: number
+  started_at: string
+  notes: string | null
+  xp_earned?: number
+  opportunity?: Opportunity
 }
 
 export interface DailyLog {
@@ -59,7 +75,14 @@ export interface ContextSource {
   relevance: number
 }
 
-// XP System Types
+export interface UserStats {
+  current_xp: number
+  level: number
+  current_streak: number
+  last_activity_date: string | null
+  deep_work_minutes: number
+}
+
 export interface XPSummary {
   id: string
   user_id: string
@@ -91,12 +114,11 @@ export interface TimeBlock {
   opportunity?: Opportunity
 }
 
-// AI Processing Response
 export interface AIProcessingResult {
   opportunities: {
     title: string
-    type: 'action' | 'study' | 'insight' | 'networking' | 'health'
-    domain: 'Career' | 'Health' | 'Finance' | 'Learning' | 'Relationships'
+    type: OpportunityTypeValue
+    domain: string
     priority: number
     strategic_value: number
     effort_minutes: number
@@ -107,7 +129,6 @@ export interface AIProcessingResult {
   insights: string[]
 }
 
-// Weekly Scorecard
 export interface WeeklyScorecard {
   xp_gained: number
   xp_gained_change: number
@@ -117,4 +138,11 @@ export interface WeeklyScorecard {
   streak_length: number
   ai_accuracy: number
   overall_score: number
+}
+
+export interface ActivityEntry {
+  date: string
+  hour: number
+  intensity: number
+  type: 'deep_work' | 'task' | 'journal' | 'capture'
 }

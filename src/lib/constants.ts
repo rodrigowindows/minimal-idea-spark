@@ -31,30 +31,38 @@ export const DEFAULT_DOMAIN_COLORS = [
   '#06b6d4', '#f97316', '#14b8a6', '#6366f1',
 ] as const
 
-// Gamification Configuration
+// Gamification Configuration - XP = Base XP * Strategic Value
 export const GAMIFICATION_CONFIG = {
-  // XP required per level (increases with level)
-  XP_PER_LEVEL: (level: number) => 1000 + (level - 1) * 500,
+  // Level N requires 1000 * (N^1.5) XP
+  XP_FOR_LEVEL: (level: number) => Math.round(1000 * Math.pow(level, 1.5)),
+  XP_PER_LEVEL: (level: number) => Math.round(1000 * Math.pow(level, 1.5)),
 
-  // XP rewards for different actions
+  // Base XP per type (multiplied by strategic_value 1-10)
+  BASE_XP: {
+    study: 50,
+    action: 30,
+    networking: 20,
+    insight: 10,
+  } as Record<string, number>,
+
+  // XP rewards for non-opportunity actions
   XP_RULES: {
-    capture: 5 as number,           // Log anything
-    complete_task: 25 as number,    // Finish opportunity
-    daily_streak: 10 as number,     // Login + 1 log/day
-    weekly_goal: 100 as number,     // 7+ days active
-    deep_work_25min: 50 as number,  // Pomodoro session
-    insight_added: 15 as number,    // Add an insight
-    networking: 20 as number,       // Networking activity
+    capture: 5 as number,
+    complete_task: 25 as number,
+    daily_streak: 10 as number,
+    weekly_goal: 100 as number,
+    deep_work_25min: 50 as number,
+    deep_work_per_minute: 2 as number,
+    insight_added: 15 as number,
+    networking: 20 as number,
   },
 
-  // Daily goals for engagement
   DAILY_GOALS: {
     min_logs: 3,
-    min_deep_work: 50, // minutes
+    min_deep_work: 50,
     domains_touched: 2,
   },
 
-  // Achievement definitions
   ACHIEVEMENTS: [
     { name: 'First Steps', description: 'Reach 100 XP', xp_reward: 100, unlock_at_xp: 100, icon: 'footprints' },
     { name: 'Daily Master', description: '7-day streak', xp_reward: 250, unlock_at_streak: 7, icon: 'flame' },
@@ -65,34 +73,43 @@ export const GAMIFICATION_CONFIG = {
     { name: 'Week Champion', description: 'Score 90+ on weekly scorecard', xp_reward: 500, unlock_at_week_score: 90, icon: 'crown' },
   ],
 
-  // Level titles
   LEVEL_TITLES: [
-    'Novice',           // 1
-    'Apprentice',       // 2
-    'Explorer',         // 3
-    'Practitioner',     // 4
-    'Strategist',       // 5
-    'Expert',           // 6
-    'Master',           // 7
-    'Grandmaster',      // 8
-    'Sage',             // 9
-    'Legend',           // 10+
+    'Novice',
+    'Apprentice',
+    'Explorer',
+    'Practitioner',
+    'Strategist',
+    'Expert',
+    'Master',
+    'Grandmaster',
+    'Sage',
+    'Legend',
   ] as const,
 } as const
 
-// Time Block defaults
+/**
+ * Calculate XP reward: Base XP * Strategic Value
+ * Study (50) * Valor 10 = 500 XP
+ * Action (30) * Valor 2 = 60 XP
+ */
+export function calculateXPReward(type: string, strategicValue: number): number {
+  const base = GAMIFICATION_CONFIG.BASE_XP[type.toLowerCase()] ?? 10
+  const sv = Math.max(1, Math.min(10, strategicValue))
+  return base * sv
+}
+
 export const TIME_BLOCK_DEFAULTS = {
-  DEFAULT_DURATION: 25, // minutes (Pomodoro)
-  BREAK_DURATION: 5,    // minutes
-  LONG_BREAK_DURATION: 15, // minutes after 4 pomodoros
+  DEFAULT_DURATION: 25,
+  BREAK_DURATION: 5,
+  LONG_BREAK_DURATION: 15,
   MIN_BLOCK_DURATION: 15,
   MAX_BLOCK_DURATION: 240,
 } as const
 
-// Weekly Scorecard thresholds
 export const SCORECARD_THRESHOLDS = {
   XP_GOAL_DAILY: 100,
   OPPORTUNITIES_GOAL_WEEKLY: 5,
-  DEEP_WORK_GOAL_WEEKLY: 10, // hours
-  DOMAIN_BALANCE_MAX: 40, // no domain > 40%
+  DEEP_WORK_GOAL_WEEKLY: 10,
+  DOMAIN_BALANCE_MAX: 40,
+  BURNOUT_THRESHOLD: 40,
 } as const

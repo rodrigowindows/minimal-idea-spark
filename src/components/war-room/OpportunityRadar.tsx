@@ -1,9 +1,19 @@
 import { useMemo } from 'react'
 import type { Opportunity, LifeDomain } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Radar } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
+import { Radar as RadarIcon, AlertTriangle } from 'lucide-react'
+import {
+  ResponsiveContainer,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+  Tooltip,
+} from 'recharts'
+import { SCORECARD_THRESHOLDS } from '@/lib/constants'
 
 interface OpportunityRadarProps {
   opportunities: Opportunity[] | undefined
@@ -11,46 +21,44 @@ interface OpportunityRadarProps {
 }
 
 export function OpportunityRadar({ opportunities, domains }: OpportunityRadarProps) {
-  const forgottenItems = useMemo(() => {
-    if (!opportunities) return undefined
-    const sevenDaysAgo = new Date()
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+  const { radarData, isImbalanced, maxPercent } = useMemo(() => {
+    if (!opportunities || !domains) return { radarData: undefined, isImbalanced: false, maxPercent: 0 }
 
-    return opportunities
-      .filter((o) => {
-        if (o.status !== 'backlog') return false
-        if (o.priority < 3) return false
-        const created = new Date(o.created_at)
-        return created < sevenDaysAgo
-      })
-      .sort((a, b) => {
-        const scoreA = a.priority * (a.strategic_value ?? 0)
-        const scoreB = b.priority * (b.strategic_value ?? 0)
-        return scoreB - scoreA
-      })
-      .slice(0, 5)
-  }, [opportunities])
+    const counts = new Map<string, number>()
+    const total = opportunities.length || 1
 
-  const domainMap = useMemo(() => {
-    if (!domains) return new Map<string, LifeDomain>()
-    return new Map(domains.map((d) => [d.id, d]))
-  }, [domains])
+    for (const opp of opportunities) {
+      if (!opp.domain_id) continue
+      counts.set(opp.domain_id, (counts.get(opp.domain_id) ?? 0) + 1)
+    }
 
-  // Loading state
-  if (forgottenItems === undefined) {
+    const data = domains.map(domain => {
+      const count = counts.get(domain.id) || 0
+      const percent = Math.round((count / total) * 100)
+      return {
+        name: domain.name,
+        value: percent,
+        count,
+        fullMark: 100,
+      }
+    })
+
+    const max = Math.max(...data.map(d => d.value), 0)
+    return {
+      radarData: data,
+      isImbalanced: max > SCORECARD_THRESHOLDS.BURNOUT_THRESHOLD,
+      maxPercent: max,
+    }
+  }, [opportunities, domains])
+
+  if (radarData === undefined) {
     return (
       <Card className="rounded-xl">
         <CardHeader>
           <Skeleton className="h-6 w-40" />
         </CardHeader>
         <CardContent className="space-y-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-3">
-              <Skeleton className="h-3 w-3 rounded-full" />
-              <Skeleton className="h-4 flex-1" />
-              <Skeleton className="h-3 w-16" />
-            </div>
-          ))}
+          <Skeleton className="h-40 w-full" />
         </CardContent>
       </Card>
     )
@@ -58,41 +66,70 @@ export function OpportunityRadar({ opportunities, domains }: OpportunityRadarPro
 
   return (
     <Card className="rounded-xl">
-      <CardHeader>
+      <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <Radar className="h-5 w-5 text-primary" />
-          Forgotten Radar
+          <RadarIcon className="h-5 w-5 text-primary" />
+          Balance Radar
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {forgottenItems.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No forgotten high-priority items. You are on top of things.
-          </p>
+        {radarData.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No domain data yet.</p>
         ) : (
-          <ul className="space-y-3">
-            {forgottenItems.map((item) => {
-              const domain = item.domain_id ? domainMap.get(item.domain_id) : null
-              const timeAgo = formatDistanceToNow(new Date(item.created_at), {
-                addSuffix: true,
-              })
+          <>
+            {isImbalanced && (
+              <div className="mb-3 flex items-center gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-400">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <span>Burnout risk: one domain at {maxPercent}% of effort.</span>
+              </div>
+            )}
 
-              return (
-                <li key={item.id} className="flex items-start gap-3">
-                  <span
-                    className="mt-1.5 inline-block h-2.5 w-2.5 shrink-0 animate-pulse rounded-full"
-                    style={{
-                      backgroundColor: domain?.color_theme ?? '#6b7280',
-                    }}
+            <div className="h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart data={radarData}>
+                  <PolarGrid stroke="hsl(var(--border))" />
+                  <PolarAngleAxis
+                    dataKey="name"
+                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
                   />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{item.title}</p>
-                    <p className="text-xs text-muted-foreground">{timeAgo}</p>
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
+                  <PolarRadiusAxis
+                    angle={90}
+                    domain={[0, 100]}
+                    tick={false}
+                    axisLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.75rem',
+                    }}
+                    formatter={(value: number) => [`${value}%`, 'Effort']}
+                  />
+                  <Radar
+                    name="Effort"
+                    dataKey="value"
+                    stroke="#8b5cf6"
+                    fill="#8b5cf6"
+                    fillOpacity={0.3}
+                    strokeWidth={2}
+                  />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1">
+              {radarData.map((entry) => (
+                <div key={entry.name} className="flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground">{entry.name}</span>
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                    {entry.count}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </CardContent>
     </Card>
