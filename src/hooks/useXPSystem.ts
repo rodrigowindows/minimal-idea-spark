@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useRef } from 'react'
 import { GAMIFICATION_CONFIG } from '@/lib/constants'
 import type { Achievement } from '@/types'
 
@@ -13,6 +13,17 @@ interface XPState {
   opportunitiesCompleted: number
   insightsLogged: number
   lastActivityDate: string | null
+}
+
+// Global event bus for XP events so any component can listen
+type XPEventListener = (event: { type: 'xp_gained' | 'level_up' | 'achievement'; amount?: number; level?: number; achievement?: Achievement }) => void
+const xpListeners = new Set<XPEventListener>()
+export function onXPEvent(listener: XPEventListener) {
+  xpListeners.add(listener)
+  return () => { xpListeners.delete(listener) }
+}
+function emitXPEvent(event: Parameters<XPEventListener>[0]) {
+  xpListeners.forEach(fn => fn(event))
 }
 
 const STORAGE_KEY = 'minimal_idea_spark_xp_state'
@@ -167,6 +178,17 @@ export function useXPSystem() {
       }
 
       persistState(newState)
+
+      // Emit global XP events (deferred to avoid setState-in-render)
+      setTimeout(() => {
+        emitXPEvent({ type: 'xp_gained', amount })
+        if (leveledUp) {
+          emitXPEvent({ type: 'level_up', level: newLevel })
+        }
+        newAchievements.forEach(a => {
+          emitXPEvent({ type: 'achievement', achievement: a })
+        })
+      }, 0)
 
       return newState
     })
