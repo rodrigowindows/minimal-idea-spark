@@ -22,7 +22,7 @@ export async function getCalendarEvents(
   startDate: Date,
   endDate: Date
 ): Promise<SupabaseCalendarEvent[]> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('calendar_events')
     .select('*')
     .eq('user_id', userId)
@@ -37,7 +37,7 @@ export async function getCalendarEvents(
 export async function createCalendarEvent(
   event: Omit<SupabaseCalendarEvent, 'id' | 'created_at' | 'updated_at'>
 ): Promise<SupabaseCalendarEvent> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('calendar_events')
     .insert(event)
     .select()
@@ -51,7 +51,7 @@ export async function updateCalendarEvent(
   eventId: string,
   updates: Partial<SupabaseCalendarEvent>
 ): Promise<SupabaseCalendarEvent> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('calendar_events')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', eventId)
@@ -63,7 +63,7 @@ export async function updateCalendarEvent(
 }
 
 export async function deleteCalendarEvent(eventId: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('calendar_events')
     .delete()
     .eq('id', eventId);

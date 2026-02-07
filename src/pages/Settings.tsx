@@ -40,7 +40,7 @@ export function Settings() {
   const [importing, setImporting] = useState(false)
   const [showDomainDialog, setShowDomainDialog] = useState(false)
   const [newDomainName, setNewDomainName] = useState('')
-  const [newDomainColor, setNewDomainColor] = useState(DEFAULT_DOMAIN_COLORS[0])
+  const [newDomainColor, setNewDomainColor] = useState<string>(DEFAULT_DOMAIN_COLORS[0])
   const [newDomainTarget, setNewDomainTarget] = useState(20)
 
   // Weekly targets local editing state

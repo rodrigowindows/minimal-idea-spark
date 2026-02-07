@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/audio-transcription';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface SearchResult {
   id: string;
@@ -68,7 +68,7 @@ export async function textSearch(
   query: string,
   filters?: SearchFilters
 ): Promise<SearchResult[]> {
-  let queryBuilder = supabase
+  let queryBuilder = (supabase as any)
     .from('searchable_content')
     .select('*')
     .textSearch('content', query, { type: 'websearch' });
@@ -99,7 +99,7 @@ export async function saveSearchQuery(query: string, resultsCount: number) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
 
-  await supabase.from('search_history').insert({
+  await (supabase as any).from('search_history').insert({
     user_id: user.id,
     query,
     results_count: resultsCount,
@@ -111,7 +111,7 @@ export async function getSearchHistory(limit = 10): Promise<string[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  const { data } = await supabase
+  const { data } = await (supabase as any)
     .from('search_history')
     .select('query')
     .eq('user_id', user.id)
@@ -124,7 +124,7 @@ export async function getSearchHistory(limit = 10): Promise<string[]> {
 export async function getSuggestedSearches(query: string): Promise<string[]> {
   if (query.length < 2) return [];
 
-  const { data } = await supabase
+  const { data } = await (supabase as any)
     .from('search_history')
     .select('query')
     .ilike('query', `${query}%`)
