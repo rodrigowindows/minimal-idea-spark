@@ -4,9 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
   DialogContent,
@@ -34,18 +32,19 @@ import {
   Trash2,
   Edit3,
   Clock,
-  UserPlus,
-  Link as LinkIcon,
-  Eye,
-  BarChart3,
-  BookOpen,
-  Target,
   LayoutDashboard,
+  MessageSquare,
+  History,
+  Circle,
 } from 'lucide-react';
 import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
+import { useRealtime } from '@/contexts/RealtimeContext';
 import { InviteMembers } from '@/components/InviteMembers';
 import { ShareDashboard } from '@/components/ShareDashboard';
 import { ActivityTimeline } from '@/components/ActivityTimeline';
+import { RealtimeChat } from '@/components/RealtimeChat';
+import { ChangeHistory } from '@/components/ChangeHistory';
+import { PresenceIndicator } from '@/components/PresenceIndicator';
 import { ROLE_LABELS } from '@/lib/db/schema-organizations';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -66,6 +65,7 @@ export function Workspace() {
     deleteOrganization,
     organizations,
   } = useWorkspaceContext();
+  const { presences, isConnected, chatMessages } = useRealtime();
 
   const [editName, setEditName] = useState('');
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -94,6 +94,8 @@ export function Workspace() {
     toast.success('Workspace removido');
   };
 
+  const onlineCount = presences.length;
+
   return (
     <div className="min-h-screen p-4 md:p-6 lg:p-8">
       <header className="mb-6">
@@ -102,12 +104,21 @@ export function Workspace() {
             <Building2 className="h-6 w-6 text-primary" />
             <div>
               <h1 className="text-2xl font-bold tracking-tight">{currentOrg.name}</h1>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground flex items-center gap-2">
                 {ROLE_LABELS[currentRole]} &middot; {orgMembers.length} membro{orgMembers.length > 1 ? 's' : ''}
+                <span className="flex items-center gap-1">
+                  <Circle className={cn('h-2 w-2 fill-current', isConnected ? 'text-green-500' : 'text-red-500')} />
+                  {onlineCount > 0 ? `${onlineCount} online` : 'Offline'}
+                </span>
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <PresenceIndicator
+              presences={presences}
+              currentUserId={currentUserId}
+              maxDisplay={5}
+            />
             <InviteMembers />
             {permissions.canEditSettings && (
               <Button
@@ -128,14 +139,27 @@ export function Workspace() {
       </header>
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="overview" className="gap-2">
             <LayoutDashboard className="h-4 w-4" />
             Visao Geral
           </TabsTrigger>
+          <TabsTrigger value="chat" className="gap-2">
+            <MessageSquare className="h-4 w-4" />
+            Chat
+            {chatMessages.length > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] text-xs">
+                {chatMessages.length}
+              </Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="members" className="gap-2">
             <Users className="h-4 w-4" />
             Membros
+          </TabsTrigger>
+          <TabsTrigger value="history" className="gap-2">
+            <History className="h-4 w-4" />
+            Historico
           </TabsTrigger>
           <TabsTrigger value="sharing" className="gap-2">
             <Share2 className="h-4 w-4" />
@@ -169,23 +193,23 @@ export function Workspace() {
             </Card>
             <Card className="rounded-xl">
               <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Online Agora</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2">
+                  <Circle className="h-5 w-5 text-green-500 fill-green-500" />
+                  <span className="text-2xl font-bold">{onlineCount}</span>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="rounded-xl">
+              <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Dashboards Compartilhados</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-2">
                   <Share2 className="h-5 w-5 text-blue-500" />
                   <span className="text-2xl font-bold">{orgShares.length}</span>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="rounded-xl">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Atividades Recentes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2">
-                  <Activity className="h-5 w-5 text-green-500" />
-                  <span className="text-2xl font-bold">{orgActivity.length}</span>
                 </div>
               </CardContent>
             </Card>
@@ -215,6 +239,11 @@ export function Workspace() {
           </Card>
         </TabsContent>
 
+        {/* Chat Tab */}
+        <TabsContent value="chat">
+          <RealtimeChat />
+        </TabsContent>
+
         {/* Members Tab */}
         <TabsContent value="members">
           <Card className="rounded-xl">
@@ -229,33 +258,59 @@ export function Workspace() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {orgMembers.map((member) => (
-                  <div
-                    key={member.id}
-                    className="flex items-center justify-between rounded-lg border p-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
-                        {(member.user_profile?.full_name || member.user_id)?.[0]?.toUpperCase() || 'U'}
+                {orgMembers.map((member) => {
+                  const isOnline = presences.some(p => p.user_id === member.user_id);
+                  const presence = presences.find(p => p.user_id === member.user_id);
+                  return (
+                    <div
+                      key={member.id}
+                      className="flex items-center justify-between rounded-lg border p-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
+                            {(member.user_profile?.full_name || member.user_id)?.[0]?.toUpperCase() || 'U'}
+                          </div>
+                          <div className={cn(
+                            'absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background',
+                            isOnline ? 'bg-green-500' : 'bg-gray-400'
+                          )} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">
+                            {member.user_profile?.full_name || member.user_id}
+                            {member.user_id === currentUserId && (
+                              <span className="ml-2 text-xs text-muted-foreground">(voce)</span>
+                            )}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {isOnline && presence?.current_page ? (
+                              <span className="text-green-600">Vendo: {presence.current_page}</span>
+                            ) : (
+                              <>Desde {formatDistanceToNow(new Date(member.joined_at), { addSuffix: true })}</>
+                            )}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium">
-                          {member.user_profile?.full_name || member.user_id}
-                          {member.user_id === currentUserId && (
-                            <span className="ml-2 text-xs text-muted-foreground">(voce)</span>
-                          )}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Desde {formatDistanceToNow(new Date(member.joined_at), { addSuffix: true })}
-                        </p>
+                      <div className="flex items-center gap-2">
+                        {isOnline && (
+                          <Badge variant="outline" className="text-green-600 border-green-300 text-xs">
+                            Online
+                          </Badge>
+                        )}
+                        <Badge variant="secondary">{ROLE_LABELS[member.role]}</Badge>
                       </div>
                     </div>
-                    <Badge variant="secondary">{ROLE_LABELS[member.role]}</Badge>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* History Tab */}
+        <TabsContent value="history">
+          <ChangeHistory />
         </TabsContent>
 
         {/* Sharing Tab */}

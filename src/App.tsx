@@ -26,6 +26,7 @@ import { AppProvider, useAppContext } from "@/contexts/AppContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { RealtimeProvider } from "@/contexts/RealtimeContext";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -94,7 +95,9 @@ function AuthGate() {
     <LanguageProvider>
       <AppProvider>
         <WorkspaceProvider>
-          <AppContent />
+          <RealtimeProvider>
+            <AppContent />
+          </RealtimeProvider>
         </WorkspaceProvider>
       </AppProvider>
     </LanguageProvider>
