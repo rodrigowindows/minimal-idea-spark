@@ -50,8 +50,11 @@ import { ROLE_LABELS } from '@/lib/db/schema-organizations';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function Workspace() {
+  const { user } = useAuth();
+  const currentUserId = user?.id ?? 'mock-user-001';
   const {
     currentOrg,
     currentRole,
@@ -238,7 +241,7 @@ export function Workspace() {
                       <div>
                         <p className="text-sm font-medium">
                           {member.user_profile?.full_name || member.user_id}
-                          {member.user_id === 'mock-user-001' && (
+                          {member.user_id === currentUserId && (
                             <span className="ml-2 text-xs text-muted-foreground">(voce)</span>
                           )}
                         </p>

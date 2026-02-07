@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useLocalData } from '@/hooks/useLocalData'
+import { useAuth } from '@/contexts/AuthContext'
 import { DEFAULT_DOMAIN_COLORS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -18,6 +19,9 @@ import {
   Info,
   Plus,
   Globe,
+  Target,
+  Save,
+  LogOut,
 } from 'lucide-react'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { TranscriptionHistory } from '@/components/TranscriptionHistory'
@@ -30,13 +34,32 @@ import {
 } from '@/components/ui/dialog'
 
 export function Settings() {
-  const { exportData, importData, opportunities, dailyLogs, habits, goals, domains, addDomain } = useLocalData()
+  const { exportData, importData, opportunities, dailyLogs, habits, goals, domains, addDomain, weeklyTargets, setWeeklyTarget } = useLocalData()
+  const { user, signOut } = useAuth()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [importing, setImporting] = useState(false)
   const [showDomainDialog, setShowDomainDialog] = useState(false)
   const [newDomainName, setNewDomainName] = useState('')
   const [newDomainColor, setNewDomainColor] = useState(DEFAULT_DOMAIN_COLORS[0])
   const [newDomainTarget, setNewDomainTarget] = useState(20)
+
+  // Weekly targets local editing state
+  const [editingTargets, setEditingTargets] = useState<Record<string, { opp: number; hours: number }>>(() => {
+    const initial: Record<string, { opp: number; hours: number }> = {}
+    weeklyTargets.forEach(t => {
+      initial[t.domain_id] = { opp: t.opportunities_target, hours: t.hours_target }
+    })
+    return initial
+  })
+
+  function handleSaveWeeklyTargets() {
+    Object.entries(editingTargets).forEach(([domainId, { opp, hours }]) => {
+      if (opp > 0 || hours > 0) {
+        setWeeklyTarget(domainId, opp, hours)
+      }
+    })
+    toast.success('Weekly goals saved!')
+  }
 
   function handleExport() {
     exportData()
@@ -176,6 +199,68 @@ export function Settings() {
           </CardContent>
         </Card>
 
+        {/* Weekly Goals */}
+        <Card className="rounded-xl">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center justify-between text-lg">
+              <span className="flex items-center gap-2">
+                <Target className="h-5 w-5 text-primary" />
+                Weekly Goals
+              </span>
+              <Button size="sm" className="gap-1" onClick={handleSaveWeeklyTargets}>
+                <Save className="h-3 w-3" />Save
+              </Button>
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Define how many tasks to complete and hours of focus per domain each week.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {domains.map((domain) => {
+              const current = editingTargets[domain.id] || { opp: 0, hours: 0 }
+              return (
+                <div key={domain.id} className="rounded-lg bg-muted/50 p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: domain.color_theme }} />
+                    <span className="text-sm font-medium">{domain.name}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Tasks / week</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={50}
+                        value={current.opp}
+                        onChange={(e) => setEditingTargets(prev => ({
+                          ...prev,
+                          [domain.id]: { ...prev[domain.id] || { opp: 0, hours: 0 }, opp: Number(e.target.value) },
+                        }))}
+                        className="h-8"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Hours / week</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={80}
+                        step={0.5}
+                        value={current.hours}
+                        onChange={(e) => setEditingTargets(prev => ({
+                          ...prev,
+                          [domain.id]: { ...prev[domain.id] || { opp: 0, hours: 0 }, hours: Number(e.target.value) },
+                        }))}
+                        className="h-8"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </CardContent>
+        </Card>
+
         {/* Export/Import */}
         <Card className="rounded-xl">
           <CardHeader className="pb-3">
@@ -219,6 +304,26 @@ export function Settings() {
             <p className="text-xs text-muted-foreground">
               This will permanently delete all your data including opportunities, journal, habits, goals, and XP progress.
             </p>
+          </CardContent>
+        </Card>
+
+        {/* Account */}
+        <Card className="rounded-xl">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <LogOut className="h-5 w-5 text-primary" />
+              Conta
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {user && (
+              <p className="text-sm text-muted-foreground">
+                Logado como: <span className="font-medium text-foreground">{user.email}</span>
+              </p>
+            )}
+            <Button variant="outline" onClick={signOut} className="w-full gap-2">
+              <LogOut className="h-4 w-4" />Sair da conta
+            </Button>
           </CardContent>
         </Card>
 

@@ -14,6 +14,7 @@ import { VoiceInput } from '@/components/smart-capture/VoiceInput'
 import { AudioToText } from '@/components/AudioToText'
 import { format, parseISO } from 'date-fns'
 import { toast } from 'sonner'
+import { supabase } from '@/integrations/supabase/client'
 
 export function Journal() {
   const { dailyLogs, isLoading, addDailyLog, deleteDailyLog } = useLocalData()
@@ -30,17 +31,74 @@ export function Journal() {
     )
   }, [dailyLogs])
 
-  function handleSubmit() {
+  async function generateEmbeddingForLog(logId: string, text: string) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) return // Not authenticated, skip embedding
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+      await fetch(`${supabaseUrl}/functions/v1/generate-embedding`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          text,
+          table: 'daily_logs',
+          id: logId,
+        }),
+      })
+    } catch {
+      // Embedding generation is best-effort, don't block the user
+    }
+  }
+
+  async function syncLogToSupabase(logData: {
+    content: string
+    mood: string | null
+    energy_level: number
+    log_date: string
+  }) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) return null // Not authenticated, skip sync
+
+      const { data, error } = await supabase
+        .from('daily_logs')
+        .insert({
+          user_id: session.user.id,
+          content: logData.content,
+          mood: logData.mood,
+          energy_level: logData.energy_level,
+          log_date: logData.log_date,
+        })
+        .select('id')
+        .single()
+
+      if (error || !data) return null
+      return data.id as string
+    } catch {
+      return null
+    }
+  }
+
+  async function handleSubmit() {
     if (!content.trim()) {
       toast.error('Please write something before saving.')
       return
     }
 
+    const logDate = new Date().toISOString().split('T')[0]
+    const trimmedContent = content.trim()
+
+    // Save locally
     addDailyLog({
-      content: content.trim(),
+      content: trimmedContent,
       mood: selectedMood,
       energy_level: energyLevel,
-      log_date: new Date().toISOString().split('T')[0],
+      log_date: logDate,
     })
     addXP(15)
     toast.success(
@@ -55,6 +113,18 @@ export function Journal() {
     setSelectedMood(null)
     setEnergyLevel(5)
     setShowNewEntry(false)
+
+    // Sync to Supabase and generate embedding (best-effort, async)
+    const embeddingText = `${trimmedContent} | Mood: ${selectedMood ?? 'N/A'} | Energy: ${energyLevel}/10 | Date: ${logDate}`
+    const supabaseLogId = await syncLogToSupabase({
+      content: trimmedContent,
+      mood: selectedMood,
+      energy_level: energyLevel,
+      log_date: logDate,
+    })
+    if (supabaseLogId) {
+      generateEmbeddingForLog(supabaseLogId, embeddingText)
+    }
   }
 
   function handleDelete(id: string) {

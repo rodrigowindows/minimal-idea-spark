@@ -10,8 +10,11 @@ import { cn } from '@/lib/utils'
 import { useXPSystem } from '@/hooks/useXPSystem'
 import { useFocusSessions } from '@/hooks/useFocusSessions'
 import { calculateXPReward } from '@/lib/constants'
+import { useAuth } from '@/contexts/AuthContext'
 
 export function DeepWorkOverlay() {
+  const { user } = useAuth()
+  const currentUserId = user?.id ?? 'mock-user-001'
   const { deepWorkMode, currentOpportunity, toggleDeepWorkMode, setCurrentOpportunity } = useAppContext()
   const { addXP } = useXPSystem()
   const { addSession } = useFocusSessions()
@@ -37,7 +40,7 @@ export function DeepWorkOverlay() {
 
     // Save focus session to persistent storage
     addSession({
-      user_id: 'mock-user-001',
+      user_id: currentUserId,
       opportunity_id: currentOpportunity?.id ?? null,
       duration_minutes: minutes,
       started_at: new Date(Date.now() - minutes * 60000).toISOString(),

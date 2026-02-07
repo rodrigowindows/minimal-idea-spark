@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
 import type {
   Priority,
   PriorityLevel,
@@ -16,7 +17,6 @@ import { generateLocalSuggestions } from '@/lib/rag/goal-embeddings'
 import type { Goal } from '@/hooks/useLocalData'
 
 const STORAGE_KEY = 'lifeos_priorities'
-const MOCK_USER_ID = 'mock-user-001'
 
 function loadPriorities(): Priority[] {
   try {
@@ -34,6 +34,9 @@ export function usePriorities(
   opportunities: Array<{ title: string; status: string; type: string; strategic_value: number | null }> = [],
   goals: Goal[] = [],
 ) {
+  const { user } = useAuth()
+  const userId = user?.id ?? 'mock-user-001'
+
   const [priorities, setPriorities] = useState<Priority[]>(() => loadPriorities())
 
   // Persist on change
@@ -113,7 +116,7 @@ export function usePriorities(
     const now = new Date().toISOString()
     const newPriority: Priority = {
       id: `priority-${Date.now()}`,
-      user_id: MOCK_USER_ID,
+      user_id: userId,
       title: data.title,
       description: data.description,
       priority_level: data.priority_level,
@@ -131,7 +134,7 @@ export function usePriorities(
     }
     setPriorities(prev => [newPriority, ...prev])
     return newPriority
-  }, [])
+  }, [userId])
 
   const updatePriority = useCallback((id: string, data: Partial<Priority>) => {
     setPriorities(prev => prev.map(p =>

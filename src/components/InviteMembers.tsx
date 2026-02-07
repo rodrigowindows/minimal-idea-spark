@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { ROLE_LABELS, type InviteRole, type InviteStatus } from '@/lib/db/schema-organizations';
 
 const STATUS_CONFIG: Record<InviteStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: typeof Clock }> = {
@@ -51,6 +52,9 @@ export function InviteMembers() {
     removeMember,
     changeMemberRole,
   } = useWorkspaceContext();
+
+  const { user } = useAuth();
+  const currentUserId = user?.id ?? 'mock-user-001';
 
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
@@ -84,10 +88,13 @@ export function InviteMembers() {
 
   const pendingInvites = orgInvites.filter(i => i.status === 'pending');
 
+  // Invitations disabled for now - focusing on single-user security first
+  const invitesDisabled = true;
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button disabled={!permissions.canInvite} size="sm" className="gap-2">
+        <Button disabled={!permissions.canInvite || invitesDisabled} size="sm" className="gap-2" title={invitesDisabled ? 'Convites serao habilitados em breve (Plano Pro)' : undefined}>
           <UserPlus className="h-4 w-4" />
           Convidar
         </Button>
@@ -153,7 +160,7 @@ export function InviteMembers() {
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">
                         {member.user_profile?.full_name || member.user_id}
-                        {member.user_id === 'mock-user-001' && (
+                        {member.user_id === currentUserId && (
                           <span className="ml-1 text-xs text-muted-foreground">(voce)</span>
                         )}
                       </p>
@@ -163,7 +170,7 @@ export function InviteMembers() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    {permissions.canRemoveMembers && member.role !== 'owner' && member.user_id !== 'mock-user-001' && (
+                    {permissions.canRemoveMembers && member.role !== 'owner' && member.user_id !== currentUserId && (
                       <>
                         <Select
                           value={member.role}

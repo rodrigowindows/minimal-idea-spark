@@ -23,23 +23,25 @@ interface ContextSource {
   metadata?: Record<string, unknown>
 }
 
-const SYSTEM_PROMPT = `Você é um estrategista de vida de alta performance. Use o contexto fornecido (tarefas e diários do usuário) para dar conselhos táticos e priorizações.
+const SYSTEM_PROMPT = `Você é um mentor estratégico. Analise os seguintes logs diários do usuário e as oportunidades atuais. Responda à pergunta do usuário considerando o cansaço e as metas dele.
 
 You have access to the user's:
+- Daily journal logs with mood, energy levels, and reflections
 - Opportunities (tasks, goals, insights) with priorities and strategic values
-- Daily journal logs with mood and energy data
 - Knowledge base (book summaries, notes)
 
 Your role is to:
 1. Help the user make better decisions about what to prioritize
-2. Identify patterns in their data (energy, productivity, mood)
+2. Identify patterns in their data (energy, productivity, mood, fatigue)
 3. Provide actionable advice based on their goals and history
 4. Be encouraging but honest about areas needing attention
+5. Consider the user's energy level and mood when suggesting tasks — if they're tired, suggest lighter tasks or rest
 
 When responding:
-- Reference specific items from the context when relevant
+- Reference specific items from the context when relevant (journal entries, opportunities)
 - Be concise but insightful
 - Frame suggestions in terms of strategic value and goal alignment
+- If mood/energy data is available, factor it into your recommendations
 - If you don't have enough context, say so and ask clarifying questions
 
 Current context from user's data will be provided below.`
@@ -100,6 +102,40 @@ serve(async (req) => {
     // Take top 8 sources (already sorted by similarity from the RPC)
     const topSources = contextSources.slice(0, 8)
 
+    // Also fetch recent daily_logs explicitly (semantic search may miss them)
+    const { data: recentLogs } = await supabase
+      .from('daily_logs')
+      .select('content, mood, energy_level, log_date')
+      .eq('user_id', user.id)
+      .order('log_date', { ascending: false })
+      .limit(7)
+
+    // Fetch active opportunities explicitly
+    const { data: activeOpps } = await supabase
+      .from('opportunities')
+      .select('title, type, status, priority, strategic_value')
+      .eq('user_id', user.id)
+      .in('status', ['doing', 'review'])
+      .order('priority', { ascending: false })
+      .limit(10)
+
+    // Build explicit context sections
+    let explicitContext = ''
+
+    if (recentLogs && recentLogs.length > 0) {
+      explicitContext += '\n\nRecent daily logs:\n'
+      for (const log of recentLogs) {
+        explicitContext += `- [${log.log_date}] Mood: ${log.mood ?? 'N/A'}, Energy: ${log.energy_level ?? 'N/A'}/10. "${log.content}"\n`
+      }
+    }
+
+    if (activeOpps && activeOpps.length > 0) {
+      explicitContext += '\n\nActive opportunities:\n'
+      for (const opp of activeOpps) {
+        explicitContext += `- [${opp.type}/${opp.status}] ${opp.title} (Priority: ${opp.priority}/10, Strategic Value: ${opp.strategic_value ?? 'N/A'})\n`
+      }
+    }
+
     // Build context string for the LLM
     const contextString = topSources.length > 0
       ? `\n\nRelevant context from your data:\n${topSources.map((s, i) => {
@@ -114,7 +150,7 @@ serve(async (req) => {
           }
           return `${i + 1}. [${s.type}] ${detail}`
         }).join('\n')}`
-      : '\n\nNo directly relevant context found in your data for this query.'
+      : '\n\nNo directly relevant context found via semantic search.'
 
     // Get recent chat history for continuity
     const currentSessionId = sessionId ?? crypto.randomUUID()
@@ -128,7 +164,7 @@ serve(async (req) => {
 
     // Build messages array for OpenAI
     const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
-      { role: 'system', content: SYSTEM_PROMPT + contextString },
+      { role: 'system', content: SYSTEM_PROMPT + explicitContext + contextString },
     ]
 
     if (chatHistory) {

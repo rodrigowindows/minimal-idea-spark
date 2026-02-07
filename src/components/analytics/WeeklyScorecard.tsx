@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { useXPSystem } from '@/hooks/useXPSystem'
 import { SCORECARD_THRESHOLDS, GAMIFICATION_CONFIG } from '@/lib/constants'
 import type { Opportunity, LifeDomain } from '@/types'
+import { useLocalData, type WeeklyTarget } from '@/hooks/useLocalData'
 import { cn } from '@/lib/utils'
 import {
   TrendingUp,
@@ -137,6 +138,14 @@ export function WeeklyScorecard({ opportunities, domains, className }: WeeklySco
     setWeekScore,
   } = useXPSystem()
 
+  const { weeklyTargets } = useLocalData()
+
+  // Use user-defined total targets if available, otherwise use defaults
+  const userOppTarget = weeklyTargets.reduce((sum, t) => sum + t.opportunities_target, 0)
+  const userHoursTarget = weeklyTargets.reduce((sum, t) => sum + t.hours_target, 0)
+  const effectiveOppTarget = userOppTarget > 0 ? userOppTarget : SCORECARD_THRESHOLDS.OPPORTUNITIES_GOAL_WEEKLY
+  const effectiveDeepWorkTarget = userHoursTarget > 0 ? userHoursTarget : SCORECARD_THRESHOLDS.DEEP_WORK_GOAL_WEEKLY
+
   // Calculate domain balance
   const domainData = useMemo(() => {
     if (!opportunities || !domains) return []
@@ -169,18 +178,18 @@ export function WeeklyScorecard({ opportunities, domains, className }: WeeklySco
   // Calculate ring progress values
   const weeklyXpTarget = SCORECARD_THRESHOLDS.XP_GOAL_DAILY * 7
   const xpProgress = Math.min(xpTotal / weeklyXpTarget, 1)
-  const oppProgress = Math.min(opportunitiesCompleted / SCORECARD_THRESHOLDS.OPPORTUNITIES_GOAL_WEEKLY, 1)
-  const deepWorkHoursTarget = SCORECARD_THRESHOLDS.DEEP_WORK_GOAL_WEEKLY
+  const oppProgress = Math.min(opportunitiesCompleted / effectiveOppTarget, 1)
+  const deepWorkHoursTarget = effectiveDeepWorkTarget
   const deepWorkProgress = Math.min((deepWorkMinutes / 60) / deepWorkHoursTarget, 1)
 
   // Calculate overall score
   const calculatedScore = useMemo(() => {
     const xpScore = Math.min(xpTotal / weeklyXpTarget, 1) * 30
-    const oppScore = Math.min(opportunitiesCompleted / SCORECARD_THRESHOLDS.OPPORTUNITIES_GOAL_WEEKLY, 1) * 25
-    const deepWorkScore = Math.min((deepWorkMinutes / 60) / SCORECARD_THRESHOLDS.DEEP_WORK_GOAL_WEEKLY, 1) * 25
+    const oppScore = Math.min(opportunitiesCompleted / effectiveOppTarget, 1) * 25
+    const deepWorkScore = Math.min((deepWorkMinutes / 60) / effectiveDeepWorkTarget, 1) * 25
     const streakScore = Math.min(streakDays / 7, 1) * 20
     return Math.round(xpScore + oppScore + deepWorkScore + streakScore)
-  }, [xpTotal, opportunitiesCompleted, deepWorkMinutes, streakDays])
+  }, [xpTotal, opportunitiesCompleted, deepWorkMinutes, streakDays, effectiveOppTarget, effectiveDeepWorkTarget])
 
   const deepWorkHours = Math.floor(deepWorkMinutes / 60)
   const deepWorkMins = deepWorkMinutes % 60
@@ -239,7 +248,7 @@ export function WeeklyScorecard({ opportunities, domains, className }: WeeklySco
             </ProgressRing>
             <div className="text-center">
               <p className="text-sm font-semibold">{opportunitiesCompleted}</p>
-              <p className="text-[10px] text-muted-foreground">Done / {SCORECARD_THRESHOLDS.OPPORTUNITIES_GOAL_WEEKLY}</p>
+              <p className="text-[10px] text-muted-foreground">Done / {effectiveOppTarget}</p>
             </div>
           </div>
         </div>
@@ -257,16 +266,16 @@ export function WeeklyScorecard({ opportunities, domains, className }: WeeklySco
           <KPICard
             label="Completed"
             value={opportunitiesCompleted}
-            target={`${SCORECARD_THRESHOLDS.OPPORTUNITIES_GOAL_WEEKLY}+`}
-            trend={opportunitiesCompleted >= 5 ? 'up' : 'down'}
+            target={`${effectiveOppTarget}+`}
+            trend={opportunitiesCompleted >= effectiveOppTarget ? 'up' : 'down'}
             icon={Target}
             color="bg-green-500"
           />
           <KPICard
             label="Deep Work"
             value={`${deepWorkHours}h${deepWorkMins > 0 ? ` ${deepWorkMins}m` : ''}`}
-            target={`${SCORECARD_THRESHOLDS.DEEP_WORK_GOAL_WEEKLY}h`}
-            trend={deepWorkHours >= 10 ? 'up' : 'neutral'}
+            target={`${effectiveDeepWorkTarget}h`}
+            trend={deepWorkHours >= effectiveDeepWorkTarget ? 'up' : 'neutral'}
             icon={Brain}
             color="bg-purple-500"
           />

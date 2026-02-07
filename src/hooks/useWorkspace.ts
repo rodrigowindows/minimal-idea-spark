@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import type {
   Organization,
   OrganizationMember,
@@ -53,9 +54,9 @@ function generateToken(): string {
     .join('');
 }
 
-const MOCK_USER_ID = 'mock-user-001';
-
 export function useWorkspace() {
+  const { user } = useAuth();
+  const currentUserId = user?.id ?? 'mock-user-001';
   const [organizations, setOrganizations] = useState<Organization[]>(() =>
     loadFromStorage<Organization[]>(WORKSPACE_STORAGE_KEY, [])
   );
@@ -83,7 +84,7 @@ export function useWorkspace() {
         id: generateId(),
         name: 'Meu Workspace',
         slug: 'meu-workspace',
-        owner_id: MOCK_USER_ID,
+        owner_id: currentUserId,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         settings: { default_language: 'pt-BR', timezone: 'America/Sao_Paulo' },
@@ -91,7 +92,7 @@ export function useWorkspace() {
       const defaultMember: OrganizationMember = {
         id: generateId(),
         organization_id: defaultOrg.id,
-        user_id: MOCK_USER_ID,
+        user_id: currentUserId,
         role: 'owner',
         joined_at: new Date().toISOString(),
         status: 'active',
@@ -115,7 +116,7 @@ export function useWorkspace() {
   const currentOrg = organizations.find(o => o.id === currentOrgId) || organizations[0] || null;
 
   const currentMember = members.find(
-    m => m.organization_id === currentOrg?.id && m.user_id === MOCK_USER_ID
+    m => m.organization_id === currentOrg?.id && m.user_id === currentUserId
   );
 
   const currentRole: MemberRole = currentMember?.role || 'viewer';
@@ -139,7 +140,7 @@ export function useWorkspace() {
     const entry: ActivityLog = {
       id: generateId(),
       organization_id: currentOrg.id,
-      user_id: MOCK_USER_ID,
+      user_id: currentUserId,
       action,
       resource_type: resourceType,
       resource_id: resourceId,
@@ -161,7 +162,7 @@ export function useWorkspace() {
       id: generateId(),
       name,
       slug: generateSlug(name),
-      owner_id: MOCK_USER_ID,
+      owner_id: currentUserId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       settings,
@@ -169,7 +170,7 @@ export function useWorkspace() {
     const member: OrganizationMember = {
       id: generateId(),
       organization_id: org.id,
-      user_id: MOCK_USER_ID,
+      user_id: currentUserId,
       role: 'owner',
       joined_at: new Date().toISOString(),
       status: 'active',
@@ -212,7 +213,7 @@ export function useWorkspace() {
       organization_id: currentOrg.id,
       email,
       role,
-      invited_by: MOCK_USER_ID,
+      invited_by: currentUserId,
       token: generateToken(),
       expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       created_at: new Date().toISOString(),
@@ -293,7 +294,7 @@ export function useWorkspace() {
       organization_id: currentOrg.id,
       dashboard_type: dashboardType,
       title,
-      shared_by: MOCK_USER_ID,
+      shared_by: currentUserId,
       share_type: shareType,
       share_token: shareType === 'public' ? generateToken() : undefined,
       permissions,

@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { WeeklyScorecard } from '@/components/analytics/WeeklyScorecard'
 import { ActivityHeatmap } from '@/components/analytics/ActivityHeatmap'
 import { XPProgressBar } from '@/components/gamification/XPProgressBar'
@@ -6,10 +7,12 @@ import { useLocalData } from '@/hooks/useLocalData'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
 import { GAMIFICATION_CONFIG } from '@/lib/constants'
 import {
-  Trophy, Flame, Brain, Footprints, Scale, Lightbulb, Crown, Star, RotateCcw, Zap,
+  Trophy, Flame, Brain, Footprints, Scale, Lightbulb, Crown, Star, RotateCcw, Zap, Target,
 } from 'lucide-react'
+import { startOfWeek, endOfWeek, isWithinInterval, parseISO } from 'date-fns'
 
 const ACHIEVEMENT_ICONS: Record<string, typeof Star> = {
   footprints: Footprints, flame: Flame, brain: Brain, trophy: Trophy,
@@ -17,7 +20,7 @@ const ACHIEVEMENT_ICONS: Record<string, typeof Star> = {
 }
 
 export function Analytics() {
-  const { opportunities, domains, isLoading } = useLocalData()
+  const { opportunities, domains, isLoading, weeklyTargets } = useLocalData()
   const {
     level, xpTotal, levelTitle, achievements, streakDays,
     deepWorkMinutes, opportunitiesCompleted, resetXP,
@@ -25,6 +28,29 @@ export function Analytics() {
 
   const allAchievements = GAMIFICATION_CONFIG.ACHIEVEMENTS
   const unlockedNames = new Set(achievements.map(a => a.name))
+
+  // Calculate this week's completed opportunities per domain
+  const weeklyDomainStats = useMemo(() => {
+    const now = new Date()
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 })
+    const weekEnd = endOfWeek(now, { weekStartsOn: 1 })
+
+    const stats: Record<string, number> = {}
+    opportunities.forEach(opp => {
+      if (opp.status === 'done' && opp.domain_id) {
+        try {
+          const created = parseISO(opp.created_at)
+          if (isWithinInterval(created, { start: weekStart, end: weekEnd })) {
+            stats[opp.domain_id] = (stats[opp.domain_id] || 0) + 1
+          }
+        } catch { /* ignore parse errors */ }
+      }
+    })
+    return stats
+  }, [opportunities])
+
+  // Only show domain goals card if at least one target is set
+  const hasTargets = weeklyTargets.length > 0 && weeklyTargets.some(t => t.opportunities_target > 0 || t.hours_target > 0)
 
   return (
     <div className="min-h-screen p-4 md:p-6 lg:p-8">
@@ -39,6 +65,53 @@ export function Analytics() {
             opportunities={isLoading ? undefined : opportunities}
             domains={isLoading ? undefined : domains}
           />
+
+          {/* Weekly Goals vs Actual - per domain */}
+          {hasTargets && (
+            <Card className="rounded-xl">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Target className="h-5 w-5 text-green-400" />
+                  Weekly Goals Progress
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Tasks completed this week vs your goals (set in Settings)
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {weeklyTargets
+                  .filter(t => t.opportunities_target > 0 || t.hours_target > 0)
+                  .map(target => {
+                    const domain = domains.find(d => d.id === target.domain_id)
+                    if (!domain) return null
+                    const completed = weeklyDomainStats[target.domain_id] || 0
+                    const oppTarget = target.opportunities_target
+                    const oppPercent = oppTarget > 0 ? Math.min(Math.round((completed / oppTarget) * 100), 100) : 0
+
+                    return (
+                      <div key={target.domain_id} className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: domain.color_theme }} />
+                          <span className="text-sm font-medium flex-1">{domain.name}</span>
+                          <Badge variant={oppPercent >= 100 ? 'default' : 'secondary'} className="text-xs">
+                            {completed}/{oppTarget} tasks
+                          </Badge>
+                          {target.hours_target > 0 && (
+                            <Badge variant="outline" className="text-xs">
+                              {target.hours_target}h goal
+                            </Badge>
+                          )}
+                        </div>
+                        {oppTarget > 0 && (
+                          <Progress value={oppPercent} className="h-2" />
+                        )}
+                      </div>
+                    )
+                  })}
+              </CardContent>
+            </Card>
+          )}
+
           <ActivityHeatmap />
         </div>
 

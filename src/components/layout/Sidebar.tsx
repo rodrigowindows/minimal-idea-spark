@@ -3,6 +3,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Focus,
+  Globe,
   LayoutDashboard,
   MessageSquare,
   Sparkles,
@@ -17,6 +18,8 @@ import {
 import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useAppContext } from '@/contexts/AppContext'
+import { useTranslation } from '@/contexts/LanguageContext'
+import type { TranslationKey } from '@/contexts/LanguageContext'
 import { XPProgressBar } from '@/components/gamification/XPProgressBar'
 import { WorkspaceSwitcher } from '@/components/WorkspaceSwitcher'
 
@@ -25,21 +28,22 @@ interface SidebarProps {
   onToggle: () => void
 }
 
-const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/consultant', icon: MessageSquare, label: 'Consultant' },
-  { to: '/opportunities', icon: Target, label: 'Opportunities' },
-  { to: '/journal', icon: BookOpen, label: 'Journal' },
-  { to: '/habits', icon: Repeat, label: 'Habits' },
-  { to: '/goals', icon: Flag, label: 'Goals' },
-  { to: '/analytics', icon: BarChart3, label: 'Analytics' },
-  { to: '/weekly-review', icon: ClipboardCheck, label: 'Weekly Review' },
-  { to: '/workspace', icon: Building2, label: 'Workspace' },
-  { to: '/settings', icon: Settings2, label: 'Settings' },
+const navItems: { to: string; icon: typeof LayoutDashboard; labelKey: TranslationKey }[] = [
+  { to: '/', icon: LayoutDashboard, labelKey: 'dashboard' },
+  { to: '/consultant', icon: MessageSquare, labelKey: 'consultant' },
+  { to: '/opportunities', icon: Target, labelKey: 'opportunities' },
+  { to: '/journal', icon: BookOpen, labelKey: 'journal' },
+  { to: '/habits', icon: Repeat, labelKey: 'habits' },
+  { to: '/goals', icon: Flag, labelKey: 'goals' },
+  { to: '/analytics', icon: BarChart3, labelKey: 'analytics' },
+  { to: '/weekly-review', icon: ClipboardCheck, labelKey: 'weeklyReview' },
+  { to: '/workspace', icon: Building2, labelKey: 'workspace' },
+  { to: '/settings', icon: Settings2, labelKey: 'settings' },
 ]
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { deepWorkMode, toggleDeepWorkMode } = useAppContext()
+  const { language, toggleLanguage, t } = useTranslation()
 
   return (
     <aside
@@ -48,12 +52,28 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         collapsed ? 'w-16' : 'w-64'
       )}
     >
-      {/* Brand */}
-      <div className="flex h-16 items-center gap-2 border-b border-border/50 px-4">
-        <Sparkles className="h-6 w-6 shrink-0 text-primary" />
-        {!collapsed && (
-          <span className="text-lg font-semibold tracking-tight">Canvas</span>
-        )}
+      {/* Brand + Language Toggle */}
+      <div className="flex h-16 items-center justify-between border-b border-border/50 px-4">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-6 w-6 shrink-0 text-primary" />
+          {!collapsed && (
+            <span className="text-lg font-semibold tracking-tight">Canvas</span>
+          )}
+        </div>
+        <button
+          onClick={toggleLanguage}
+          className={cn(
+            'flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors',
+            'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-muted-foreground',
+            collapsed && 'px-1'
+          )}
+          title={t.switchLanguage}
+        >
+          <Globe className="h-4 w-4 shrink-0" />
+          {!collapsed && (
+            <span className="uppercase font-bold">{language === 'pt' ? '🇧🇷 PT' : '🇺🇸 EN'}</span>
+          )}
+        </button>
       </div>
 
       {/* Workspace Switcher */}
@@ -85,7 +105,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             }
           >
             <item.icon className="h-5 w-5 shrink-0" />
-            {!collapsed && <span>{item.label}</span>}
+            {!collapsed && <span>{t[item.labelKey]}</span>}
           </NavLink>
         ))}
       </nav>
@@ -105,7 +125,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           )}
         >
           <Focus className="h-5 w-5 shrink-0" />
-          {!collapsed && <span>Deep Work</span>}
+          {!collapsed && <span>{t.deepWork}</span>}
         </button>
 
         {/* Collapse toggle */}
@@ -122,7 +142,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           ) : (
             <>
               <ChevronLeft className="h-5 w-5 shrink-0" />
-              <span>Collapse</span>
+              <span>{t.collapse}</span>
             </>
           )}
         </button>

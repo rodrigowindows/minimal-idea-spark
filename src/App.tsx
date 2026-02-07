@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Dashboard } from "@/pages/Dashboard";
 import { Consultant } from "@/pages/Consultant";
@@ -16,12 +16,16 @@ import { Settings } from "@/pages/Settings";
 import { Workspace } from "@/pages/Workspace";
 import { AcceptInvite } from "@/pages/AcceptInvite";
 import { SharedView } from "@/pages/SharedView";
+import { Auth } from "@/pages/Auth";
 import { DeepWorkOverlay } from "@/components/deep-work/DeepWorkOverlay";
 import { ConfettiEffect } from "@/components/gamification/ConfettiEffect";
 import { XPNotificationListener } from "@/components/gamification/XPNotificationListener";
 import { AppProvider, useAppContext } from "@/contexts/AppContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import NotFound from "./pages/NotFound";
+import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,17 +64,48 @@ function AppContent() {
   );
 }
 
+function AuthGate() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <Routes>
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/invite/:token" element={<AcceptInvite />} />
+        <Route path="/shared/:token" element={<SharedView />} />
+        <Route path="*" element={<Navigate to="/auth" replace />} />
+      </Routes>
+    );
+  }
+
+  return (
+    <LanguageProvider>
+      <AppProvider>
+        <WorkspaceProvider>
+          <AppContent />
+        </WorkspaceProvider>
+      </AppProvider>
+    </LanguageProvider>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AppProvider>
-          <WorkspaceProvider>
-            <AppContent />
-          </WorkspaceProvider>
-        </AppProvider>
+        <AuthProvider>
+          <AuthGate />
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
