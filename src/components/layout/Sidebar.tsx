@@ -17,6 +17,10 @@ import {
   ClipboardCheck,
   Settings2,
   Building2,
+  Zap,
+  FileStack,
+  ImageIcon,
+  History,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
@@ -43,6 +47,10 @@ const navItems: { to: string; icon: typeof LayoutDashboard; labelKey: Translatio
   { to: '/analytics', icon: BarChart3, labelKey: 'analytics' },
   { to: '/weekly-review', icon: ClipboardCheck, labelKey: 'weeklyReview' },
   { to: '/content-generator', icon: PenTool, labelKey: 'contentGenerator' },
+  { to: '/automation', icon: Zap, labelKey: 'automation' },
+  { to: '/templates', icon: FileStack, labelKey: 'templates' },
+  { to: '/images', icon: ImageIcon, labelKey: 'images' },
+  { to: '/version-history', icon: History, labelKey: 'versionHistory' },
   { to: '/workspace', icon: Building2, labelKey: 'workspace' },
   { to: '/settings', icon: Settings2, labelKey: 'settings' },
 ]

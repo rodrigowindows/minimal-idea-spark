@@ -15,6 +15,10 @@ import { CalendarPage } from "@/pages/CalendarPage";
 import { PriorityDashboard } from "@/components/PriorityDashboard";
 import { WeeklyReview } from "@/pages/WeeklyReview";
 import { ContentGeneratorPage } from "@/pages/ContentGeneratorPage";
+import { AutomationPage } from "@/pages/AutomationPage";
+import { TemplatesPage } from "@/pages/TemplatesPage";
+import { ImageGenerationPage } from "@/pages/ImageGenerationPage";
+import { VersionHistoryPage } from "@/pages/VersionHistoryPage";
 import { Settings } from "@/pages/Settings";
 import { Workspace } from "@/pages/Workspace";
 import { AcceptInvite } from "@/pages/AcceptInvite";
@@ -23,6 +27,7 @@ import { Auth } from "@/pages/Auth";
 import { DeepWorkOverlay } from "@/components/deep-work/DeepWorkOverlay";
 import { ConfettiEffect } from "@/components/gamification/ConfettiEffect";
 import { XPNotificationListener } from "@/components/gamification/XPNotificationListener";
+import { ChatWidget } from "@/components/AIAssistant/ChatWidget";
 import { AppProvider, useAppContext } from "@/contexts/AppContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
@@ -57,6 +62,10 @@ function AppContent() {
           <Route path="/priorities" element={<PriorityDashboard />} />
           <Route path="/weekly-review" element={<WeeklyReview />} />
           <Route path="/content-generator" element={<ContentGeneratorPage />} />
+          <Route path="/automation" element={<AutomationPage />} />
+          <Route path="/templates" element={<TemplatesPage />} />
+          <Route path="/images" element={<ImageGenerationPage />} />
+          <Route path="/version-history" element={<VersionHistoryPage />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/workspace" element={<Workspace />} />
         </Route>
@@ -67,6 +76,7 @@ function AppContent() {
       <DeepWorkOverlay />
       <ConfettiEffect trigger={levelUpTriggered} />
       <XPNotificationListener />
+      <ChatWidget />
     </>
   );
 }

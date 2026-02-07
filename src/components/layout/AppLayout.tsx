@@ -14,6 +14,7 @@ import {
 import { BottomNav } from './BottomNav'
 import { Sidebar } from './Sidebar'
 import { PresenceIndicator } from '@/components/PresenceIndicator'
+import { NotificationCenter } from '@/components/NotificationCenter'
 import { CollaborativeCursor } from '@/components/CollaborativeCursor'
 import { useRealtime } from '@/contexts/RealtimeContext'
 
@@ -51,11 +52,14 @@ export function AppLayout() {
               <Menu className="h-5 w-5" />
               <span className="sr-only">Open menu</span>
             </Button>
-            <PresenceIndicator
-              presences={presences}
-              currentUserId={currentUserId}
-              maxDisplay={3}
-            />
+            <div className="flex items-center gap-1">
+              <NotificationCenter />
+              <PresenceIndicator
+                presences={presences}
+                currentUserId={currentUserId}
+                maxDisplay={3}
+              />
+            </div>
           </div>
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetContent side="left" className="w-64 p-0">
