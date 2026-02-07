@@ -13,8 +13,16 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
+    let body: CreateSnapshotBody
+    try {
+      body = (await req.json()) as CreateSnapshotBody
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      })
+    }
     const supabase = getSupabaseClient(req.headers.get('Authorization'))
-    const body = (await req.json()) as CreateSnapshotBody
     const { data, error } = await supabase.from('version_snapshots').insert({
       entity_type: body.entity_type,
       entity_id: body.entity_id,

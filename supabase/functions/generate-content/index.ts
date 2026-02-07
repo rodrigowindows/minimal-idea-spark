@@ -9,7 +9,15 @@ serve(async (req) => {
   }
 
   try {
-    const body = await req.json();
+    let body: Record<string, unknown>;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     const { action, prompt, context, style, tone, length, topic, content, feedback } = body;
 
     let systemPrompt = 'You are a professional content writer and AI assistant.';

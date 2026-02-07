@@ -10,9 +10,18 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
+    let body: RunAutomationBody
+    try {
+      body = (await req.json()) as RunAutomationBody
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      })
+    }
     const authHeader = req.headers.get('Authorization')
     const supabase = getSupabaseClient(authHeader)
-    const { automation_id, context } = (await req.json()) as RunAutomationBody
+    const { automation_id, context } = body
     const { data: automation } = await supabase
       .from('automations')
       .select('*')

@@ -10,7 +10,16 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const { messages, context } = (await req.json()) as AssistantChatBody
+    let body: AssistantChatBody
+    try {
+      body = (await req.json()) as AssistantChatBody
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      })
+    }
+    const { messages, context } = body
     const system = `You are a helpful assistant for a second-brain app. Context: ${context ?? 'none'}. You can suggest creating tasks, logging to journal, or opening pages. Keep replies short.`
     const out = await chatCompletion([
       { role: 'system', content: system },

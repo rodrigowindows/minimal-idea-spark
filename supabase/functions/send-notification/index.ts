@@ -13,8 +13,16 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
+    let body: SendNotificationBody
+    try {
+      body = (await req.json()) as SendNotificationBody
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      })
+    }
     const supabase = getSupabaseClient(req.headers.get('Authorization'))
-    const body = (await req.json()) as SendNotificationBody
     const { error } = await supabase.from('notifications').insert({
       user_id: body.user_id,
       title: body.title,

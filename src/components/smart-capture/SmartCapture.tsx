@@ -188,7 +188,7 @@ export function SmartCapture({ onCapture }: SmartCaptureProps = {}) {
             )}
           </AnimatePresence>
           <VoiceInput
-            onTranscript={(text) => setInput((prev) => prev + text)}
+            onTranscript={(text) => setInput((prev) => (prev ? prev + ' ' + text : text))}
             disabled={isProcessing}
           />
           <Button type="submit" size="sm" disabled={!input.trim() || isProcessing} className="mr-2 gap-1.5 min-h-[44px] min-w-[44px]">

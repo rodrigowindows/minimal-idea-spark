@@ -49,7 +49,10 @@ export function useAudioTranscription(options: UseAudioTranscriptionOptions = {}
   const startRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : 'audio/webm';
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
       setRecordingDuration(0);
@@ -67,7 +70,8 @@ export function useAudioTranscription(options: UseAudioTranscriptionOptions = {}
           clearInterval(timerRef.current);
           timerRef.current = null;
         }
-        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const blobType = mediaRecorder.mimeType || 'audio/webm';
+        const audioBlob = new Blob(chunksRef.current, { type: blobType });
         stream.getTracks().forEach(track => track.stop());
         await handleTranscribe(audioBlob);
       };

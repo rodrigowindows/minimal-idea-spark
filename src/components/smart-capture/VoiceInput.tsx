@@ -46,11 +46,18 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
         setIsTranscribing(true)
         try {
           const result = await transcribeAudio(audioBlob, { language })
-          if (result.text.trim()) {
-            onTranscript(result.text)
+          if (result.text?.trim()) {
+            onTranscript(result.text.trim())
+          } else {
+            toast.info('No speech detected. Try speaking closer to the mic.')
           }
-        } catch {
-          toast.error('Transcription failed. Please try again.')
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : 'Transcription failed.'
+          if (msg.includes('not configured') || msg.includes('VITE_SUPABASE')) {
+            toast.error('Audio not configured. Set VITE_SUPABASE_URL and deploy transcribe-audio.')
+          } else {
+            toast.error(msg.slice(0, 80))
+          }
         } finally {
           setIsTranscribing(false)
         }

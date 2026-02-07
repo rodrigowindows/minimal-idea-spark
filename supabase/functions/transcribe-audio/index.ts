@@ -10,26 +10,30 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  const json = (obj: Record<string, unknown>, status: number) =>
+    new Response(JSON.stringify(obj), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
   try {
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     if (!OPENAI_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: 'OpenAI API key not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return json({ error: 'OpenAI API key not configured' }, 500);
     }
 
-    const formData = await req.formData();
-    const audioFile = formData.get('file') as File;
+    let formData: FormData;
+    try {
+      formData = await req.formData();
+    } catch {
+      return json({ error: 'Invalid request body. Expected multipart/form-data.' }, 400);
+    }
+
+    const fileField = formData.get('file');
+    const audioFile = fileField instanceof File ? fileField : null;
     const language = (formData.get('language') as string) || 'pt';
     const model = (formData.get('model') as string) || 'whisper-1';
     const prompt = formData.get('prompt') as string | null;
 
-    if (!audioFile) {
-      return new Response(
-        JSON.stringify({ error: 'Audio file is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (!audioFile || audioFile.size === 0) {
+      return json({ error: 'Audio file is required and must not be empty' }, 400);
     }
 
     const openaiFormData = new FormData();
@@ -50,28 +54,19 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('OpenAI API error:', errorText);
-      return new Response(
-        JSON.stringify({ error: 'Transcription failed', details: errorText }),
-        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return json({ error: 'Transcription failed', details: errorText }, response.status);
     }
 
     const result = await response.json();
-
-    return new Response(
-      JSON.stringify({
-        text: result.text,
-        language: result.language,
-        duration: result.duration,
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    const text = result.text ?? '';
+    return json({
+      text: typeof text === 'string' ? text : String(text),
+      language: result.language ?? language,
+      duration: result.duration,
+    }, 200);
   } catch (error) {
     console.error('Transcription error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Internal server error';
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return json({ error: errorMessage }, 500);
   }
 });

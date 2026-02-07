@@ -35,7 +35,10 @@ export function AudioToText({ onTranscription, className, sourcePage, compact }:
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : 'audio/webm';
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
       setRecordingDuration(0);
@@ -55,7 +58,8 @@ export function AudioToText({ onTranscription, className, sourcePage, compact }:
           clearInterval(timerRef.current);
           timerRef.current = null;
         }
-        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const blobType = mediaRecorder.mimeType || 'audio/webm';
+        const audioBlob = new Blob(chunksRef.current, { type: blobType });
         stream.getTracks().forEach(track => track.stop());
         await handleTranscribe(audioBlob);
       };
@@ -84,8 +88,12 @@ export function AudioToText({ onTranscription, className, sourcePage, compact }:
       toast.success('Audio transcrito com sucesso!');
     } catch (error) {
       console.error('Error transcribing audio:', error);
-      // Fallback to browser Speech Recognition API
-      toast.error('Erro na API. Tente o microfone do navegador.');
+      const msg = error instanceof Error ? error.message : 'Erro na transcricao.';
+      if (msg.includes('not configured') || msg.includes('VITE_SUPABASE')) {
+        toast.error('Audio nao configurado. Defina VITE_SUPABASE_URL e faça deploy da Edge Function transcribe-audio.');
+      } else {
+        toast.error(msg.slice(0, 100));
+      }
     } finally {
       setIsProcessing(false);
       setRecordingDuration(0);
