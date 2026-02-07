@@ -43,7 +43,7 @@ const WARNING_PATTERNS = [
 const SUGGESTION_PATTERNS = [
   { condition: (m: MetricSnapshot) => m.deepWorkMinutes > 0 && m.deepWorkMinutes < 120, title: 'Increase deep work', body: 'You\'re doing some deep work. Try to reach 2 hours for optimal results.', priority: 4, category: 'focus' as const },
   { condition: (m: MetricSnapshot) => m.domainsTouched.length === 2, title: 'Explore more domains', body: 'Spread effort across 3+ life domains for better balance.', priority: 3, category: 'balance' as const },
-  { condition: (m: MetricSnapshot) => m.streakDays >= 3 && m.streakDays < 7, title: 'Almost there!', body: `${7 - m.streakDays} more days to hit a 7-day streak. Stay consistent!`, priority: 5, category: 'streak' as const },
+  { condition: (m: MetricSnapshot) => m.streakDays >= 3 && m.streakDays < 7, title: 'Almost there!', body: 'Just a few more days to hit a 7-day streak. Stay consistent!', priority: 5, category: 'streak' as const },
   { condition: (m: MetricSnapshot) => m.tasksCompleted >= 3 && m.tasksCompleted < 5, title: 'Push for 5', body: 'You\'re close to 5 completed tasks. One more push!', priority: 4, category: 'productivity' as const },
 ]
 

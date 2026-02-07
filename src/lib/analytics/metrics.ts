@@ -2,9 +2,9 @@
  * Productivity metrics, aggregations, and temporal comparisons for Analytics dashboard.
  */
 
-import { startOfWeek, endOfWeek, subWeeks, isWithinInterval, parseISO, format, subDays, differenceInDays } from 'date-fns'
+import { isWithinInterval, parseISO, format, subDays, differenceInDays } from 'date-fns'
 import type { Opportunity, DailyLog } from '@/types'
-import type { Habit, Goal, WeeklyTarget } from '@/hooks/useLocalData'
+import type { Habit, Goal } from '@/hooks/useLocalData'
 
 export interface ProductivityMetric {
   date: string
