@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/audio-transcription';
+import { supabase } from '@/integrations/supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export interface Presence {
@@ -39,7 +39,7 @@ export class CollaborationManager {
     this.channel
       .on('presence', { event: 'sync' }, () => {
         const state = this.channel!.presenceState();
-        const presences = Object.values(state).flat() as Presence[];
+        const presences = Object.values(state).flat() as unknown as Presence[];
         this.presenceCallbacks.forEach(cb => cb(presences));
       })
       .on('broadcast', { event: 'edit' }, ({ payload }) => {
@@ -56,7 +56,8 @@ export class CollaborationManager {
 
   async updatePresence(updates: Partial<Presence>) {
     if (!this.channel) return;
-    const currentPresence = this.channel.presenceState()[0] as Presence;
+    const state = this.channel.presenceState();
+    const currentPresence = (Object.values(state).flat()[0] as unknown as Presence) || {};
     await this.channel.track({ ...currentPresence, ...updates });
   }
 
@@ -76,7 +77,7 @@ export class CollaborationManager {
     });
 
     // Save to database for conflict resolution
-    await supabase.from('collaborative_edits').insert(fullEdit);
+    await (supabase as any).from('collaborative_edits').insert(fullEdit);
   }
 
   onPresenceChange(callback: (presences: Presence[]) => void) {
@@ -107,7 +108,7 @@ export async function getEditHistory(
   resourceId: string,
   limit = 50
 ): Promise<CollaborativeEdit[]> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('collaborative_edits')
     .select('*')
     .eq('resource_type', resourceType)

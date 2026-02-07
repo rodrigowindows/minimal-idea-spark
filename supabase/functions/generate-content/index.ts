@@ -26,25 +26,29 @@ serve(async (req) => {
       userPrompt = `Generate a compelling title and brief description for this content:\n\n${content}\n\nRespond with JSON: {"title": "...", "description": "..."}`;
     } else {
       // Default content generation
-      const styleGuide = {
+      const styleGuides: Record<string, string> = {
         professional: 'Use clear, authoritative language with proper structure.',
         casual: 'Use conversational, approachable language.',
         creative: 'Use imaginative, engaging language with vivid descriptions.',
         technical: 'Use precise, technical language with accurate terminology.',
-      }[style || 'professional'];
+      };
 
-      const toneGuide = {
+      const toneGuides: Record<string, string> = {
         formal: 'Maintain a formal, respectful tone.',
         friendly: 'Be warm and personable.',
         enthusiastic: 'Show excitement and energy.',
         neutral: 'Stay objective and balanced.',
-      }[tone || 'neutral'];
+      };
 
-      const lengthGuide = {
+      const lengthGuides: Record<string, string> = {
         short: '1-2 paragraphs (100-200 words)',
         medium: '3-5 paragraphs (300-500 words)',
         long: '6+ paragraphs (600-1000 words)',
-      }[length || 'medium'];
+      };
+
+      const styleGuide = styleGuides[style as string] || styleGuides.professional;
+      const toneGuide = toneGuides[tone as string] || toneGuides.neutral;
+      const lengthGuide = lengthGuides[length as string] || lengthGuides.medium;
 
       systemPrompt = `You are a professional content writer. ${styleGuide} ${toneGuide} Target length: ${lengthGuide}`;
       userPrompt = prompt;
@@ -94,8 +98,9 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

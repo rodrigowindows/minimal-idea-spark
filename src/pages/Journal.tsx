@@ -65,7 +65,7 @@ export function Journal() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) return null // Not authenticated, skip sync
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('daily_logs')
         .insert({
           user_id: session.user.id,

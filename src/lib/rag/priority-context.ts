@@ -286,7 +286,7 @@ export function generatePriorityInsights(
 // --- Supabase-backed functions (used when Supabase is configured) ---
 
 export async function getUserPrioritiesFromDB(userId: string): Promise<Priority[]> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('user_priorities')
     .select('*')
     .eq('user_id', userId)
@@ -302,7 +302,7 @@ export async function addPriorityToDB(
   userId: string,
   priority: Omit<Priority, 'id' | 'user_id' | 'created_at' | 'updated_at'>
 ): Promise<Priority> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('user_priorities')
     .insert({ user_id: userId, ...priority })
     .select()
@@ -334,7 +334,7 @@ export async function generatePriorityEmbedding(priorityId: string, text: string
   )
 
   const { embedding } = await response.json()
-  await supabase
+  await (supabase as any)
     .from('user_priorities')
     .update({ embedding })
     .eq('id', priorityId)
@@ -378,7 +378,7 @@ export async function reevaluatePrioritiesViaAPI(userId: string, priorities: Pri
 
   const { updated_priorities } = await response.json()
   for (const priority of updated_priorities) {
-    await supabase
+    await (supabase as any)
       .from('user_priorities')
       .update({
         priority_level: priority.priority_level,

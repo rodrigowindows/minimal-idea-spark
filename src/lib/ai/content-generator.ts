@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/audio-transcription';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface ContentGenerationOptions {
   prompt: string;
@@ -113,7 +113,7 @@ export async function saveGeneratedContent(
   content: string,
   options: ContentGenerationOptions
 ): Promise<GeneratedContent> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('generated_content')
     .insert({
       content,
@@ -128,7 +128,7 @@ export async function saveGeneratedContent(
 }
 
 export async function getGenerationHistory(limit = 20): Promise<GeneratedContent[]> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('generated_content')
     .select('*')
     .order('created_at', { ascending: false })
@@ -139,7 +139,7 @@ export async function getGenerationHistory(limit = 20): Promise<GeneratedContent
 }
 
 export async function rateGeneration(id: string, rating: number): Promise<void> {
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('generated_content')
     .update({ rating })
     .eq('id', id);
