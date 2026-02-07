@@ -23,26 +23,24 @@ interface ContextSource {
   metadata?: Record<string, unknown>
 }
 
-const SYSTEM_PROMPT = `Você é um mentor estratégico. Analise os seguintes logs diários do usuário e as oportunidades atuais. Responda à pergunta do usuário considerando o cansaço e as metas dele.
-
-You have access to the user's:
-- Daily journal logs with mood, energy levels, and reflections
-- Opportunities (tasks, goals, insights) with priorities and strategic values
-- Knowledge base (book summaries, notes)
+const SYSTEM_PROMPT = `You are a strategic mentor and life OS advisor with RAG-powered context awareness. You have access to the user's priorities, objectives, daily journal logs, opportunities, and knowledge base.
 
 Your role is to:
-1. Help the user make better decisions about what to prioritize
-2. Identify patterns in their data (energy, productivity, mood, fatigue)
-3. Provide actionable advice based on their goals and history
-4. Be encouraging but honest about areas needing attention
-5. Consider the user's energy level and mood when suggesting tasks — if they're tired, suggest lighter tasks or rest
+1. ALWAYS consider the user's active priorities and persistent objectives when giving advice
+2. Help the user make better decisions about what to prioritize
+3. Identify patterns in their data (energy, productivity, mood, fatigue)
+4. Provide actionable advice aligned with their goals and priorities
+5. Be encouraging but honest about areas needing attention
+6. Consider the user's energy level and mood when suggesting tasks
+7. Suggest actions that advance key results and priority progress
 
 When responding:
-- Reference specific items from the context when relevant (journal entries, opportunities)
+- Reference specific priorities, key results, and objectives when relevant
+- Frame suggestions in terms of strategic value and priority alignment
+- If the user has critical priorities, always mention them in relevant contexts
 - Be concise but insightful
-- Frame suggestions in terms of strategic value and goal alignment
 - If mood/energy data is available, factor it into your recommendations
-- If you don't have enough context, say so and ask clarifying questions
+- Proactively suggest priority updates when context indicates changes are needed
 
 Current context from user's data will be provided below.`
 
@@ -119,8 +117,29 @@ serve(async (req) => {
       .order('priority', { ascending: false })
       .limit(10)
 
+    // Fetch user priorities (always included in context)
+    const { data: userPriorities } = await supabase
+      .from('user_priorities')
+      .select('title, description, priority_level, category, progress, due_date, key_results, status')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .order('priority_level', { ascending: true })
+      .limit(10)
+
     // Build explicit context sections
     let explicitContext = ''
+
+    // Always inject priorities first (most important context)
+    if (userPriorities && userPriorities.length > 0) {
+      explicitContext += '\n\nUser active priorities (ALWAYS consider these):\n'
+      for (const p of userPriorities) {
+        const krs = p.key_results?.length > 0
+          ? ` | KRs: ${p.key_results.map((kr: any) => `${kr.title}: ${kr.current}/${kr.target} ${kr.unit}`).join(', ')}`
+          : ''
+        const due = p.due_date ? ` | Due: ${p.due_date}` : ''
+        explicitContext += `- [${p.priority_level?.toUpperCase()}] ${p.title} (${p.category}, ${p.progress}%)${due}${krs}: ${p.description}\n`
+      }
+    }
 
     if (recentLogs && recentLogs.length > 0) {
       explicitContext += '\n\nRecent daily logs:\n'

@@ -1,6 +1,7 @@
-import { supabase } from '@/lib/audio-transcription';
+import { supabase } from '@/integrations/supabase/client';
 
-export interface CalendarEvent {
+// Supabase-backed calendar event type (for future remote sync)
+export interface SupabaseCalendarEvent {
   id: string;
   user_id: string;
   title: string;
@@ -20,7 +21,7 @@ export async function getCalendarEvents(
   userId: string,
   startDate: Date,
   endDate: Date
-): Promise<CalendarEvent[]> {
+): Promise<SupabaseCalendarEvent[]> {
   const { data, error } = await supabase
     .from('calendar_events')
     .select('*')
@@ -34,8 +35,8 @@ export async function getCalendarEvents(
 }
 
 export async function createCalendarEvent(
-  event: Omit<CalendarEvent, 'id' | 'created_at' | 'updated_at'>
-): Promise<CalendarEvent> {
+  event: Omit<SupabaseCalendarEvent, 'id' | 'created_at' | 'updated_at'>
+): Promise<SupabaseCalendarEvent> {
   const { data, error } = await supabase
     .from('calendar_events')
     .insert(event)
@@ -48,8 +49,8 @@ export async function createCalendarEvent(
 
 export async function updateCalendarEvent(
   eventId: string,
-  updates: Partial<CalendarEvent>
-): Promise<CalendarEvent> {
+  updates: Partial<SupabaseCalendarEvent>
+): Promise<SupabaseCalendarEvent> {
   const { data, error } = await supabase
     .from('calendar_events')
     .update({ ...updates, updated_at: new Date().toISOString() })
@@ -106,7 +107,7 @@ export async function getWorkloadAnalysis(userId: string, date: Date) {
     return acc + (end.getTime() - start.getTime()) / (1000 * 60);
   }, 0);
 
-  const workingHours = 8 * 60; // 8 hours in minutes
+  const workingHours = 8 * 60;
   const utilization = (totalMinutes / workingHours) * 100;
 
   return {

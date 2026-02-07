@@ -11,6 +11,8 @@ import { Journal } from "@/pages/Journal";
 import { Analytics } from "@/pages/Analytics";
 import { Habits } from "@/pages/Habits";
 import { Goals } from "@/pages/Goals";
+import { CalendarPage } from "@/pages/CalendarPage";
+import { PriorityDashboard } from "@/components/PriorityDashboard";
 import { WeeklyReview } from "@/pages/WeeklyReview";
 import { Settings } from "@/pages/Settings";
 import { Workspace } from "@/pages/Workspace";
@@ -49,6 +51,8 @@ function AppContent() {
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/habits" element={<Habits />} />
           <Route path="/goals" element={<Goals />} />
+          <Route path="/calendar" element={<CalendarPage />} />
+          <Route path="/priorities" element={<PriorityDashboard />} />
           <Route path="/weekly-review" element={<WeeklyReview />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/workspace" element={<Workspace />} />

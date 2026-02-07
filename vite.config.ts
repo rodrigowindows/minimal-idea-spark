@@ -22,6 +22,7 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         navigateFallback: "index.html",
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
       },
       manifest: {
         name: "Canvas - Second Brain",
@@ -54,9 +55,11 @@ export default defineConfig(({ mode }) => ({
     }),
   ].filter(Boolean),
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-      "date-fns": path.resolve(__dirname, "./node_modules/date-fns/index.js"),
-    },
+    alias: [
+      { find: "@", replacement: path.resolve(__dirname, "./src") },
+      { find: "date-fns/locale/pt-BR", replacement: path.resolve(__dirname, "./node_modules/date-fns/locale/pt-BR.js") },
+      { find: "date-fns/locale", replacement: path.resolve(__dirname, "./node_modules/date-fns/locale.js") },
+      { find: /^date-fns$/, replacement: path.resolve(__dirname, "./node_modules/date-fns/index.js") },
+    ],
   },
 }));

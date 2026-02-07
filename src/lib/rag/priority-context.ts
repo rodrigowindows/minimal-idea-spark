@@ -45,6 +45,118 @@ export interface PriorityInsight {
   severity: 'info' | 'warning' | 'success'
 }
 
+// --- Persistent Context System ---
+// Stores objectives/priorities context that persists across sessions
+
+const PERSISTENT_CONTEXT_KEY = 'lifeos_persistent_context'
+const REEVALUATION_INTERVAL_HOURS = 24
+
+export interface PersistentObjectiveContext {
+  objectives: string[]
+  focusAreas: string[]
+  avoidAreas: string[]
+  lastUpdated: string
+  autoReevaluatedAt?: string
+}
+
+export function loadPersistentContext(): PersistentObjectiveContext {
+  try {
+    const stored = localStorage.getItem(PERSISTENT_CONTEXT_KEY)
+    if (stored) return JSON.parse(stored)
+  } catch { /* ignore */ }
+  return { objectives: [], focusAreas: [], avoidAreas: [], lastUpdated: new Date().toISOString() }
+}
+
+export function savePersistentContext(ctx: PersistentObjectiveContext) {
+  localStorage.setItem(PERSISTENT_CONTEXT_KEY, JSON.stringify({ ...ctx, lastUpdated: new Date().toISOString() }))
+}
+
+export function buildFullRAGSystemPrompt(
+  priorities: Priority[],
+  persistentCtx: PersistentObjectiveContext,
+): string {
+  const parts: string[] = []
+
+  // Persistent objectives
+  if (persistentCtx.objectives.length > 0) {
+    parts.push('## User Objectives (always keep in mind)')
+    parts.push(persistentCtx.objectives.map((o, i) => `${i + 1}. ${o}`).join('\n'))
+  }
+  if (persistentCtx.focusAreas.length > 0) {
+    parts.push('## Focus Areas: ' + persistentCtx.focusAreas.join(', '))
+  }
+  if (persistentCtx.avoidAreas.length > 0) {
+    parts.push('## Avoid / Deprioritize: ' + persistentCtx.avoidAreas.join(', '))
+  }
+
+  // Active priorities
+  const active = priorities.filter(p => p.status === 'active')
+  if (active.length > 0) {
+    parts.push('## Active Priorities')
+    const sorted = sortPriorities(active)
+    sorted.forEach((p, i) => {
+      const kr = p.key_results.length > 0
+        ? `\n   Key Results: ${p.key_results.map(k => `${k.title}: ${k.current}/${k.target} ${k.unit} ${k.done ? '(done)' : ''}`).join('; ')}`
+        : ''
+      const due = p.due_date ? ` | Due: ${p.due_date}` : ''
+      parts.push(`${i + 1}. [${p.priority_level.toUpperCase()}] ${p.title} (${p.category}, ${p.progress}%${due})${kr}\n   ${p.description}`)
+    })
+  }
+
+  // AI suggestions if available
+  const withSuggestions = active.filter(p => p.ai_suggestions.length > 0)
+  if (withSuggestions.length > 0) {
+    parts.push('## Recent AI Suggestions')
+    for (const p of withSuggestions) {
+      parts.push(`For "${p.title}": ${p.ai_suggestions.slice(0, 2).join('; ')}`)
+    }
+  }
+
+  parts.push('\n**IMPORTANT: Always factor user objectives and priorities into your recommendations. Every response should align with these goals.**')
+
+  return parts.join('\n\n')
+}
+
+export function shouldAutoReevaluate(priorities: Priority[]): boolean {
+  const active = priorities.filter(p => p.status === 'active')
+  if (active.length === 0) return false
+
+  const ctx = loadPersistentContext()
+  if (!ctx.autoReevaluatedAt) return true
+
+  const hoursSince = (Date.now() - new Date(ctx.autoReevaluatedAt).getTime()) / (1000 * 60 * 60)
+  return hoursSince >= REEVALUATION_INTERVAL_HOURS
+}
+
+export function markReevaluated() {
+  const ctx = loadPersistentContext()
+  savePersistentContext({ ...ctx, autoReevaluatedAt: new Date().toISOString() })
+}
+
+export function syncPrioritiesToPersistentContext(priorities: Priority[]) {
+  const active = priorities.filter(p => p.status === 'active')
+  const ctx = loadPersistentContext()
+
+  // Auto-derive objectives from critical/high priorities
+  const derivedObjectives = active
+    .filter(p => p.priority_level === 'critical' || p.priority_level === 'high')
+    .map(p => p.title)
+
+  // Merge with manually set objectives (keep manual ones, add new derived ones)
+  const existingSet = new Set(ctx.objectives)
+  for (const obj of derivedObjectives) {
+    if (!existingSet.has(obj)) {
+      ctx.objectives.push(obj)
+    }
+  }
+
+  // Auto-derive focus areas from categories of active priorities
+  const categories = [...new Set(active.map(p => p.category))]
+  ctx.focusAreas = categories
+
+  savePersistentContext(ctx)
+}
+
 const PRIORITY_LEVEL_ORDER: Record<PriorityLevel, number> = {
   critical: 0,
   high: 1,

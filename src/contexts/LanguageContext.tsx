@@ -11,6 +11,7 @@ const translations = {
     journal: 'Diario',
     habits: 'Habitos',
     goals: 'Metas',
+    priorities: 'Prioridades',
     analytics: 'Analiticos',
     weeklyReview: 'Revisao Semanal',
     workspace: 'Espaco de Trabalho',
@@ -56,6 +57,9 @@ const translations = {
     quickJournal: 'Diario Rapido',
     activityHeatmap: 'Mapa de Atividades',
 
+    // Calendar
+    calendar: 'Calendario',
+
     // Language
     switchLanguage: 'Idioma',
   },
@@ -67,6 +71,7 @@ const translations = {
     journal: 'Journal',
     habits: 'Habits',
     goals: 'Goals',
+    priorities: 'Priorities',
     analytics: 'Analytics',
     weeklyReview: 'Weekly Review',
     workspace: 'Workspace',
@@ -111,6 +116,9 @@ const translations = {
     timeBlocking: 'Time Blocking',
     quickJournal: 'Quick Journal',
     activityHeatmap: 'Activity Heatmap',
+
+    // Calendar
+    calendar: 'Calendar',
 
     // Language
     switchLanguage: 'Language',

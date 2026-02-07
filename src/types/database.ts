@@ -147,3 +147,18 @@ export interface ActivityEntry {
   intensity: number
   type: 'deep_work' | 'task' | 'journal' | 'capture'
 }
+
+export interface CalendarEvent {
+  id: string
+  user_id: string
+  title: string
+  description: string | null
+  start: string // ISO datetime
+  end: string // ISO datetime
+  color: string
+  category: 'task' | 'meeting' | 'focus' | 'personal' | 'reminder'
+  opportunity_id: string | null
+  reminder_minutes: number | null
+  recurrence: 'none' | 'daily' | 'weekly' | 'monthly' | null
+  created_at: string
+}

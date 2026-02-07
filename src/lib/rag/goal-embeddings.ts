@@ -1,4 +1,5 @@
-import type { Priority, KeyResult } from './priority-context'
+import type { Priority, KeyResult, PersistentObjectiveContext } from './priority-context'
+import { loadPersistentContext } from './priority-context'
 import type { Goal } from '@/hooks/useLocalData'
 
 /**
@@ -22,6 +23,10 @@ export function priorityToEmbeddingText(priority: Priority): string {
 
   if (priority.due_date) {
     parts.push(`Due: ${priority.due_date}`)
+  }
+
+  if (priority.ai_suggestions.length > 0) {
+    parts.push('AI Suggestions: ' + priority.ai_suggestions.slice(0, 3).join('; '))
   }
 
   return parts.join('. ')
@@ -50,6 +55,27 @@ export function goalToEmbeddingText(goal: Goal): string {
   }
 
   return parts.join('. ')
+}
+
+/**
+ * Generates batch embedding texts for all active priorities and goals.
+ * Used to sync data to a vector store when Supabase is available.
+ */
+export function generateBatchEmbeddingTexts(
+  priorities: Priority[],
+  goals: Goal[],
+): Array<{ id: string; type: 'priority' | 'goal'; text: string }> {
+  const items: Array<{ id: string; type: 'priority' | 'goal'; text: string }> = []
+
+  for (const p of priorities.filter(p => p.status === 'active')) {
+    items.push({ id: p.id, type: 'priority', text: priorityToEmbeddingText(p) })
+  }
+
+  for (const g of goals.filter(g => g.progress < 100)) {
+    items.push({ id: g.id, type: 'goal', text: goalToEmbeddingText(g) })
+  }
+
+  return items
 }
 
 /**
@@ -116,8 +142,8 @@ export function findRelevantGoals(
 }
 
 /**
- * Builds a combined context string from priorities and goals for the AI advisor.
- * This is injected into the Consultant's context when priorities exist.
+ * Builds a combined context string from priorities, goals, and persistent objectives for the AI advisor.
+ * This is injected into the Consultant's context for every response.
  */
 export function buildCombinedRAGContext(
   priorities: Priority[],
@@ -126,18 +152,36 @@ export function buildCombinedRAGContext(
 ): string {
   const parts: string[] = []
 
-  // Priority context
+  // Persistent objectives context (always included)
+  const persistentCtx = loadPersistentContext()
+  if (persistentCtx.objectives.length > 0) {
+    parts.push('**User Objectives (always consider):**')
+    persistentCtx.objectives.forEach((o, i) => parts.push(`${i + 1}. ${o}`))
+  }
+  if (persistentCtx.focusAreas.length > 0) {
+    parts.push(`**Focus Areas:** ${persistentCtx.focusAreas.join(', ')}`)
+  }
+
+  // Priority context - always include all active (not just query-relevant)
   const activePriorities = priorities.filter(p => p.status === 'active')
   if (activePriorities.length > 0) {
-    const relevant = findRelevantPriorities(query, priorities, 0.1)
+    parts.push('**Active Priorities:**')
+    const sorted = [...activePriorities].sort((a, b) => {
+      const order = { critical: 0, high: 1, medium: 2, low: 3 } as const
+      return order[a.priority_level] - order[b.priority_level]
+    })
+    for (const p of sorted) {
+      const krText = p.key_results.length > 0
+        ? ` [KRs: ${p.key_results.map(k => `${k.title}: ${k.current}/${k.target}`).join(', ')}]`
+        : ''
+      const due = p.due_date ? ` (due: ${p.due_date})` : ''
+      parts.push(`- [${p.priority_level.toUpperCase()}] ${p.title} (${p.progress}%)${due}${krText}`)
+    }
+
+    // Additionally highlight query-relevant ones
+    const relevant = findRelevantPriorities(query, priorities, 0.3)
     if (relevant.length > 0) {
-      parts.push('**Relevant Priorities:**')
-      for (const p of relevant) {
-        const krText = p.key_results.length > 0
-          ? ` [KRs: ${p.key_results.map(k => `${k.title}: ${k.current}/${k.target}`).join(', ')}]`
-          : ''
-        parts.push(`- [${p.priority_level.toUpperCase()}] ${p.title} (${p.progress}%)${krText}`)
-      }
+      parts.push(`**Most relevant to your question:** ${relevant.map(p => `"${p.title}"`).join(', ')}`)
     }
   }
 
@@ -154,6 +198,19 @@ export function buildCombinedRAGContext(
         parts.push(`- ${g.title} (${g.progress}%)${msText}`)
       }
     }
+  }
+
+  // AI suggestions from priorities
+  const withSuggestions = activePriorities.filter(p => p.ai_suggestions.length > 0)
+  if (withSuggestions.length > 0) {
+    parts.push('**Recent AI Recommendations:**')
+    for (const p of withSuggestions.slice(0, 3)) {
+      parts.push(`- For "${p.title}": ${p.ai_suggestions[0]}`)
+    }
+  }
+
+  if (parts.length > 0) {
+    parts.push('\n*Always align suggestions with user objectives and active priorities.*')
   }
 
   return parts.length > 0

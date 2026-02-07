@@ -1,7 +1,9 @@
 import {
   BookOpen,
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
+  Crosshair,
   Focus,
   Globe,
   LayoutDashboard,
@@ -35,6 +37,8 @@ const navItems: { to: string; icon: typeof LayoutDashboard; labelKey: Translatio
   { to: '/journal', icon: BookOpen, labelKey: 'journal' },
   { to: '/habits', icon: Repeat, labelKey: 'habits' },
   { to: '/goals', icon: Flag, labelKey: 'goals' },
+  { to: '/calendar', icon: CalendarDays, labelKey: 'calendar' },
+  { to: '/priorities', icon: Crosshair, labelKey: 'priorities' },
   { to: '/analytics', icon: BarChart3, labelKey: 'analytics' },
   { to: '/weekly-review', icon: ClipboardCheck, labelKey: 'weeklyReview' },
   { to: '/workspace', icon: Building2, labelKey: 'workspace' },

@@ -11,9 +11,11 @@ import { Sparkles, Brain, Wifi, WifiOff, RotateCcw, Trash2, AlertCircle } from '
 import { useLocalData } from '@/hooks/useLocalData'
 import { useXPSystem } from '@/hooks/useXPSystem'
 import { useRagChat } from '@/hooks/useRagChat'
+import { usePriorities } from '@/hooks/usePriorities'
 import { calculateXPReward } from '@/lib/constants'
 import { Badge } from '@/components/ui/badge'
 import type { Opportunity } from '@/types'
+import { buildCombinedRAGContext } from '@/lib/rag/goal-embeddings'
 
 function generateContextualResponse(
   query: string,
@@ -23,6 +25,7 @@ function generateContextualResponse(
   dailyLogs: any[],
   habits: any[],
   goals: any[],
+  priorityContext?: string,
 ) {
   const lower = query.toLowerCase()
   const doingTasks = opportunities.filter(o => o.status === 'doing')
@@ -30,16 +33,20 @@ function generateContextualResponse(
   const doneTasks = opportunities.filter(o => o.status === 'done')
   const backlogTasks = opportunities.filter(o => o.status === 'backlog')
 
+  // Priority context prefix - always included when available
+  const ctxPrefix = priorityContext ? `\n\n---\n*Context from your priorities:*\n${priorityContext}\n---\n\n` : ''
+
   // Priority / Today
   if (lower.includes('priorit') || lower.includes('today') || lower.includes('what should') || lower.includes('foco') || lower.includes('focus')) {
     const top = highPriority[0]
     const topXP = top ? calculateXPReward(top.type, top.strategic_value ?? 5) : 0
     return {
-      content: top
+      content: (top
         ? `Based on strategic value analysis, I recommend focusing on **"${top.title}"** (${top.type}, SV: ${top.strategic_value}/10, worth **${topXP} XP**). You currently have ${doingTasks.length} tasks in progress and ${backlogTasks.length} in backlog. Consider using Deep Work mode for a focused 25-minute Pomodoro session to maximize your XP gains.`
-        : `You have ${opportunities.length} opportunities total. Start by moving a high-value item from backlog to "Doing" and activating Deep Work mode.`,
+        : `You have ${opportunities.length} opportunities total. Start by moving a high-value item from backlog to "Doing" and activating Deep Work mode.`) + ctxPrefix,
       sources: [
         { title: 'Opportunity Analysis', type: 'opportunity' as const, relevance: 0.95 },
+        { title: 'Priority Context', type: 'knowledge' as const, relevance: 0.92 },
         { title: 'Strategic Value Ranking', type: 'knowledge' as const, relevance: 0.88 },
       ],
     }
@@ -188,9 +195,10 @@ function generateContextualResponse(
 
   // Default
   return {
-    content: `I have access to **${opportunities.length} opportunities**, **${dailyLogs.length} journal entries**, **${habits.length} habits**, and **${goals.length} goals**. I can help with:\n\n- **Prioritization**: "What should I focus on today?"\n- **Energy management**: "I feel tired, what now?"\n- **Domain balance**: "Am I balanced across domains?"\n- **Goals & habits**: "How are my goals going?"\n- **Study strategy**: "Help me optimize my study plan"\n- **XP & progress**: "How can I level up faster?"\n- **Weekly review**: "How was my week?"\n- **Day planning**: "Plan my day"\n- **Strategy**: "What's my long-term strategy?"\n\nWhat would you like to explore?`,
+    content: `I have access to **${opportunities.length} opportunities**, **${dailyLogs.length} journal entries**, **${habits.length} habits**, and **${goals.length} goals**. I can help with:\n\n- **Prioritization**: "What should I focus on today?"\n- **Energy management**: "I feel tired, what now?"\n- **Domain balance**: "Am I balanced across domains?"\n- **Goals & habits**: "How are my goals going?"\n- **Study strategy**: "Help me optimize my study plan"\n- **XP & progress**: "How can I level up faster?"\n- **Weekly review**: "How was my week?"\n- **Day planning**: "Plan my day"\n- **Strategy**: "What's my long-term strategy?"\n\nWhat would you like to explore?` + ctxPrefix,
     sources: [
       { title: 'System Overview', type: 'knowledge' as const, relevance: 0.7 },
+      ...(priorityContext ? [{ title: 'Priority Context', type: 'knowledge' as const, relevance: 0.85 }] : []),
     ],
   }
 }
@@ -215,6 +223,7 @@ function isSupabaseConfigured(): boolean {
 export function Consultant() {
   const { opportunities, dailyLogs, habits, goals } = useLocalData()
   const { deepWorkMinutes, streakDays } = useXPSystem()
+  const { activePriorities } = usePriorities(opportunities, goals)
   const rag = useRagChat()
   const useAI = isSupabaseConfigured()
 
@@ -258,9 +267,10 @@ export function Consultant() {
         // Fallback to local if RAG fails
         setLastFailedMessage(content)
         await new Promise(resolve => setTimeout(resolve, 500))
+        const ragContext = buildCombinedRAGContext(activePriorities, goals || [], content)
         const response = generateContextualResponse(
           content, opportunities || [], deepWorkMinutes, streakDays,
-          dailyLogs || [], habits || [], goals || [],
+          dailyLogs || [], habits || [], goals || [], ragContext,
         )
         const assistantMessage: ChatMessageType = {
           id: `assistant-${Date.now()}`, role: 'assistant',
@@ -273,9 +283,10 @@ export function Consultant() {
       // Local fallback mode
       await new Promise(resolve => setTimeout(resolve, 1200 + Math.random() * 800))
 
+      const ragContext = buildCombinedRAGContext(activePriorities, goals || [], content)
       const response = generateContextualResponse(
         content, opportunities || [], deepWorkMinutes, streakDays,
-        dailyLogs || [], habits || [], goals || [],
+        dailyLogs || [], habits || [], goals || [], ragContext,
       )
       const assistantMessage: ChatMessageType = {
         id: `assistant-${Date.now()}`, role: 'assistant',
