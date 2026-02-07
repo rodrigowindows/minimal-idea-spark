@@ -1,72 +1,105 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+export type SupportedLanguage = 'pt-BR' | 'en' | 'es';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const SUPPORTED_LANGUAGES: { code: SupportedLanguage; label: string; whisperCode: string }[] = [
+  { code: 'pt-BR', label: 'Portugues', whisperCode: 'pt' },
+  { code: 'en', label: 'English', whisperCode: 'en' },
+  { code: 'es', label: 'Espanol', whisperCode: 'es' },
+];
 
 export interface TranscriptionOptions {
-  language?: string;
+  language?: SupportedLanguage;
   model?: 'whisper-1';
   prompt?: string;
 }
 
+export interface TranscriptionResult {
+  text: string;
+  language: string;
+  duration?: number;
+}
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+
 export async function transcribeAudio(
   audioBlob: Blob,
   options: TranscriptionOptions = {}
-): Promise<string> {
-  try {
-    const formData = new FormData();
-    formData.append('file', audioBlob, 'audio.webm');
-    if (options.language) formData.append('language', options.language);
-    if (options.prompt) formData.append('prompt', options.prompt);
-    formData.append('model', options.model || 'whisper-1');
+): Promise<TranscriptionResult> {
+  const langConfig = SUPPORTED_LANGUAGES.find(l => l.code === options.language) ?? SUPPORTED_LANGUAGES[0];
 
-    const { data: { session } } = await supabase.auth.getSession();
+  const formData = new FormData();
+  formData.append('file', audioBlob, 'audio.webm');
+  formData.append('language', langConfig.whisperCode);
+  formData.append('model', options.model || 'whisper-1');
+  if (options.prompt) formData.append('prompt', options.prompt);
 
-    const response = await fetch(
-      `${supabaseUrl}/functions/v1/transcribe-audio`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`,
-        },
-        body: formData,
-      }
-    );
+  const { data: { session } } = await supabase.auth.getSession();
 
-    if (!response.ok) {
-      throw new Error('Transcription failed');
+  const response = await fetch(
+    `${SUPABASE_URL}/functions/v1/transcribe-audio`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${session?.access_token ?? ''}`,
+      },
+      body: formData,
     }
+  );
 
-    const result = await response.json();
-    return result.text;
-  } catch (error) {
-    console.error('Transcription error:', error);
-    throw error;
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => 'Unknown error');
+    throw new Error(`Transcription failed: ${errorText}`);
   }
+
+  const result = await response.json();
+  return {
+    text: result.text,
+    language: langConfig.code,
+    duration: result.duration,
+  };
 }
 
-export async function saveTranscription(
+export interface TranscriptionRecord {
+  id: string;
+  text: string;
+  language: string;
+  audio_url?: string;
+  source_page?: string;
+  created_at: string;
+}
+
+const STORAGE_KEY = 'lifeos_transcription_history';
+
+export function saveTranscriptionLocal(
   text: string,
-  audioUrl?: string
-): Promise<void> {
-  const { error } = await supabase.from('transcriptions').insert({
+  language: string,
+  sourcePage?: string
+): TranscriptionRecord {
+  const records: TranscriptionRecord[] = JSON.parse(
+    localStorage.getItem(STORAGE_KEY) || '[]'
+  );
+  const record: TranscriptionRecord = {
+    id: `tr-${Date.now()}`,
     text,
-    audio_url: audioUrl,
+    language,
+    source_page: sourcePage,
     created_at: new Date().toISOString(),
-  });
-
-  if (error) throw error;
+  };
+  records.unshift(record);
+  // Keep last 200 entries
+  if (records.length > 200) records.length = 200;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+  return record;
 }
 
-export async function getTranscriptionHistory(limit = 50) {
-  const { data, error } = await supabase
-    .from('transcriptions')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(limit);
+export function getTranscriptionHistory(limit = 50): TranscriptionRecord[] {
+  const records: TranscriptionRecord[] = JSON.parse(
+    localStorage.getItem(STORAGE_KEY) || '[]'
+  );
+  return records.slice(0, limit);
+}
 
-  if (error) throw error;
-  return data;
+export function clearTranscriptionHistory(): void {
+  localStorage.removeItem(STORAGE_KEY);
 }

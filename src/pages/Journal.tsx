@@ -10,6 +10,8 @@ import { MOOD_OPTIONS } from '@/lib/constants'
 import { useXPSystem } from '@/hooks/useXPSystem'
 import { BookOpen, Plus, Calendar, Sparkles, Send, Trash2, Zap } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { VoiceInput } from '@/components/smart-capture/VoiceInput'
+import { AudioToText } from '@/components/AudioToText'
 import { format, parseISO } from 'date-fns'
 import { toast } from 'sonner'
 
@@ -90,12 +92,24 @@ export function Journal() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Textarea
-              placeholder="How's your day going? What's on your mind..."
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="min-h-[120px] resize-none"
-            />
+            <div className="relative">
+              <Textarea
+                placeholder="How's your day going? What's on your mind..."
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                className="min-h-[120px] resize-none pr-20"
+              />
+              <div className="absolute right-2 top-2 flex items-center gap-1">
+                <VoiceInput
+                  onTranscript={(text) => setContent((prev) => prev ? prev + ' ' + text : text)}
+                />
+                <AudioToText
+                  onTranscription={(text) => setContent((prev) => prev ? prev + ' ' + text : text)}
+                  sourcePage="journal"
+                  compact
+                />
+              </div>
+            </div>
 
             <div className="space-y-2">
               <p className="text-sm font-medium text-muted-foreground">Mood</p>

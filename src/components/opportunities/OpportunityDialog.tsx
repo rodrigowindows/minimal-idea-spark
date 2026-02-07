@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
+import { VoiceInput } from '@/components/smart-capture/VoiceInput'
 import type { Opportunity, LifeDomain, OpportunityTypeValue, OpportunityStatusValue } from '@/types'
 import { OPPORTUNITY_TYPES, OPPORTUNITY_STATUSES } from '@/lib/constants'
 
@@ -89,25 +90,38 @@ export function OpportunityDialog({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="opp-title">Title</Label>
-            <Input
-              id="opp-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="What needs to be done?"
-              required
-            />
+            <div className="flex items-center gap-1">
+              <Input
+                id="opp-title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="What needs to be done?"
+                required
+                className="flex-1"
+              />
+              <VoiceInput
+                onTranscript={(text) => setTitle((prev) => prev ? prev + ' ' + text : text)}
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="opp-desc">Description</Label>
-            <Textarea
-              id="opp-desc"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Details..."
-              className="resize-none"
-              rows={3}
-            />
+            <div className="relative">
+              <Textarea
+                id="opp-desc"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Details..."
+                className="resize-none pr-12"
+                rows={3}
+              />
+              <div className="absolute right-2 top-2">
+                <VoiceInput
+                  onTranscript={(text) => setDescription((prev) => prev ? prev + ' ' + text : text)}
+                />
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

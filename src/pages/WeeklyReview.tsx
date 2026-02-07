@@ -23,6 +23,8 @@ import {
   Lightbulb,
   Send,
 } from 'lucide-react'
+import { VoiceInput } from '@/components/smart-capture/VoiceInput'
+import { AudioToText } from '@/components/AudioToText'
 import { format, subDays, startOfWeek, endOfWeek } from 'date-fns'
 
 export function WeeklyReview() {
@@ -258,25 +260,49 @@ export function WeeklyReview() {
                 <label className="text-sm font-medium text-muted-foreground">
                   What went well this week?
                 </label>
-                <Textarea
-                  value={reflections}
-                  onChange={(e) => setReflections(e.target.value)}
-                  placeholder="Celebrate your wins, big and small..."
-                  rows={3}
-                  className="resize-none"
-                />
+                <div className="relative">
+                  <Textarea
+                    value={reflections}
+                    onChange={(e) => setReflections(e.target.value)}
+                    placeholder="Celebrate your wins, big and small..."
+                    rows={3}
+                    className="resize-none pr-20"
+                  />
+                  <div className="absolute right-2 top-2 flex items-center gap-1">
+                    <VoiceInput
+                      onTranscript={(text) => setReflections((prev) => prev ? prev + ' ' + text : text)}
+                    />
+                    <AudioToText
+                      onTranscription={(text) => setReflections((prev) => prev ? prev + ' ' + text : text)}
+                      sourcePage="weekly-review"
+                      compact
+                    />
+                  </div>
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">
                   Plan for next week
                 </label>
-                <Textarea
-                  value={nextWeekPlan}
-                  onChange={(e) => setNextWeekPlan(e.target.value)}
-                  placeholder="Top 3 priorities for next week..."
-                  rows={3}
-                  className="resize-none"
-                />
+                <div className="relative">
+                  <Textarea
+                    value={nextWeekPlan}
+                    onChange={(e) => setNextWeekPlan(e.target.value)}
+                    placeholder="Top 3 priorities for next week..."
+                    rows={3}
+                    className="resize-none pr-20"
+                  />
+                  <div className="absolute right-2 top-2 flex items-center gap-1">
+                    <VoiceInput
+                      onTranscript={(text) => setNextWeekPlan((prev) => prev ? prev + ' ' + text : text)}
+                    />
+                    <AudioToText
+                      onTranscription={(text) => setNextWeekPlan((prev) => prev ? prev + ' ' + text : text)}
+                      sourcePage="weekly-review"
+                      compact
+                    />
+                  </div>
+                </div>
               </div>
               <Button
                 onClick={handleSaveReview}

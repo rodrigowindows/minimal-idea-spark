@@ -3,13 +3,21 @@ import { Mic, MicOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import type { SupportedLanguage } from '@/lib/audio-transcription'
+
+const LANG_MAP: Record<SupportedLanguage, string> = {
+  'pt-BR': 'pt-BR',
+  'en': 'en-US',
+  'es': 'es-ES',
+}
 
 interface VoiceInputProps {
   onTranscript: (text: string) => void
   disabled?: boolean
+  language?: SupportedLanguage
 }
 
-export function VoiceInput({ onTranscript, disabled }: VoiceInputProps) {
+export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: VoiceInputProps) {
   const [isListening, setIsListening] = useState(false)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
 
@@ -26,7 +34,7 @@ export function VoiceInput({ onTranscript, disabled }: VoiceInputProps) {
     const recognition = new SpeechRecognition()
     recognition.continuous = true
     recognition.interimResults = false
-    recognition.lang = 'pt-BR'
+    recognition.lang = LANG_MAP[language] || 'pt-BR'
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       const last = event.results[event.results.length - 1]
@@ -49,7 +57,7 @@ export function VoiceInput({ onTranscript, disabled }: VoiceInputProps) {
     recognitionRef.current = recognition
     recognition.start()
     setIsListening(true)
-  }, [isSupported, onTranscript])
+  }, [isSupported, onTranscript, language])
 
   const stopListening = useCallback(() => {
     recognitionRef.current?.stop()

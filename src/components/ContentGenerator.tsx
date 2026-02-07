@@ -8,6 +8,8 @@ import { Loader2, Sparkles, RefreshCw, ThumbsUp, ThumbsDown } from 'lucide-react
 import { generateContent, refineContent, rateGeneration } from '@/lib/ai/content-generator';
 import type { ContentGenerationOptions } from '@/lib/ai/content-generator';
 import { toast } from 'sonner';
+import { VoiceInput } from '@/components/smart-capture/VoiceInput';
+import { AudioToText } from '@/components/AudioToText';
 
 export function ContentGenerator() {
   const [prompt, setPrompt] = useState('');
@@ -76,7 +78,19 @@ export function ContentGenerator() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="prompt">O que você quer criar?</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="prompt">O que você quer criar?</Label>
+              <div className="flex items-center gap-0.5">
+                <VoiceInput
+                  onTranscript={(text) => setPrompt((prev) => (prev ? prev + ' ' + text : text))}
+                />
+                <AudioToText
+                  compact
+                  sourcePage="content-generator"
+                  onTranscription={(text) => setPrompt((prev) => (prev ? prev + ' ' + text : text))}
+                />
+              </div>
+            </div>
             <Textarea
               id="prompt"
               placeholder="Ex: Escreva um artigo sobre os benefícios da IA..."

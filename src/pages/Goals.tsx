@@ -35,6 +35,7 @@ import {
   ChevronUp,
   Milestone,
 } from 'lucide-react'
+import { VoiceInput } from '@/components/smart-capture/VoiceInput'
 import { format, differenceInDays, isPast } from 'date-fns'
 
 export function Goals() {
@@ -155,21 +156,35 @@ export function Goals() {
           <form onSubmit={handleCreateGoal} className="space-y-4">
             <div className="space-y-2">
               <Label>Goal Title</Label>
-              <Input
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="e.g. Pass SEFAZ exam"
-                required
-              />
+              <div className="flex items-center gap-1">
+                <Input
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="e.g. Pass SEFAZ exam"
+                  required
+                  className="flex-1"
+                />
+                <VoiceInput
+                  onTranscript={(text) => setNewTitle((prev) => prev ? prev + ' ' + text : text)}
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Description</Label>
-              <Textarea
-                value={newDescription}
-                onChange={(e) => setNewDescription(e.target.value)}
-                placeholder="What does achieving this look like?"
-                rows={2}
-              />
+              <div className="relative">
+                <Textarea
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  placeholder="What does achieving this look like?"
+                  rows={2}
+                  className="pr-12"
+                />
+                <div className="absolute right-2 top-2">
+                  <VoiceInput
+                    onTranscript={(text) => setNewDescription((prev) => prev ? prev + ' ' + text : text)}
+                  />
+                </div>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

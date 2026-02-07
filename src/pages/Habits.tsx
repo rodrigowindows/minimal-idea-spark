@@ -34,6 +34,7 @@ import {
   Zap,
   Calendar,
 } from 'lucide-react'
+import { VoiceInput } from '@/components/smart-capture/VoiceInput'
 import { format, subDays, startOfWeek, addDays } from 'date-fns'
 
 const HABIT_COLORS = ['#3b82f6', '#22c55e', '#ef4444', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316']
@@ -301,12 +302,18 @@ export function Habits() {
           <form onSubmit={handleCreateHabit} className="space-y-4">
             <div className="space-y-2">
               <Label>Name</Label>
-              <Input
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="e.g. Morning meditation"
-                required
-              />
+              <div className="flex items-center gap-1">
+                <Input
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="e.g. Morning meditation"
+                  required
+                  className="flex-1"
+                />
+                <VoiceInput
+                  onTranscript={(text) => setNewName((prev) => prev ? prev + ' ' + text : text)}
+                />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

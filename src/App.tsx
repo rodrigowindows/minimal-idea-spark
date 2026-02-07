@@ -13,10 +13,14 @@ import { Habits } from "@/pages/Habits";
 import { Goals } from "@/pages/Goals";
 import { WeeklyReview } from "@/pages/WeeklyReview";
 import { Settings } from "@/pages/Settings";
+import { Workspace } from "@/pages/Workspace";
+import { AcceptInvite } from "@/pages/AcceptInvite";
+import { SharedView } from "@/pages/SharedView";
 import { DeepWorkOverlay } from "@/components/deep-work/DeepWorkOverlay";
 import { ConfettiEffect } from "@/components/gamification/ConfettiEffect";
 import { XPNotificationListener } from "@/components/gamification/XPNotificationListener";
 import { AppProvider, useAppContext } from "@/contexts/AppContext";
+import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -43,7 +47,10 @@ function AppContent() {
           <Route path="/goals" element={<Goals />} />
           <Route path="/weekly-review" element={<WeeklyReview />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/workspace" element={<Workspace />} />
         </Route>
+        <Route path="/invite/:token" element={<AcceptInvite />} />
+        <Route path="/shared/:token" element={<SharedView />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <DeepWorkOverlay />
@@ -60,7 +67,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AppProvider>
-          <AppContent />
+          <WorkspaceProvider>
+            <AppContent />
+          </WorkspaceProvider>
         </AppProvider>
       </BrowserRouter>
     </TooltipProvider>

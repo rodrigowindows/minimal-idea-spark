@@ -20,6 +20,7 @@ import {
   Globe,
 } from 'lucide-react'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
+import { TranscriptionHistory } from '@/components/TranscriptionHistory'
 import {
   Dialog,
   DialogContent,
@@ -220,6 +221,9 @@ export function Settings() {
             </p>
           </CardContent>
         </Card>
+
+        {/* Transcription History */}
+        <TranscriptionHistory />
 
         {/* About */}
         <Card className="rounded-xl lg:col-span-2">

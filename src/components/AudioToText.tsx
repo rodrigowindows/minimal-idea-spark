@@ -1,19 +1,36 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Loader2, Upload } from 'lucide-react';
+import { Mic, MicOff, Loader2, Upload, Languages } from 'lucide-react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import {
+  transcribeAudio,
+  saveTranscriptionLocal,
+  SUPPORTED_LANGUAGES,
+  type SupportedLanguage,
+} from '@/lib/audio-transcription';
 
 interface AudioToTextProps {
   onTranscription: (text: string) => void;
   className?: string;
+  sourcePage?: string;
+  compact?: boolean;
 }
 
-export function AudioToText({ onTranscription, className }: AudioToTextProps) {
+export function AudioToText({ onTranscription, className, sourcePage, compact }: AudioToTextProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [language, setLanguage] = useState<SupportedLanguage>('pt-BR');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const startRecording = async () => {
     try {
@@ -21,6 +38,11 @@ export function AudioToText({ onTranscription, className }: AudioToTextProps) {
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
+      setRecordingDuration(0);
+
+      timerRef.current = setInterval(() => {
+        setRecordingDuration(d => d + 1);
+      }, 1000);
 
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
@@ -29,48 +51,44 @@ export function AudioToText({ onTranscription, className }: AudioToTextProps) {
       };
 
       mediaRecorder.onstop = async () => {
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
         const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        await transcribeAudio(audioBlob);
         stream.getTracks().forEach(track => track.stop());
+        await handleTranscribe(audioBlob);
       };
 
       mediaRecorder.start();
       setIsRecording(true);
-      toast.success('Gravação iniciada');
     } catch (error) {
       console.error('Error starting recording:', error);
-      toast.error('Erro ao iniciar gravação');
+      toast.error('Erro ao iniciar gravacao. Verifique permissoes do microfone.');
     }
   };
 
-  const stopRecording = () => {
+  const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
     }
-  };
+  }, [isRecording]);
 
-  const transcribeAudio = async (audioBlob: Blob) => {
+  const handleTranscribe = async (audioBlob: Blob) => {
     setIsProcessing(true);
     try {
-      const formData = new FormData();
-      formData.append('audio', audioBlob, 'recording.webm');
-
-      const response = await fetch('/api/transcribe-audio', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) throw new Error('Transcription failed');
-
-      const data = await response.json();
-      onTranscription(data.text);
-      toast.success('Áudio transcrito com sucesso');
+      const result = await transcribeAudio(audioBlob, { language });
+      onTranscription(result.text);
+      saveTranscriptionLocal(result.text, result.language, sourcePage);
+      toast.success('Audio transcrito com sucesso!');
     } catch (error) {
       console.error('Error transcribing audio:', error);
-      toast.error('Erro ao transcrever áudio');
+      // Fallback to browser Speech Recognition API
+      toast.error('Erro na API. Tente o microfone do navegador.');
     } finally {
       setIsProcessing(false);
+      setRecordingDuration(0);
     }
   };
 
@@ -79,21 +97,39 @@ export function AudioToText({ onTranscription, className }: AudioToTextProps) {
     if (!file) return;
 
     if (!file.type.startsWith('audio/')) {
-      toast.error('Por favor, selecione um arquivo de áudio');
+      toast.error('Por favor, selecione um arquivo de audio');
       return;
     }
 
-    await transcribeAudio(file);
+    await handleTranscribe(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const formatDuration = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
   return (
-    <div className={`flex gap-2 ${className}`}>
+    <div className={cn('flex items-center gap-1', className)}>
+      {isRecording && (
+        <span className="text-xs font-mono text-red-400 animate-pulse mr-1">
+          {formatDuration(recordingDuration)}
+        </span>
+      )}
+
       <Button
         type="button"
-        variant={isRecording ? 'destructive' : 'outline'}
+        variant={isRecording ? 'destructive' : 'ghost'}
         size="icon"
+        className={cn(
+          'h-8 w-8 shrink-0',
+          isRecording && 'animate-pulse'
+        )}
         onClick={isRecording ? stopRecording : startRecording}
         disabled={isProcessing}
+        title={isRecording ? 'Parar gravacao' : 'Gravar audio (Whisper API)'}
       >
         {isProcessing ? (
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -104,22 +140,59 @@ export function AudioToText({ onTranscription, className }: AudioToTextProps) {
         )}
       </Button>
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="audio/*"
-        onChange={handleFileUpload}
-        className="hidden"
-      />
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        onClick={() => fileInputRef.current?.click()}
-        disabled={isProcessing || isRecording}
-      >
-        <Upload className="h-4 w-4" />
-      </Button>
+      {!compact && (
+        <>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="audio/*"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isProcessing || isRecording}
+            title="Upload arquivo de audio"
+          >
+            <Upload className="h-4 w-4" />
+          </Button>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                disabled={isProcessing || isRecording}
+                title="Selecionar idioma"
+              >
+                <Languages className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-40 p-1" align="end">
+              {SUPPORTED_LANGUAGES.map((lang) => (
+                <button
+                  key={lang.code}
+                  className={cn(
+                    'flex w-full items-center rounded-md px-3 py-2 text-sm transition-colors',
+                    language === lang.code
+                      ? 'bg-primary/10 text-primary font-medium'
+                      : 'hover:bg-muted'
+                  )}
+                  onClick={() => setLanguage(lang.code)}
+                >
+                  {lang.label}
+                </button>
+              ))}
+            </PopoverContent>
+          </Popover>
+        </>
+      )}
     </div>
   );
 }

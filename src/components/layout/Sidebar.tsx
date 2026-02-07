@@ -12,11 +12,13 @@ import {
   Flag,
   ClipboardCheck,
   Settings2,
+  Building2,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useAppContext } from '@/contexts/AppContext'
 import { XPProgressBar } from '@/components/gamification/XPProgressBar'
+import { WorkspaceSwitcher } from '@/components/WorkspaceSwitcher'
 
 interface SidebarProps {
   collapsed: boolean
@@ -32,6 +34,7 @@ const navItems = [
   { to: '/goals', icon: Flag, label: 'Goals' },
   { to: '/analytics', icon: BarChart3, label: 'Analytics' },
   { to: '/weekly-review', icon: ClipboardCheck, label: 'Weekly Review' },
+  { to: '/workspace', icon: Building2, label: 'Workspace' },
   { to: '/settings', icon: Settings2, label: 'Settings' },
 ]
 
@@ -53,13 +56,18 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         )}
       </div>
 
+      {/* Workspace Switcher */}
+      <div className={cn('border-b border-border/50 px-2 py-2', collapsed && 'px-1')}>
+        <WorkspaceSwitcher collapsed={collapsed} />
+      </div>
+
       {/* XP Progress */}
       <div className={cn('px-2 py-3', collapsed && 'px-1')}>
         <XPProgressBar compact={collapsed} />
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 p-2">
+      <nav className="flex-1 space-y-1 overflow-y-auto p-2">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
