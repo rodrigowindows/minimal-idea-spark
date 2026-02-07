@@ -14,6 +14,7 @@ import { Goals } from "@/pages/Goals";
 import { CalendarPage } from "@/pages/CalendarPage";
 import { PriorityDashboard } from "@/components/PriorityDashboard";
 import { WeeklyReview } from "@/pages/WeeklyReview";
+import { ContentGeneratorPage } from "@/pages/ContentGeneratorPage";
 import { Settings } from "@/pages/Settings";
 import { Workspace } from "@/pages/Workspace";
 import { AcceptInvite } from "@/pages/AcceptInvite";
@@ -55,6 +56,7 @@ function AppContent() {
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/priorities" element={<PriorityDashboard />} />
           <Route path="/weekly-review" element={<WeeklyReview />} />
+          <Route path="/content-generator" element={<ContentGeneratorPage />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/workspace" element={<Workspace />} />
         </Route>

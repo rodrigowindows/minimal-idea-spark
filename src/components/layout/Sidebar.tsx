@@ -8,6 +8,7 @@ import {
   Globe,
   LayoutDashboard,
   MessageSquare,
+  PenTool,
   Sparkles,
   Target,
   BarChart3,
@@ -41,6 +42,7 @@ const navItems: { to: string; icon: typeof LayoutDashboard; labelKey: Translatio
   { to: '/priorities', icon: Crosshair, labelKey: 'priorities' },
   { to: '/analytics', icon: BarChart3, labelKey: 'analytics' },
   { to: '/weekly-review', icon: ClipboardCheck, labelKey: 'weeklyReview' },
+  { to: '/content-generator', icon: PenTool, labelKey: 'contentGenerator' },
   { to: '/workspace', icon: Building2, labelKey: 'workspace' },
   { to: '/settings', icon: Settings2, labelKey: 'settings' },
 ]

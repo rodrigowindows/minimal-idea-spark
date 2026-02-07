@@ -14,16 +14,22 @@ serve(async (req) => {
 
     let systemPrompt = 'You are a professional content writer and AI assistant.';
     let userPrompt = '';
+    let temperature = 0.7;
 
     if (action === 'expand') {
       systemPrompt = 'You are a creative brainstorming assistant. Generate diverse, actionable ideas.';
       userPrompt = `Generate 5-7 creative ideas to expand on this topic: ${topic}${context ? `\n\nContext: ${context}` : ''}\n\nProvide ideas as a JSON array of strings.`;
+      temperature = 0.8;
     } else if (action === 'refine') {
-      systemPrompt = 'You are an expert editor. Improve clarity, structure, and impact.';
+      systemPrompt = 'You are an expert editor. Improve clarity, structure, and impact while preserving the original meaning and intent.';
       userPrompt = `Refine this content based on the feedback:\n\nContent: ${content}\n\nFeedback: ${feedback}`;
     } else if (action === 'generate_metadata') {
-      systemPrompt = 'You are a metadata generation specialist.';
+      systemPrompt = 'You are a metadata generation specialist. Generate compelling, SEO-friendly titles and descriptions.';
       userPrompt = `Generate a compelling title and brief description for this content:\n\n${content}\n\nRespond with JSON: {"title": "...", "description": "..."}`;
+    } else if (action === 'suggest') {
+      systemPrompt = 'You are a writing assistant. Provide contextual suggestions to help complete or improve the text being written. Be concise and practical.';
+      userPrompt = `Based on this partial text, suggest 3-5 ways to continue or improve it:\n\n${content}${context ? `\n\nContext: ${context}` : ''}\n\nRespond with JSON: {"suggestions": ["...", "...", "..."]}`;
+      temperature = 0.8;
     } else {
       // Default content generation
       const styleGuides: Record<string, string> = {
@@ -67,7 +73,7 @@ serve(async (req) => {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        temperature: action === 'expand' ? 0.8 : 0.7,
+        temperature,
       }),
     });
 
@@ -79,17 +85,47 @@ serve(async (req) => {
     const generatedText = result.choices[0].message.content;
 
     if (action === 'expand') {
-      const ideas = JSON.parse(generatedText);
-      return new Response(
-        JSON.stringify({ ideas }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      try {
+        const ideas = JSON.parse(generatedText);
+        return new Response(
+          JSON.stringify({ ideas }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch {
+        // If JSON parsing fails, split by newlines
+        const ideas = generatedText.split('\n').filter((l: string) => l.trim());
+        return new Response(
+          JSON.stringify({ ideas }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     } else if (action === 'generate_metadata') {
-      const metadata = JSON.parse(generatedText);
-      return new Response(
-        JSON.stringify(metadata),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      try {
+        const metadata = JSON.parse(generatedText);
+        return new Response(
+          JSON.stringify(metadata),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch {
+        return new Response(
+          JSON.stringify({ title: 'Untitled', description: generatedText.substring(0, 200) }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } else if (action === 'suggest') {
+      try {
+        const parsed = JSON.parse(generatedText);
+        return new Response(
+          JSON.stringify({ suggestions: parsed.suggestions || [] }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch {
+        const suggestions = generatedText.split('\n').filter((l: string) => l.trim()).slice(0, 5);
+        return new Response(
+          JSON.stringify({ suggestions }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     return new Response(
