@@ -4,14 +4,19 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 import { listVariables, applyVariables, getDefaultValues } from '@/lib/templates/engine'
+import { suggestTemplateValues } from '@/lib/templates/ai-fill'
 import { TEMPLATE_CATEGORIES } from '@/lib/db/schema-templates'
+import { Sparkles, Save } from 'lucide-react'
 
 export function TemplateEditor() {
   const [name, setName] = useState('')
   const [body, setBody] = useState('# {{title}}\nDate: {{date}}\n\n{{content}}')
   const [category, setCategory] = useState(TEMPLATE_CATEGORIES[0])
   const [previewValues, setPreviewValues] = useState<Record<string, string>>({})
+  const [version, setVersion] = useState(1)
+  const [aiFilling, setAiFilling] = useState(false)
 
   const vars = listVariables(body)
   const defaults = getDefaultValues(vars)
@@ -46,16 +51,28 @@ export function TemplateEditor() {
           </div>
           {vars.length > 0 && (
             <div>
-              <Label>Preview variables</Label>
+              <div className="flex items-center justify-between">
+                <Label>Preview variables</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={aiFilling}
+                  onClick={async () => {
+                    setAiFilling(true)
+                    const suggested = await suggestTemplateValues(vars)
+                    setPreviewValues(suggested)
+                    setAiFilling(false)
+                  }}
+                  className="gap-2"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  {aiFilling ? 'Filling…' : 'Fill with AI'}
+                </Button>
+              </div>
               <div className="mt-2 flex flex-wrap gap-2">
                 {vars.map(v => (
-                  <Input
-                    key={v}
-                    placeholder={v}
-                    value={previewValues[v] ?? ''}
-                    onChange={e => setPreviewValues(p => ({ ...p, [v]: e.target.value }))}
-                    className="w-32"
-                  />
+                  <Input key={v} placeholder={v} value={previewValues[v] ?? ''} onChange={e => setPreviewValues(p => ({ ...p, [v]: e.target.value }))} className="w-32" />
                 ))}
               </div>
             </div>
@@ -66,7 +83,13 @@ export function TemplateEditor() {
               <pre className="mt-2 rounded-lg border bg-muted/50 p-3 text-sm whitespace-pre-wrap">{preview}</pre>
             </div>
           )}
-          <Button>Save template</Button>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary">v{version}</Badge>
+            <Button onClick={() => setVersion(v => v + 1)} variant="outline" size="sm" className="gap-2">
+              <Save className="h-4 w-4" /> Save as new version
+            </Button>
+            <Button>Save template</Button>
+          </div>
         </CardContent>
       </Card>
     </div>

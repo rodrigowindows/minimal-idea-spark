@@ -7,9 +7,9 @@ import { Search, Plus, FileText } from 'lucide-react'
 import { TEMPLATE_CATEGORIES } from '@/lib/db/schema-templates'
 
 const MOCK_TEMPLATES = [
-  { id: '1', name: 'Daily standup', description: 'Quick daily log', category: 'journal', body: '## Standup\n- Done: {{done}}\n- Today: {{today}}' },
-  { id: '2', name: 'Project kickoff', description: 'New project template', category: 'project', body: '# {{title}}\nGoal: {{goal}}\nDomain: {{domain}}' },
-  { id: '3', name: 'Task', description: 'Single task', category: 'task', body: 'Task: {{title}}\nDue: {{date}}' },
+  { id: '1', name: 'Daily standup', description: 'Quick daily log', category: 'journal', body: '## Standup\n- Done: {{done}}\n- Today: {{today}}', version: 2 },
+  { id: '2', name: 'Project kickoff', description: 'New project template', category: 'project', body: '# {{title}}\nGoal: {{goal}}\nDomain: {{domain}}', version: 1 },
+  { id: '3', name: 'Task', description: 'Single task', category: 'task', body: 'Task: {{title}}\nDue: {{date}}', version: 1 },
 ]
 
 export function TemplatesLibrary() {
@@ -56,7 +56,10 @@ export function TemplatesLibrary() {
                 <FileText className="h-5 w-5 text-muted-foreground" />
                 <CardTitle className="text-base">{t.name}</CardTitle>
               </div>
-              <Badge variant="secondary" className="w-fit">{t.category}</Badge>
+              <div className="flex gap-1">
+                <Badge variant="secondary" className="w-fit">{t.category}</Badge>
+                {'version' in t && <Badge variant="outline" className="w-fit">v{(t as { version?: number }).version ?? 1}</Badge>}
+              </div>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground line-clamp-2">{t.description}</p>

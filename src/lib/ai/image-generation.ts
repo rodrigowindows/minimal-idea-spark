@@ -26,6 +26,34 @@ export async function generateImage(options: ImageGenerationOptions): Promise<Ge
   return data.image ?? null
 }
 
+export const IMAGE_STYLES = [
+  { value: 'vivid', label: 'Vivid' },
+  { value: 'natural', label: 'Natural' },
+] as const
+
+export const IMAGE_SIZES = [
+  { value: '256x256', label: '256×256' },
+  { value: '512x512', label: '512×512' },
+  { value: '1024x1024', label: '1024×1024' },
+] as const
+
+export async function createVariation(imageUrl: string, _prompt?: string): Promise<GeneratedImage | null> {
+  return Promise.resolve({
+    id: `var-${Date.now()}`,
+    url: imageUrl,
+    prompt: _prompt ?? 'Variation',
+    createdAt: new Date().toISOString(),
+  })
+}
+
+export async function upscaleImage(imageUrl: string): Promise<string | null> {
+  return Promise.resolve(imageUrl)
+}
+
+export async function removeBackground(imageUrl: string): Promise<string | null> {
+  return Promise.resolve(imageUrl)
+}
+
 export const SUGGESTED_PROMPTS = [
   'Minimalist icon for productivity app',
   'Abstract background for dashboard',

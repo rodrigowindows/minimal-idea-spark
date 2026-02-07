@@ -10,6 +10,7 @@ export interface ParsedAction {
 }
 
 const TASK_PATTERNS = [
+  /\/task\s+(.+)/i,
   /criar (?:uma )?tarefa\s+(.+)/i,
   /create (?:a )?task\s+(.+)/i,
   /add task\s+(.+)/i,
@@ -17,6 +18,7 @@ const TASK_PATTERNS = [
 ]
 
 const JOURNAL_PATTERNS = [
+  /\/journal\s+(.+)/i,
   /registr(?:ar|e) (?:no )?di[áa]rio\s+(.+)/i,
   /log (?:to )?journal\s+(.+)/i,
   /journal\s+(.+)/i,
@@ -32,8 +34,8 @@ export function parseAssistantIntent(text: string): ParsedAction {
     const m = t.match(p)
     if (m) return { type: 'add_journal', payload: { content: m[1].trim() } }
   }
-  if (/open (dashboard|analytics|journal|opportunities)/i.test(t)) {
-    const page = t.match(/open (\w+)/i)?.[1] ?? 'dashboard'
+  if (/\/open\s+(\w+)/i.test(t) || /open (dashboard|analytics|journal|opportunities)/i.test(t)) {
+    const page = t.match(/\/(?:open)\s+(\w+)/i)?.[1] ?? t.match(/open (\w+)/i)?.[1] ?? 'dashboard'
     return { type: 'open_page', payload: { page } }
   }
   return { type: 'none' }

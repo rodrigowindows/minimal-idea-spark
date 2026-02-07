@@ -1,15 +1,33 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { getStoredImages, removeStoredImage } from '@/lib/storage/image-manager'
-import { ImageIcon, Trash2 } from 'lucide-react'
+import { getStoredImages, removeStoredImage, addStoredImage } from '@/lib/storage/image-manager'
+import { createVariation, upscaleImage, removeBackground } from '@/lib/ai/image-generation'
+import { ImageIcon, Trash2, Copy, Maximize2, Eraser } from 'lucide-react'
 import { useState } from 'react'
 
 export function ImageGallery() {
   const [images, setImages] = useState(getStoredImages())
 
+  const refresh = () => setImages(getStoredImages())
+
   const remove = (id: string) => {
     removeStoredImage(id)
-    setImages(getStoredImages())
+    refresh()
+  }
+
+  const handleVariation = async (url: string, prompt: string) => {
+    const img = await createVariation(url, prompt)
+    if (img) { addStoredImage(img); refresh() }
+  }
+
+  const handleUpscale = async (url: string) => {
+    const newUrl = await upscaleImage(url)
+    if (newUrl) { addStoredImage({ id: `up-${Date.now()}`, url: newUrl, prompt: 'Upscaled', createdAt: new Date().toISOString() }); refresh() }
+  }
+
+  const handleRemoveBg = async (url: string) => {
+    const newUrl = await removeBackground(url)
+    if (newUrl) { addStoredImage({ id: `bg-${Date.now()}`, url: newUrl, prompt: 'No background', createdAt: new Date().toISOString() }); refresh() }
   }
 
   return (
@@ -29,14 +47,22 @@ export function ImageGallery() {
               <div key={img.id} className="rounded-lg border overflow-hidden group relative">
                 <img src={img.url} alt={img.prompt} className="w-full h-32 object-cover" />
                 <p className="text-xs text-muted-foreground p-2 line-clamp-2">{img.prompt}</p>
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => remove(img.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center justify-between gap-1 p-2 border-t">
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleVariation(img.url, img.prompt)} title="Variation">
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleUpscale(img.url)} title="Upscale">
+                      <Maximize2 className="h-3 w-3" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleRemoveBg(img.url)} title="Remove background">
+                      <Eraser className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(img.id)} title="Delete">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>

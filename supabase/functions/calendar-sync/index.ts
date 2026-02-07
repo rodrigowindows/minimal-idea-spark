@@ -11,22 +11,28 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
+    let body: CalendarSyncBody
+    try {
+      body = (await req.json()) as CalendarSyncBody
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      })
+    }
     const authHeader = req.headers.get('Authorization')
     const supabase = getSupabaseClient(authHeader)
-    const body = (await req.json()) as CalendarSyncBody
     if (body.events?.length) {
-      const { error } = await supabase.from('calendar_events').upsert(
-        body.events.map((e) => ({
-          user_id: body.user_id,
-          source: body.source,
-          start_at: e.start,
-          end_at: e.end,
-          title: e.title,
-          external_id: e.id ?? null,
-          updated_at: new Date().toISOString(),
-        })),
-        { onConflict: 'user_id,external_id,source' }
-      )
+      const rows = body.events.map((e) => ({
+        user_id: body.user_id,
+        source: body.source,
+        start_at: e.start,
+        end_at: e.end,
+        title: e.title,
+        external_id: e.id ?? null,
+        created_at: new Date().toISOString(),
+      }))
+      const { error } = await supabase.from('calendar_events').insert(rows)
       if (error) throw error
     }
     return new Response(JSON.stringify({ ok: true }), {
