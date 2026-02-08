@@ -29,7 +29,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
 
   const currentUserId = user?.id ?? 'mock-user-001';
-  const currentUsername = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuario';
+  const currentUsername = user?.user_metadata?.full_name || (user?.email ? user.email.split('@')[0] : 'Usuario');
 
   const roomId = currentOrg?.id ?? 'default-room';
 

@@ -123,10 +123,13 @@ export function setPreferences(prefs: Partial<NotificationPreferences>): Notific
 export function isInQuietHours(): boolean {
   const prefs = getPreferences()
   if (!prefs.quietHoursStart || !prefs.quietHoursEnd) return false
+  if (typeof prefs.quietHoursStart !== 'string' || typeof prefs.quietHoursEnd !== 'string') return false
   const now = new Date()
   const currentMinutes = now.getHours() * 60 + now.getMinutes()
-  const [startH, startM] = prefs.quietHoursStart.split(':').map(Number)
-  const [endH, endM] = prefs.quietHoursEnd.split(':').map(Number)
+  const startParts = prefs.quietHoursStart.split(':').map(Number)
+  const endParts = prefs.quietHoursEnd.split(':').map(Number)
+  const [startH = 0, startM = 0] = startParts
+  const [endH = 0, endM = 0] = endParts
   const start = startH * 60 + startM
   const end = endH * 60 + endM
   if (start <= end) {

@@ -250,7 +250,7 @@ export function useWorkspace() {
       joined_at: new Date().toISOString(),
       invited_at: invite.created_at,
       status: 'active',
-      user_profile: { full_name: invite.email.split('@')[0] },
+      user_profile: { full_name: invite.email ? invite.email.split('@')[0] : 'User' },
     };
     setMembers(prev => [...prev, member]);
     logActivity('member.joined', 'member', member.id, { email: invite.email });

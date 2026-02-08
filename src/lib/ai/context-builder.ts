@@ -142,7 +142,7 @@ export function contextToPrompt(ctx: AssistantContext): string {
   }
 
   if (ctx.todayEvents.length) {
-    parts.push('Today\'s schedule: ' + ctx.todayEvents.map(e => `${e.title} @ ${e.start.split('T')[1]?.slice(0, 5) ?? '?'}`).join(', '))
+    parts.push('Today\'s schedule: ' + ctx.todayEvents.map(e => `${e.title} @ ${e.start?.split('T')[1]?.slice(0, 5) ?? '?'}`).join(', '))
   }
 
   return parts.join('\n')

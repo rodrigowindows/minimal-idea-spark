@@ -368,6 +368,7 @@ export function TimeBlockCalendar({ opportunities, className }: TimeBlockCalenda
             <div className="max-h-[400px] space-y-1 overflow-y-auto">
               {HOURS.map((hour) => {
                 const blocksAtHour = blocks.filter(b => {
+                  if (!b.block_start) return false
                   const blockHour = parseInt(b.block_start.split(':')[0], 10)
                   return blockHour === hour
                 })
