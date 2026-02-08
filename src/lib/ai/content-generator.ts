@@ -48,7 +48,7 @@ async function callGenerateContent(body: Record<string, unknown>): Promise<any> 
 export async function generateContent(
   options: ContentGenerationOptions
 ): Promise<string> {
-  const data = await callGenerateContent(options);
+  const data = await callGenerateContent(options as unknown as Record<string, unknown>);
   return data.content;
 }
 
