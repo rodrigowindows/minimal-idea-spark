@@ -2,6 +2,8 @@
 
 React + TypeScript app with **Canvas**-style second brain: War Room dashboard, Strategic Consultant (AI chat), Opportunities, Journal, Analytics, XP gamification, time blocking, and Deep Work mode with Pomodoro.
 
+_Repo editado via OpenClaw dentro do container para teste de Git._
+
 ## Quick start
 
 ```sh
