@@ -14,6 +14,7 @@ export interface IndexedItem {
 const SEARCH_INDEX_KEY = 'lifeos_search_index';
 
 function tokenize(text: string): string[] {
+  if (!text || typeof text !== 'string') return [];
   return text
     .toLowerCase()
     .normalize('NFD')

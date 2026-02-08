@@ -76,6 +76,7 @@ export function getDefaultTrigger(kind: TriggerKind): Trigger {
 }
 
 export function parseCronToHuman(cron: string): string {
+  if (!cron || typeof cron !== 'string') return cron ?? 'Invalid schedule'
   const parts = cron.split(' ')
   if (parts.length !== 5) return cron
 

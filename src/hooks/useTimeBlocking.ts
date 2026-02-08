@@ -144,8 +144,9 @@ export function useTimeBlocking() {
 }
 
 function timeToMinutes(time: string): number {
+  if (!time || typeof time !== 'string') return 0
   const [hours, minutes] = time.split(':').map(Number)
-  return hours * 60 + minutes
+  return (hours || 0) * 60 + (minutes || 0)
 }
 
 export function minutesToTime(minutes: number): string {
