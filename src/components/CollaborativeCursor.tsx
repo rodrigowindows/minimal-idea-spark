@@ -20,6 +20,7 @@ export function CollaborativeCursor({ presences, currentUserId }: CollaborativeC
       '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
       '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1'
     ];
+    if (!userId || typeof userId !== 'string') return colors[0];
     const index = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return colors[index % colors.length];
   };

@@ -143,8 +143,10 @@ export function EventModal({
   const handleSave = () => {
     if (!title.trim()) return
 
-    const [startHour, startMinute] = startTime.split(':').map(Number)
-    const [endHour, endMinute] = endTime.split(':').map(Number)
+    const startParts = startTime?.split(':').map(Number) ?? [0, 0]
+    const endParts = endTime?.split(':').map(Number) ?? [0, 0]
+    const [startHour = 0, startMinute = 0] = startParts
+    const [endHour = 0, endMinute = 0] = endParts
 
     const start = new Date(startDate)
     start.setHours(startHour, startMinute, 0, 0)

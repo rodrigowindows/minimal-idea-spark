@@ -69,11 +69,13 @@ function findFreeSlots(
   }
 
   for (const block of existingBlocks) {
-    if (block.block_date === dayStr) {
-      const [h, m] = block.block_start.split(':').map(Number)
+    if (block.block_date === dayStr && block.block_start) {
+      const parts = block.block_start.split(':').map(Number)
+      const h = parts[0] ?? 0
+      const m = parts[1] ?? 0
       occupied.push({
         start: h * 60 + m,
-        end: h * 60 + m + block.block_duration,
+        end: h * 60 + m + (block.block_duration ?? 0),
       })
     }
   }

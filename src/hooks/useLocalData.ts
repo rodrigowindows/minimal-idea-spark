@@ -309,7 +309,8 @@ export function useLocalData() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `lifeos-backup-${new Date().toISOString().split('T')[0]}.json`
+    const dateStr = new Date().toISOString()?.split('T')[0] ?? new Date().toDateString()
+    a.download = `lifeos-backup-${dateStr}.json`
     a.click()
     URL.revokeObjectURL(url)
   }, [domains, opportunities, dailyLogs, habits, goals])
