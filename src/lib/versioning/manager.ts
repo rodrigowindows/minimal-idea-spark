@@ -247,6 +247,8 @@ export interface DiffLine {
 }
 
 export function computeDiff(oldStr: string, newStr: string): DiffLine[] {
+  if (!oldStr || typeof oldStr !== 'string') oldStr = ''
+  if (!newStr || typeof newStr !== 'string') newStr = ''
   const oldLines = oldStr.split('\n')
   const newLines = newStr.split('\n')
   const result: DiffLine[] = []

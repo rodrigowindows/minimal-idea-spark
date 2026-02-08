@@ -38,6 +38,7 @@ export function PresenceIndicator({
   }
 
   const getInitials = (username: string) => {
+    if (!username || typeof username !== 'string') return '?';
     return username
       .split(' ')
       .map(n => n[0])
@@ -51,6 +52,7 @@ export function PresenceIndicator({
       'bg-blue-500', 'bg-red-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500',
       'bg-pink-500', 'bg-cyan-500', 'bg-lime-500', 'bg-orange-500', 'bg-indigo-500'
     ];
+    if (!userId || typeof userId !== 'string') return colors[0];
     const index = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return colors[index % colors.length];
   };

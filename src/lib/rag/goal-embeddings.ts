@@ -83,6 +83,8 @@ export function generateBatchEmbeddingTexts(
  * Returns a score between 0 and 1.
  */
 export function computeKeywordRelevance(query: string, text: string): number {
+  if (!query || typeof query !== 'string') return 0
+  if (!text || typeof text !== 'string') return 0
   const queryWords = query.toLowerCase().split(/\s+/).filter(w => w.length > 2)
   const textLower = text.toLowerCase()
 
@@ -281,7 +283,8 @@ export function generateLocalSuggestions(
   // Suggest creating tasks for priorities without related opportunities
   const doingTitles = opportunities.filter(o => o.status === 'doing').map(o => o.title.toLowerCase())
   for (const p of active.slice(0, 3)) {
-    const hasRelated = doingTitles.some(t => t.includes(p.title.toLowerCase().split(' ')[0]))
+    const firstWord = p.title?.toLowerCase()?.split(' ')[0] ?? ''
+    const hasRelated = firstWord ? doingTitles.some(t => t.includes(firstWord)) : false
     if (!hasRelated) {
       suggestions.push(`Create a task for priority "${p.title}" - no active tasks found.`)
       break

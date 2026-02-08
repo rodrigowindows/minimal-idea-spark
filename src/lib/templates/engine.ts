@@ -107,6 +107,7 @@ export function countVariables(body: string): number {
 
 /** Extract a short summary from template body (first non-empty line) */
 export function getTemplateSummary(body: string, maxLength = 100): string {
+  if (!body || typeof body !== 'string') return ''
   const firstLine = body.split('\n').find(l => l.trim().length > 0) ?? ''
   const cleaned = firstLine.replace(/[#*_]/g, '').replace(/\{\{\w+\}\}/g, '...').trim()
   return cleaned.length > maxLength ? cleaned.slice(0, maxLength) + '...' : cleaned
