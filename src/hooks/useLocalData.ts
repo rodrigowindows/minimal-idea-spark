@@ -1,6 +1,9 @@
 import { useState, useCallback, useEffect } from 'react'
 import type { DailyLog, LifeDomain, Opportunity } from '@/types'
 import { useAuth } from '@/contexts/AuthContext'
+import type { Automation } from '@/lib/automation/engine'
+import type { Trigger } from '@/lib/automation/triggers'
+import type { Action } from '@/lib/automation/actions'
 
 const STORAGE_KEYS = {
   domains: 'lifeos_domains',
@@ -9,6 +12,7 @@ const STORAGE_KEYS = {
   habits: 'lifeos_habits',
   goals: 'lifeos_goals',
   weeklyTargets: 'lifeos_weekly_targets',
+  automations: 'lifeos_automations',
 } as const
 
 const defaultDomains: LifeDomain[] = [
@@ -104,6 +108,9 @@ export function useLocalData() {
   const [weeklyTargets, setWeeklyTargets] = useState<WeeklyTarget[]>(() =>
     loadFromStorage(STORAGE_KEYS.weeklyTargets, [])
   )
+  const [automations, setAutomations] = useState<Automation[]>(() =>
+    loadFromStorage(STORAGE_KEYS.automations, [])
+  )
 
   // Persist on change
   useEffect(() => { saveToStorage(STORAGE_KEYS.domains, domains) }, [domains])
@@ -112,6 +119,7 @@ export function useLocalData() {
   useEffect(() => { saveToStorage(STORAGE_KEYS.habits, habits) }, [habits])
   useEffect(() => { saveToStorage(STORAGE_KEYS.goals, goals) }, [goals])
   useEffect(() => { saveToStorage(STORAGE_KEYS.weeklyTargets, weeklyTargets) }, [weeklyTargets])
+  useEffect(() => { saveToStorage(STORAGE_KEYS.automations, automations) }, [automations])
 
   // Enrich opportunities with domain
   const enrichedOpportunities = opportunities.map(opp => ({
@@ -259,6 +267,30 @@ export function useLocalData() {
     setWeeklyTargets(prev => prev.filter(t => t.domain_id !== domainId))
   }, [])
 
+  // ---- Automation CRUD ----
+  const addAutomation = useCallback((data: { name: string; description: string; enabled: boolean; trigger: Trigger; actions: Action[] }) => {
+    const newAuto: Automation = {
+      ...data,
+      id: `auto-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      runCount: 0,
+    }
+    setAutomations(prev => [newAuto, ...prev])
+    return newAuto
+  }, [])
+
+  const updateAutomation = useCallback((id: string, data: Partial<Automation>) => {
+    setAutomations(prev => prev.map(a => a.id === id ? { ...a, ...data } : a))
+  }, [])
+
+  const deleteAutomation = useCallback((id: string) => {
+    setAutomations(prev => prev.filter(a => a.id !== id))
+  }, [])
+
+  const toggleAutomation = useCallback((id: string) => {
+    setAutomations(prev => prev.map(a => a.id === id ? { ...a, enabled: !a.enabled } : a))
+  }, [])
+
   // ---- Export / Import ----
   const exportData = useCallback(() => {
     const data = {
@@ -270,6 +302,7 @@ export function useLocalData() {
       habits,
       goals,
       weeklyTargets,
+      automations,
       xpState: localStorage.getItem('minimal_idea_spark_xp_state'),
     }
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
@@ -290,6 +323,7 @@ export function useLocalData() {
       if (data.habits) setHabits(data.habits)
       if (data.goals) setGoals(data.goals)
       if (data.weeklyTargets) setWeeklyTargets(data.weeklyTargets)
+      if (data.automations) setAutomations(data.automations)
       if (data.xpState) localStorage.setItem('minimal_idea_spark_xp_state', data.xpState)
       return true
     } catch {
@@ -334,6 +368,13 @@ export function useLocalData() {
     weeklyTargets,
     setWeeklyTarget,
     removeWeeklyTarget,
+
+    // Automation actions
+    automations,
+    addAutomation,
+    updateAutomation,
+    deleteAutomation,
+    toggleAutomation,
 
     // Export/Import
     exportData,
