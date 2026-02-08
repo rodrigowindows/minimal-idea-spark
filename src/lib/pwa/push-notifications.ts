@@ -85,7 +85,6 @@ export async function showLocalNotification(
   const notifOptions: NotificationOptions = {
     icon: '/pwa-192x192.png',
     badge: '/pwa-192x192.png',
-    vibrate: [100, 50, 100],
     ...options,
   };
 
@@ -105,7 +104,7 @@ export async function subscribeToPush(vapidPublicKey: string): Promise<PushSubsc
     if (existing) return existing;
     return await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
     });
   } catch {
     return null;

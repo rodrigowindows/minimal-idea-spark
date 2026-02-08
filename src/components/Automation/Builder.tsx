@@ -107,7 +107,7 @@ export function AutomationBuilder() {
   }
   const removeAction = (i: number) => setActions(a => a.filter((_, idx) => idx !== i))
   const updateAction = (i: number, patch: Partial<Action>) => {
-    setActions(a => a.map((ac, idx) => idx === i ? { ...ac, ...patch } : ac))
+    setActions(a => a.map((ac, idx) => idx === i ? { ...ac, ...patch } as Action : ac))
   }
 
   // Save automation
@@ -443,7 +443,7 @@ export function AutomationBuilder() {
                       {ac.kind === 'webhook' && (
                         <div className="space-y-2">
                           <div className="flex gap-2">
-                            <Select value={ac.method} onValueChange={m => updateAction(i, { method: m })}>
+                            <Select value={ac.method} onValueChange={m => updateAction(i, { method: m as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' })}>
                               <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 {['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map(m => (
@@ -466,7 +466,7 @@ export function AutomationBuilder() {
                       )}
                       {ac.kind === 'update_field' && (
                         <div className="grid gap-2 sm:grid-cols-4">
-                          <Select value={ac.entity} onValueChange={v => updateAction(i, { entity: v })}>
+                          <Select value={ac.entity} onValueChange={v => updateAction(i, { entity: v as 'opportunity' | 'habit' | 'goal' })}>
                             <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="opportunity">Opportunity</SelectItem>
@@ -489,7 +489,7 @@ export function AutomationBuilder() {
                         <div className="space-y-2 pl-4 border-l-2 border-primary/20">
                           <div className="flex flex-wrap gap-2">
                             <Input value={ac.field} onChange={e => updateAction(i, { field: e.target.value })} placeholder="Field" className="w-28" />
-                            <Select value={ac.op} onValueChange={op => updateAction(i, { op })}>
+                            <Select value={ac.op} onValueChange={op => updateAction(i, { op: op as 'eq' | 'gt' | 'lt' | 'contains' })}>
                               <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 {['eq', 'gt', 'lt', 'contains'].map(o => (

@@ -65,7 +65,7 @@ serve(async (req) => {
       const lengthGuide = lengthGuides[length as string] || lengthGuides.medium;
 
       systemPrompt = `You are a professional content writer. ${styleGuide} ${toneGuide} Target length: ${lengthGuide}`;
-      userPrompt = prompt;
+      userPrompt = String(prompt ?? '');
       if (context) userPrompt += `\n\nContext: ${context}`;
     }
 
