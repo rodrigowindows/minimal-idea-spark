@@ -18,21 +18,66 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.ico"],
+      includeAssets: ["favicon.ico", "pwa-192x192.png", "pwa-512x512.png", "robots.txt"],
       workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,woff,ttf}"],
         navigateFallback: "index.html",
-        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+        navigateFallbackDenylist: [/^\/api\//],
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "supabase-api",
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 30, // 30 minutes
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          {
+            urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "images",
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+              },
+            },
+          },
+          {
+            urlPattern: /\.(?:woff2?|ttf|otf|eot)$/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "fonts",
+              expiration: {
+                maxEntries: 20,
+                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+              },
+            },
+          },
+        ],
       },
       manifest: {
         name: "Canvas - Second Brain",
         short_name: "Canvas",
-        description: "Your personal second brain with War Room, AI Consultant, and strategic planning.",
+        description:
+          "Your personal second brain with War Room, AI Consultant, and strategic planning.",
         theme_color: "#0f172a",
         background_color: "#0f172a",
         display: "standalone",
         orientation: "portrait",
         start_url: "/",
+        scope: "/",
+        id: "/",
+        lang: "en",
+        dir: "ltr",
+        categories: ["productivity", "lifestyle", "utilities"],
         icons: [
           {
             src: "/pwa-192x192.png",
@@ -48,9 +93,37 @@ export default defineConfig(({ mode }) => ({
             src: "/pwa-512x512.png",
             sizes: "512x512",
             type: "image/png",
-            purpose: "any maskable",
+            purpose: "maskable",
           },
         ],
+        shortcuts: [
+          {
+            name: "Dashboard",
+            short_name: "Home",
+            url: "/",
+            icons: [{ src: "/pwa-192x192.png", sizes: "192x192" }],
+          },
+          {
+            name: "AI Consultant",
+            short_name: "Advisor",
+            url: "/consultant",
+            icons: [{ src: "/pwa-192x192.png", sizes: "192x192" }],
+          },
+          {
+            name: "Journal",
+            short_name: "Journal",
+            url: "/journal",
+            icons: [{ src: "/pwa-192x192.png", sizes: "192x192" }],
+          },
+          {
+            name: "Calendar",
+            short_name: "Calendar",
+            url: "/calendar",
+            icons: [{ src: "/pwa-192x192.png", sizes: "192x192" }],
+          },
+        ],
+        display_override: ["window-controls-overlay", "standalone", "minimal-ui"],
+        prefer_related_applications: false,
       },
     }),
   ].filter(Boolean),

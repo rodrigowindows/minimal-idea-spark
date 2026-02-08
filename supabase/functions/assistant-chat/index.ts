@@ -19,12 +19,27 @@ Deno.serve(async (req) => {
         status: 400,
       })
     }
+
     const { messages, context } = body
-    const system = `You are a helpful assistant for a second-brain app. Context: ${context ?? 'none'}. You can suggest creating tasks, logging to journal, or opening pages. Keep replies short.`
+
+    const system = [
+      'You are a helpful AI assistant embedded in Canvas/LifeOS, a second-brain productivity app.',
+      'The user can manage tasks (opportunities), journal entries, goals, habits, calendar events, and track XP/gamification.',
+      context ? `\n${context}` : '',
+      '\nGuidelines:',
+      '- Keep replies concise (1-3 short paragraphs max)',
+      '- Be actionable: suggest specific next steps',
+      '- Reference the user\'s data when relevant (tasks, goals, streaks)',
+      '- You can suggest commands: /task "name", /journal "entry", /focus, /stats, /open page',
+      '- Support both English and Portuguese',
+      '- If the user asks something outside your capabilities, explain what you CAN do',
+    ].join('\n')
+
     const out = await chatCompletion([
       { role: 'system', content: system },
-      ...messages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-    ], { temperature: 0.7, maxTokens: 256 })
+      ...messages.slice(-12).map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+    ], { temperature: 0.7, maxTokens: 512 })
+
     return new Response(JSON.stringify({ reply: out }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,

@@ -11,7 +11,7 @@ import {
   SheetContent,
   SheetTitle,
 } from '@/components/ui/sheet'
-import { BottomNav } from './BottomNav'
+import { MobileNav } from '@/components/MobileNav'
 import { Sidebar } from './Sidebar'
 import { PresenceIndicator } from '@/components/PresenceIndicator'
 import { NotificationCenter } from '@/components/NotificationCenter'
@@ -107,8 +107,8 @@ export function AppLayout() {
         </div>
       </main>
 
-      {/* Mobile bottom nav */}
-      {isMobile && !deepWorkMode && <BottomNav />}
+      {/* Mobile bottom nav with PWA features */}
+      {isMobile && !deepWorkMode && <MobileNav />}
     </div>
   )
 }
