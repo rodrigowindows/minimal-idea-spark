@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { useAppContext } from '@/contexts/AppContext'
 import { PomodoroTimer } from './PomodoroTimer'
 import { Button } from '@/components/ui/button'
@@ -13,6 +14,7 @@ import { calculateXPReward } from '@/lib/constants'
 import { useAuth } from '@/contexts/AuthContext'
 
 export function DeepWorkOverlay() {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const currentUserId = user?.id ?? 'mock-user-001'
   const { deepWorkMode, currentOpportunity, toggleDeepWorkMode, setCurrentOpportunity } = useAppContext()
@@ -68,7 +70,7 @@ export function DeepWorkOverlay() {
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background via-transparent to-background opacity-50" />
 
       <Button variant="ghost" size="icon" onClick={handleClose} className="absolute right-4 top-4 z-10 rounded-full">
-        <X className="h-5 w-5" /><span className="sr-only">Exit</span>
+        <X className="h-5 w-5" /><span className="sr-only">{t('deepWork.exit')}</span>
       </Button>
 
       <div className="relative z-10 flex flex-col items-center gap-8 px-4">
@@ -76,7 +78,7 @@ export function DeepWorkOverlay() {
           <Card className="w-full max-w-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Target className="h-5 w-5 text-primary" />Current Focus
+                <Target className="h-5 w-5 text-primary" />{t('deepWork.currentTask')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -94,7 +96,7 @@ export function DeepWorkOverlay() {
                 )}
               </div>
               <div className="flex items-center gap-1">
-                <span className="mr-1 text-xs font-medium text-muted-foreground">Priority</span>
+                <span className="mr-1 text-xs font-medium text-muted-foreground">{t('deepWork.priority')}</span>
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Star key={i} className={cn('h-4 w-4', i < priorityStars ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30')} />
                 ))}
@@ -103,8 +105,8 @@ export function DeepWorkOverlay() {
           </Card>
         ) : (
           <div className="text-center">
-            <h2 className="text-2xl font-bold tracking-tight">Deep Work Mode</h2>
-            <p className="mt-2 text-muted-foreground">Focus without distractions.</p>
+            <h2 className="text-2xl font-bold tracking-tight">{t('deepWork.title')}</h2>
+            <p className="mt-2 text-muted-foreground">{t('deepWork.focusWithout')}</p>
           </div>
         )}
 
@@ -113,12 +115,12 @@ export function DeepWorkOverlay() {
         {xpEarned > 0 && (
           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-amber-400" />
-            <span className="text-lg font-bold text-amber-400">+{xpEarned} XP earned this session</span>
+            <span className="text-lg font-bold text-amber-400">{t('deepWork.xpEarnedSession', { xp: xpEarned })}</span>
           </motion.div>
         )}
 
         <p className="text-xs text-muted-foreground">
-          Press <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs">Esc</kbd> or click X to exit
+          {t('deepWork.pressEsc')}
         </p>
       </div>
     </motion.div>

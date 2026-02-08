@@ -35,16 +35,22 @@ import {
   Languages,
   Shield,
   Tag,
+  Key,
+  Webhook,
 } from 'lucide-react'
 import { useSyncStatus } from '@/hooks/useSyncStatus'
 import { removeConflict, enqueue } from '@/lib/pwa/sync-queue'
 import { clearAllMappings } from '@/lib/pwa/sync-id-map'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
+import { Enable2FAModal } from '@/components/Security/Enable2FAModal'
+import { SessionsList } from '@/components/Security/SessionsList'
 import { TranscriptionHistory } from '@/components/TranscriptionHistory'
 import { ExportModal } from '@/components/ExportImport/ExportModal'
 import { ImportModal } from '@/components/ExportImport/ImportModal'
 import { TagBadge } from '@/components/tags/TagBadge'
 import { getAllTags, createTag, deleteTag } from '@/lib/tags/tag-service'
+import { listApiKeys, createApiKey, revokeApiKey } from '@/lib/api/keys'
+import { listWebhooks, addWebhook, removeWebhook } from '@/lib/api/webhooks'
 import { Link } from 'react-router-dom'
 import {
   Dialog,
@@ -73,6 +79,13 @@ export function Settings() {
   const [showQueueDialog, setShowQueueDialog] = useState(false)
   const [exportModalOpen, setExportModalOpen] = useState(false)
   const [importModalOpen, setImportModalOpen] = useState(false)
+  const [security2FAOpen, setSecurity2FAOpen] = useState(false)
+  const [remindersEnabled, setRemindersEnabled] = useState(() => {
+    try { return localStorage.getItem('lifeos_reminders_enabled') !== 'false' } catch { return true }
+  })
+  const [apiKeys, setApiKeys] = useState(() => listApiKeys())
+  const [webhooks, setWebhooks] = useState(() => listWebhooks())
+  const [newWebhookUrl, setNewWebhookUrl] = useState('')
   const [tags, setTags] = useState(() => getAllTags())
   const [newDomainName, setNewDomainName] = useState('')
   const [newDomainColor, setNewDomainColor] = useState<string>(DEFAULT_DOMAIN_COLORS[0])
@@ -226,6 +239,125 @@ export function Settings() {
               </div>
               <ThemeToggle />
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Security: 2FA + Sessions */}
+        <Card className="rounded-xl">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Shield className="h-5 w-5 text-primary" />
+              {t('settings.security')}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">{t('settings.securityDescription')}</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <p className="text-sm font-medium mb-1">{t('settings.twoFactor')}</p>
+              <Button variant="outline" size="sm" onClick={() => setSecurity2FAOpen(true)}>
+                {t('settings.enable2FA')}
+              </Button>
+            </div>
+            <div>
+              <p className="text-sm font-medium mb-2">{t('settings.sessions')}</p>
+              <SessionsList />
+            </div>
+          </CardContent>
+        </Card>
+        <Enable2FAModal open={security2FAOpen} onOpenChange={setSecurity2FAOpen} />
+
+        {/* Reminders */}
+        <Card className="rounded-xl">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Bell className="h-5 w-5 text-primary" />
+              {t('settings.reminders')}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">{t('settings.remindersDescription')}</p>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="reminders-toggle" className="text-sm font-medium">{t('settings.remindersInApp')}</Label>
+              <Switch
+                id="reminders-toggle"
+                checked={remindersEnabled}
+                onCheckedChange={(v) => {
+                  setRemindersEnabled(v)
+                  localStorage.setItem('lifeos_reminders_enabled', String(v))
+                  toast.success(t('common.saved'))
+                }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Integrations: API keys & Webhooks */}
+        <Card className="rounded-xl">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Key className="h-5 w-5 text-primary" />
+              {t('settings.integrations')}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">{t('settings.integrationsDescription')}</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <p className="text-sm font-medium mb-2">{t('settings.apiKeys')}</p>
+              {apiKeys.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('settings.noApiKeys')}</p>
+              ) : (
+                <ul className="space-y-2">
+                  {apiKeys.map((k) => (
+                    <li key={k.id} className="flex items-center justify-between rounded-lg border p-2 text-sm">
+                      <span className="font-mono text-muted-foreground">{k.prefix}</span>
+                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => {
+                        revokeApiKey(k.id)
+                        setApiKeys(listApiKeys())
+                        toast.success(t('settings.apiKeyRevoked'))
+                      }}>{t('settings.revoke')}</Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Button variant="outline" size="sm" className="mt-2 gap-1" onClick={() => {
+                const name = window.prompt(t('settings.apiKeyNamePrompt') || 'Key name')
+                if (!name?.trim()) return
+                const { key, record } = createApiKey(name.trim())
+                setApiKeys(listApiKeys())
+                toast.success(t('settings.apiKeyCreated'))
+                navigator.clipboard.writeText(key).catch(() => {})
+              }}>
+                <Plus className="h-4 w-4" /> {t('settings.createApiKey')}
+              </Button>
+            </div>
+            <div>
+              <p className="text-sm font-medium mb-2 flex items-center gap-1"><Webhook className="h-4 w-4" /> {t('settings.webhooks')}</p>
+              <div className="flex gap-2 mb-2">
+                <Input placeholder="https://api.example.com/webhook" value={newWebhookUrl} onChange={(e) => setNewWebhookUrl(e.target.value)} className="flex-1" />
+                <Button size="sm" onClick={() => {
+                  if (!newWebhookUrl.trim()) return
+                  addWebhook(newWebhookUrl.trim(), ['opportunity_created', 'opportunity_updated', 'journal_created'])
+                  setWebhooks(listWebhooks())
+                  setNewWebhookUrl('')
+                  toast.success(t('settings.webhookAdded'))
+                }}>{t('settings.addWebhook')}</Button>
+              </div>
+              {webhooks.length > 0 && (
+                <ul className="space-y-2">
+                  {webhooks.map((w) => (
+                    <li key={w.id} className="flex items-center justify-between rounded-lg border p-2 text-sm">
+                      <span className="truncate text-muted-foreground">{w.url}</span>
+                      <Button variant="ghost" size="sm" className="text-destructive shrink-0" onClick={() => {
+                        removeWebhook(w.id)
+                        setWebhooks(listWebhooks())
+                        toast.success(t('settings.webhookRemoved'))
+                      }}>{t('settings.remove')}</Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <a href="/docs/api.md" target="_blank" rel="noopener" className="text-sm text-primary hover:underline">{t('settings.apiDocs')}</a>
           </CardContent>
         </Card>
 

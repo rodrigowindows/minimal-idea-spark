@@ -1,21 +1,35 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { SmartCapture } from '@/components/smart-capture/SmartCapture'
 import { TheOneThing } from '@/components/war-room/TheOneThing'
 import { OpportunityRadar } from '@/components/war-room/OpportunityRadar'
 import { QuickJournal } from '@/components/war-room/QuickJournal'
 import { TimeBlockCalendar } from '@/components/time-blocking/TimeBlockCalendar'
 import { ActivityHeatmap } from '@/components/analytics/ActivityHeatmap'
+import { CustomizeWarRoomModal } from '@/components/WarRoom/CustomizeWarRoomModal'
 import { useLocalData } from '@/hooks/useLocalData'
 import { useXPSystem } from '@/hooks/useXPSystem'
 import { useTranslation } from '@/contexts/LanguageContext'
+import { useWarRoomLayout, type WidgetId } from '@/contexts/WarRoomLayoutContext'
 import type { OpportunityTypeValue } from '@/types'
 import { Badge } from '@/components/ui/badge'
-import { Flame, Target, Brain } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Flame, Target, Brain, SlidersHorizontal } from 'lucide-react'
+
+const WIDGET_COL_SPAN: Record<WidgetId, string> = {
+  'smart-capture': 'col-span-12',
+  'the-one-thing': 'lg:col-span-8',
+  'opportunity-radar': 'lg:col-span-4',
+  'time-blocking': 'lg:col-span-8',
+  'quick-journal': 'lg:col-span-4',
+  'activity-heatmap': 'lg:col-span-12',
+}
 
 export function Dashboard() {
   const { opportunities, domains, isLoading, addOpportunity } = useLocalData()
   const { level, levelTitle, streakDays, xpTotal, deepWorkMinutes } = useXPSystem()
   const { t } = useTranslation()
+  const { layout } = useWarRoomLayout()
+  const [customizeOpen, setCustomizeOpen] = useState(false)
 
   const handleCapture = useCallback((data: { title: string; type: string; domain: string; strategicValue: number }) => {
     const domainObj = domains.find(d => d.name === data.domain)
@@ -70,37 +84,45 @@ export function Dashboard() {
             </Badge>
           </div>
         </div>
-        <SmartCapture onCapture={handleCapture} />
+        <div className="flex flex-wrap items-center gap-2">
+          <SmartCapture onCapture={handleCapture} />
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setCustomizeOpen(true)}>
+            <SlidersHorizontal className="h-4 w-4" />
+            {t('dashboard.customizeWarRoom')}
+          </Button>
+        </div>
       </header>
 
-      <div className="grid gap-6 md:gap-8 lg:grid-cols-12">
-        {/* Row 1: The One Thing (hero size) + Radar */}
-        <div className="lg:col-span-8">
-          <TheOneThing
-            opportunities={isLoading ? undefined : opportunities}
-            domains={isLoading ? undefined : domains}
-          />
-        </div>
-        <div className="lg:col-span-4">
-          <OpportunityRadar
-            opportunities={isLoading ? undefined : opportunities}
-            domains={isLoading ? undefined : domains}
-          />
-        </div>
-
-        {/* Row 2: Time Blocking + Quick Journal */}
-        <div className="lg:col-span-8">
-          <TimeBlockCalendar opportunities={isLoading ? undefined : opportunities} />
-        </div>
-        <div className="lg:col-span-4">
-          <QuickJournal />
-        </div>
-
-        {/* Row 3: Activity Heatmap */}
-        <div className="lg:col-span-12">
-          <ActivityHeatmap />
-        </div>
+      <div id="main-content" className="grid gap-6 md:gap-8 lg:grid-cols-12">
+        {layout.order.map((widgetId) => {
+          if (!layout.visible[widgetId]) return null
+          const colSpan = WIDGET_COL_SPAN[widgetId] ?? 'lg:col-span-12'
+          return (
+            <div key={widgetId} className={colSpan}>
+              {widgetId === 'smart-capture' && null}
+              {widgetId === 'the-one-thing' && (
+                <TheOneThing
+                  opportunities={isLoading ? undefined : opportunities}
+                  domains={isLoading ? undefined : domains}
+                />
+              )}
+              {widgetId === 'opportunity-radar' && (
+                <OpportunityRadar
+                  opportunities={isLoading ? undefined : opportunities}
+                  domains={isLoading ? undefined : domains}
+                />
+              )}
+              {widgetId === 'time-blocking' && (
+                <TimeBlockCalendar opportunities={isLoading ? undefined : opportunities} />
+              )}
+              {widgetId === 'quick-journal' && <QuickJournal />}
+              {widgetId === 'activity-heatmap' && <ActivityHeatmap />}
+            </div>
+          )
+        })}
       </div>
+
+      <CustomizeWarRoomModal open={customizeOpen} onOpenChange={setCustomizeOpen} />
     </div>
   )
 }

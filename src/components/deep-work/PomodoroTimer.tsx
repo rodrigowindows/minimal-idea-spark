@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -25,6 +26,7 @@ function getDuration(m: TimerMode) {
 }
 
 export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
+  const { t } = useTranslation()
   const [mode, setMode] = useState<TimerMode>('work')
   const [timeLeft, setTimeLeft] = useState(WORK_DURATION)
   const [isRunning, setIsRunning] = useState(false)
@@ -61,7 +63,7 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
             onSessionComplete?.(25)
             toast.success(
               <div className="flex items-center gap-2">
-                <span>Focus session #{newCount} complete!</span>
+                <span>{t('deepWork.sessionComplete', { count: newCount })}</span>
                 <Badge variant="secondary" className="gap-1 bg-amber-500/20 text-amber-400">
                   <Zap className="h-3 w-3" />+50 XP
                 </Badge>
@@ -95,17 +97,17 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
           <button onClick={() => { setMode('work'); setTimeLeft(WORK_DURATION); setIsRunning(false) }}
             className={cn('rounded-full px-4 py-1.5 text-sm font-medium transition-colors',
               mode === 'work' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}>
-            Focus
+            {t('deepWork.pomodoroFocus')}
           </button>
           <button onClick={() => { setMode('break'); setTimeLeft(BREAK_DURATION); setIsRunning(false) }}
             className={cn('rounded-full px-4 py-1.5 text-sm font-medium transition-colors',
               mode === 'break' ? 'bg-emerald-500 text-white' : 'text-muted-foreground hover:text-foreground')}>
-            Break
+            {t('deepWork.pomodoroBreak')}
           </button>
           <button onClick={() => { setMode('longbreak'); setTimeLeft(LONG_BREAK_DURATION); setIsRunning(false) }}
             className={cn('rounded-full px-4 py-1.5 text-sm font-medium transition-colors',
               mode === 'longbreak' ? 'bg-violet-500 text-white' : 'text-muted-foreground hover:text-foreground')}>
-            Long
+            {t('deepWork.pomodoroLong')}
           </button>
         </div>
 
@@ -121,7 +123,7 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
               {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
             </span>
             <span className="mt-1 text-xs text-muted-foreground capitalize">
-              {mode === 'longbreak' ? 'Long Break' : mode}
+              {mode === 'work' ? t('deepWork.pomodoroFocus') : mode === 'longbreak' ? t('deepWork.pomodoroLongBreak') : t('deepWork.pomodoroBreak')}
             </span>
           </div>
         </div>
@@ -139,7 +141,7 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
               )}
             />
           ))}
-          <span className="ml-2 text-xs text-muted-foreground">{sessionsCompleted} done</span>
+          <span className="ml-2 text-xs text-muted-foreground">{t('deepWork.sessionsDone', { count: sessionsCompleted })}</span>
         </div>
 
         <div className="flex justify-center gap-3">

@@ -100,19 +100,19 @@ export function CalendarView({ events, onDateSelect, onEventClick, onNewEvent, g
               ))}
             </div>
             <div className="flex items-center gap-1">
-              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigate('prev')}>
-                <ChevronLeft className="h-4 w-4" />
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigate('prev')} aria-label="Previous period">
+                <ChevronLeft className="h-4 w-4" aria-hidden="true" />
               </Button>
               <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setCurrentDate(new Date())}>
                 Hoje
               </Button>
-              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigate('next')}>
-                <ChevronRight className="h-4 w-4" />
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigate('next')} aria-label="Next period">
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
               </Button>
             </div>
             {onNewEvent && (
               <Button size="sm" className="h-8" onClick={onNewEvent}>
-                <Plus className="h-4 w-4 mr-1" />
+                <Plus className="h-4 w-4 mr-1" aria-hidden="true" />
                 Evento
               </Button>
             )}

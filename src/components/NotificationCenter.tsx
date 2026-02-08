@@ -111,7 +111,7 @@ function NotificationItem({
       )}
     >
       {/* Type icon with priority indicator */}
-      <div className={cn('mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full', config.bg)}>
+      <div className={cn('mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full', config.bg)} aria-hidden="true">
         <TypeIcon className={cn('h-4 w-4', config.color)} />
       </div>
 
@@ -135,8 +135,8 @@ function NotificationItem({
       {/* Actions */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
-            <MoreHorizontal className="h-3.5 w-3.5" />
+          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label="Notification actions">
+            <MoreHorizontal className="h-3.5 w-3.5" aria-hidden="true" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40">
@@ -212,7 +212,7 @@ function GroupedView({
 function EmptyState({ message }: { message: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-      <Inbox className="h-10 w-10 mb-2 opacity-40" />
+      <Inbox className="h-10 w-10 mb-2 opacity-40" aria-hidden="true" />
       <p className="text-sm">{message}</p>
     </div>
   )
@@ -230,10 +230,10 @@ export function NotificationCenter() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
+        <Button variant="ghost" size="icon" className="relative" aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : 'Notifications'}>
+          <Bell className="h-5 w-5" aria-hidden="true" />
           {unreadCount > 0 && (
-            <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+            <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground" aria-hidden="true">
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}
@@ -258,6 +258,7 @@ export function NotificationCenter() {
               className="h-7 w-7"
               onClick={() => setViewMode(v => v === 'flat' ? 'grouped' : 'flat')}
               title={viewMode === 'flat' ? 'Group by type' : 'Flat view'}
+              aria-label={viewMode === 'flat' ? 'Group by type' : 'Flat view'}
             >
               {viewMode === 'flat' ? (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
@@ -267,8 +268,8 @@ export function NotificationCenter() {
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                  <MoreHorizontal className="h-3.5 w-3.5" />
+                <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="More actions">
+                  <MoreHorizontal className="h-3.5 w-3.5" aria-hidden="true" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -293,12 +294,12 @@ export function NotificationCenter() {
               <TabsTrigger value="unread" className="flex-1 text-xs data-[state=active]:bg-muted rounded-none data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary">
                 Unread {unreadCount > 0 && `(${unreadCount})`}
               </TabsTrigger>
-              <TabsTrigger value="snoozed" className="flex-1 text-xs data-[state=active]:bg-muted rounded-none data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary">
-                <BellOff className="h-3 w-3 mr-1" />
+              <TabsTrigger value="snoozed" className="flex-1 text-xs data-[state=active]:bg-muted rounded-none data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary" aria-label={`Snoozed${snoozed.length > 0 ? ` (${snoozed.length})` : ''}`}>
+                <BellOff className="h-3 w-3 mr-1" aria-hidden="true" />
                 {snoozed.length > 0 && `(${snoozed.length})`}
               </TabsTrigger>
-              <TabsTrigger value="archived" className="flex-1 text-xs data-[state=active]:bg-muted rounded-none data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary">
-                <Archive className="h-3 w-3 mr-1" />
+              <TabsTrigger value="archived" className="flex-1 text-xs data-[state=active]:bg-muted rounded-none data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary" aria-label={`Archived${archived.length > 0 ? ` (${archived.length})` : ''}`}>
+                <Archive className="h-3 w-3 mr-1" aria-hidden="true" />
                 {archived.length > 0 && `(${archived.length})`}
               </TabsTrigger>
             </TabsList>
@@ -353,7 +354,7 @@ export function NotificationCenter() {
               ) : (
                 snoozed.map(n => (
                   <div key={n.id} className="flex items-start gap-3 border-b px-4 py-3 last:border-0">
-                    <Clock className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
+                    <Clock className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{n.title}</p>
                       <p className="text-xs text-muted-foreground truncate">{n.body}</p>
@@ -368,8 +369,9 @@ export function NotificationCenter() {
                       size="icon"
                       className="h-7 w-7 shrink-0"
                       onClick={() => remove(n.id)}
+                      aria-label={`Delete: ${n.title}`}
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                     </Button>
                   </div>
                 ))
@@ -382,7 +384,7 @@ export function NotificationCenter() {
               ) : (
                 archived.slice(0, 30).map(n => (
                   <div key={n.id} className="flex items-start gap-3 border-b px-4 py-3 last:border-0 opacity-60">
-                    <Archive className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
+                    <Archive className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{n.title}</p>
                       <p className="text-xs text-muted-foreground truncate">{n.body}</p>
@@ -393,8 +395,9 @@ export function NotificationCenter() {
                       size="icon"
                       className="h-7 w-7 shrink-0"
                       onClick={() => remove(n.id)}
+                      aria-label={`Delete: ${n.title}`}
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                     </Button>
                   </div>
                 ))

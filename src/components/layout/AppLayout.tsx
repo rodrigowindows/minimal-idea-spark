@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Toaster } from 'sonner'
 import { Menu, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -25,10 +26,14 @@ import { SyncStatusIndicator } from '@/components/SyncStatusIndicator'
 import { CommandPalette } from '@/components/CommandPalette'
 import { useScrollToTopOnRouteChange } from '@/hooks/useScrollToTopOnRouteChange'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { AriaLiveRegion } from '@/components/AriaLiveRegion'
+import { useRouteAnnouncer } from '@/hooks/useRouteAnnouncer'
 
 export function AppLayout() {
+  const { t } = useTranslation()
   const { sidebarOpen, deepWorkMode, toggleSidebar, setCommandPaletteOpen } = useAppContext()
   useScrollToTopOnRouteChange()
+  useRouteAnnouncer()
   const isMobile = !useMediaQuery('(min-width: 768px)')
   const [mobileOpen, setMobileOpen] = useState(false)
   const { presences, currentUserId, isConnected } = useRealtime()
@@ -38,9 +43,10 @@ export function AppLayout() {
   return (
     <div className="relative flex h-screen overflow-hidden bg-background">
       <SkipLink />
+      <AriaLiveRegion />
       {!isOnline && (
-        <div className="sticky top-0 z-50 flex items-center justify-center bg-amber-500/90 px-4 py-2 text-sm font-medium text-amber-950" role="status">
-          Você está offline. Algumas ações serão sincronizadas quando a conexão voltar.
+        <div className="sticky top-0 z-50 flex items-center justify-center bg-amber-500/90 px-4 py-2 text-sm font-medium text-amber-950" role="status" aria-live="polite">
+          {t('layout.offlineBanner')}
         </div>
       )}
       <Toaster
@@ -48,6 +54,7 @@ export function AppLayout() {
         position="top-right"
         toastOptions={{
           className: 'bg-card text-card-foreground border-border',
+          role: 'status',
         }}
       />
 
@@ -59,24 +66,26 @@ export function AppLayout() {
       {/* Mobile sidebar (Sheet drawer) */}
       {isMobile && !deepWorkMode && (
         <>
-          <div className="fixed top-0 left-0 right-0 z-40 flex h-14 items-center justify-between border-b border-border/50 bg-sidebar/95 backdrop-blur-md px-3">
+          <header className="fixed top-0 left-0 right-0 z-40 flex h-14 items-center justify-between border-b border-border/50 bg-sidebar/95 backdrop-blur-md px-3" role="banner" aria-label={t('layout.mobileHeader') || 'Mobile header'}>
             <Button
               variant="ghost"
               size="icon"
               className="min-h-[44px] min-w-[44px] touch-manipulation"
               onClick={() => setMobileOpen(true)}
+              aria-label={t('layout.openMenu')}
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-sidebar"
             >
-              <Menu className="h-5 w-5" />
-              <span className="sr-only">Open menu</span>
+              <Menu className="h-5 w-5" aria-hidden="true" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
               className="min-h-[44px] min-w-[44px] touch-manipulation"
               onClick={() => setCommandPaletteOpen(true)}
-              aria-label="Search"
+              aria-label={t('layout.search') || 'Search'}
             >
-              <Search className="h-5 w-5" />
+              <Search className="h-5 w-5" aria-hidden="true" />
             </Button>
         <div className="flex items-center gap-1">
           <SyncStatusIndicator className="shrink-0" />
@@ -87,10 +96,10 @@ export function AppLayout() {
                 maxDisplay={3}
               />
             </div>
-          </div>
+          </header>
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetContent side="left" className="w-64 p-0">
-              <SheetTitle className="sr-only">Navigation</SheetTitle>
+            <SheetContent side="left" className="w-64 p-0" id="mobile-sidebar">
+              <SheetTitle className="sr-only">{t('layout.navigation')}</SheetTitle>
               <Sidebar
                 collapsed={false}
                 onToggle={() => setMobileOpen(false)}
@@ -109,6 +118,8 @@ export function AppLayout() {
       <main
         id="main-content"
         tabIndex={-1}
+        role="main"
+        aria-label={t('layout.mainContent') || 'Main content'}
         className={cn(
           'flex-1 overflow-y-auto transition-all duration-300 ease-in-out',
           isMobile && !deepWorkMode && 'pt-14 pb-16',
@@ -128,7 +139,7 @@ export function AppLayout() {
 
         {/* Deep Work Mode overlay gradient */}
         {deepWorkMode && (
-          <div className="pointer-events-none fixed inset-0 z-10 bg-gradient-to-b from-background/80 via-transparent to-background/80" />
+          <div className="pointer-events-none fixed inset-0 z-10 bg-gradient-to-b from-background/80 via-transparent to-background/80" aria-hidden="true" />
         )}
 
         <div className={cn('relative', deepWorkMode && 'z-20')}>

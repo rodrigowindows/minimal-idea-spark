@@ -10,11 +10,14 @@ import { ConfettiEffect } from "@/components/gamification/ConfettiEffect";
 import { XPNotificationListener } from "@/components/gamification/XPNotificationListener";
 import { ChatWidget } from "@/components/AIAssistant/ChatWidget";
 import { WelcomeModal } from "@/components/Onboarding/WelcomeModal";
+import { Tour } from "@/components/Onboarding/Tour";
+import { ReminderChecker } from "@/components/ReminderChecker";
 import { useNotificationGenerator } from "@/hooks/useNotificationGenerator";
 import { AppProvider, useAppContext } from "@/contexts/AppContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { WarRoomLayoutProvider } from "@/contexts/WarRoomLayoutContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { RealtimeProvider } from "@/contexts/RealtimeContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -48,10 +51,12 @@ const SharedView = lazy(() => import("@/pages/SharedView").then((m) => ({ defaul
 const Auth = lazy(() => import("@/pages/Auth").then((m) => ({ default: m.Auth })));
 const Help = lazy(() => import("@/pages/Help").then((m) => ({ default: m.Help })));
 const ImportPage = lazy(() => import("@/pages/ImportPage").then((m) => ({ default: m.ImportPage })));
+const ReportsPage = lazy(() => import("@/pages/ReportsPage").then((m) => ({ default: m.ReportsPage })));
 
 const PageFallback = () => (
-  <div className="flex min-h-[50vh] items-center justify-center">
-    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  <div className="flex min-h-[50vh] items-center justify-center" role="status" aria-label="Loading page">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" />
+    <span className="sr-only">Loading...</span>
   </div>
 );
 
@@ -99,6 +104,7 @@ function AppContent() {
           <Route path="/settings" element={<Suspense fallback={<PageFallback />}><Settings /></Suspense>} />
           <Route path="/help" element={<Suspense fallback={<PageFallback />}><Help /></Suspense>} />
           <Route path="/import" element={<Suspense fallback={<PageFallback />}><ImportPage /></Suspense>} />
+          <Route path="/reports" element={<Suspense fallback={<PageFallback />}><ReportsPage /></Suspense>} />
           <Route path="/workspace" element={<Suspense fallback={<PageFallback />}><Workspace /></Suspense>} />
         </Route>
         <Route path="/invite/:token" element={<Suspense fallback={<PageFallback />}><AcceptInvite /></Suspense>} />
@@ -110,6 +116,8 @@ function AppContent() {
       <XPNotificationListener />
       <ChatWidget />
       <WelcomeModal />
+      <Tour />
+      <ReminderChecker />
     </>
   );
 }
@@ -119,8 +127,9 @@ function AuthGate() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex min-h-screen items-center justify-center" role="status" aria-label="Loading">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" />
+        <span className="sr-only">Loading application...</span>
       </div>
     );
   }
@@ -139,6 +148,7 @@ function AuthGate() {
   return (
     <ErrorBoundary>
       <ThemeProvider>
+        <WarRoomLayoutProvider>
         <LanguageProvider>
         <AppProvider>
           <WorkspaceProvider>
@@ -148,6 +158,7 @@ function AuthGate() {
           </WorkspaceProvider>
         </AppProvider>
       </LanguageProvider>
+      </WarRoomLayoutProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );

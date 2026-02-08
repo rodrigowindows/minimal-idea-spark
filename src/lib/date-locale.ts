@@ -44,3 +44,37 @@ export function formatCurrency(value: number, currency = 'BRL'): string {
     currency,
   }).format(value)
 }
+
+/**
+ * Format a date using the current locale via Intl.DateTimeFormat.
+ */
+export function formatDate(date: Date | string, options?: Intl.DateTimeFormatOptions): string {
+  const d = typeof date === 'string' ? new Date(date) : date
+  return new Intl.DateTimeFormat(getIntlLocale(), options ?? {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }).format(d)
+}
+
+/**
+ * Format a relative time (e.g., "2 days ago") using the current locale.
+ */
+export function formatRelativeTime(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date
+  const now = new Date()
+  const diffMs = d.getTime() - now.getTime()
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24))
+
+  const rtf = new Intl.RelativeTimeFormat(getIntlLocale(), { numeric: 'auto' })
+
+  if (Math.abs(diffDays) < 1) {
+    const diffHours = Math.round(diffMs / (1000 * 60 * 60))
+    if (Math.abs(diffHours) < 1) {
+      const diffMinutes = Math.round(diffMs / (1000 * 60))
+      return rtf.format(diffMinutes, 'minute')
+    }
+    return rtf.format(diffHours, 'hour')
+  }
+  return rtf.format(diffDays, 'day')
+}

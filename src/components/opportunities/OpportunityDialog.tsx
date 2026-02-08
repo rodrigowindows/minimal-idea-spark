@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -24,11 +25,17 @@ import { getTagsForOpportunity, setTagsForOpportunity } from '@/lib/tags/tag-ser
 import type { Opportunity, LifeDomain, OpportunityTypeValue, OpportunityStatusValue } from '@/types'
 import { OPPORTUNITY_TYPES, OPPORTUNITY_STATUSES } from '@/lib/constants'
 
+interface GoalOption {
+  id: string
+  title: string
+}
+
 interface OpportunityDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   opportunity?: Opportunity | null
   domains: LifeDomain[]
+  goals?: GoalOption[]
   onSave: (data: Omit<Opportunity, 'id' | 'user_id' | 'created_at' | 'domain'>, tagIds?: string[]) => void
 }
 
@@ -37,6 +44,7 @@ export function OpportunityDialog({
   onOpenChange,
   opportunity,
   domains,
+  goals = [],
   onSave,
 }: OpportunityDialogProps) {
   const [title, setTitle] = useState('')
@@ -47,10 +55,15 @@ export function OpportunityDialog({
   const [priority, setPriority] = useState(5)
   const [strategicValue, setStrategicValue] = useState(5)
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
+  const [dueDate, setDueDate] = useState('')
+  const [reminderAt, setReminderAt] = useState('')
+  const [goalId, setGoalId] = useState<string>('')
 
   useEffect(() => {
     if (opportunity) {
       setSelectedTagIds(getTagsForOpportunity(opportunity.id))
+      setDueDate(opportunity.due_date ?? '')
+      setReminderAt(opportunity.reminder_at ?? '')
       setTitle(opportunity.title)
       setDescription(opportunity.description || '')
       setDomainId(opportunity.domain_id || '')
@@ -67,6 +80,9 @@ export function OpportunityDialog({
       setPriority(5)
       setStrategicValue(5)
       setSelectedTagIds([])
+      setDueDate('')
+      setReminderAt('')
+      setGoalId('')
     }
   }, [opportunity, open, domains])
 
@@ -82,6 +98,9 @@ export function OpportunityDialog({
       status,
       priority,
       strategic_value: strategicValue,
+      due_date: dueDate || null,
+      reminder_at: reminderAt || null,
+      goal_id: goalId || null,
     }, selectedTagIds)
     if (opportunity) setTagsForOpportunity(opportunity.id, selectedTagIds)
     onOpenChange(false)
@@ -92,6 +111,9 @@ export function OpportunityDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{opportunity ? 'Edit Opportunity' : 'New Opportunity'}</DialogTitle>
+          <DialogDescription>
+            {opportunity ? 'Update the details of this opportunity.' : 'Fill in the details to create a new opportunity.'}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -130,6 +152,40 @@ export function OpportunityDialog({
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="opp-due">Due date</Label>
+              <Input
+                id="opp-due"
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="opp-reminder">Reminder</Label>
+              <Input
+                id="opp-reminder"
+                type="datetime-local"
+                value={reminderAt ? reminderAt.slice(0, 16) : ''}
+                onChange={(e) => setReminderAt(e.target.value ? new Date(e.target.value).toISOString() : '')}
+              />
+            </div>
+          </div>
+          {goals.length > 0 && (
+            <div className="space-y-2">
+              <Label>Link to goal (OKR)</Label>
+              <Select value={goalId} onValueChange={setGoalId}>
+                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None</SelectItem>
+                  {goals.map((g) => (
+                    <SelectItem key={g.id} value={g.id}>{g.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Tags</Label>
             <TagPicker
@@ -184,25 +240,29 @@ export function OpportunityDialog({
             </div>
 
             <div className="space-y-2">
-              <Label>Priority: {priority}/10</Label>
+              <Label id="priority-label">Priority: {priority}/10</Label>
               <Slider
                 value={[priority]}
                 onValueChange={([v]) => setPriority(v)}
                 min={1}
                 max={10}
                 step={1}
+                aria-labelledby="priority-label"
+                aria-valuetext={`${priority} out of 10`}
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Strategic Value: {strategicValue}/10</Label>
+            <Label id="strategic-value-label">Strategic Value: {strategicValue}/10</Label>
             <Slider
               value={[strategicValue]}
               onValueChange={([v]) => setStrategicValue(v)}
               min={1}
               max={10}
               step={1}
+              aria-labelledby="strategic-value-label"
+              aria-valuetext={`${strategicValue} out of 10`}
             />
             <p className="text-xs text-muted-foreground">
               Higher = more XP reward. Study at SV 10 = 500 XP, Action at SV 2 = 60 XP.

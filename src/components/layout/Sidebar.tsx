@@ -22,6 +22,7 @@ import {
   Building2,
   Zap,
   FileStack,
+  FileText,
   ImageIcon,
   History,
   HelpCircle,
@@ -72,13 +73,14 @@ const navItems: { to: string; icon: typeof LayoutDashboard; labelKey: string }[]
   { to: '/version-history', icon: History, labelKey: 'nav.versionHistory' },
   { to: '/workspace', icon: Building2, labelKey: 'nav.workspace' },
   { to: '/import', icon: FileStack, labelKey: 'nav.import' },
+  { to: '/reports', icon: FileText, labelKey: 'nav.reports' },
   { to: '/help', icon: HelpCircle, labelKey: 'nav.help' },
   { to: '/settings', icon: Settings2, labelKey: 'nav.settings' },
 ]
 
 const SIDEBAR_SECTIONS: { sectionKey: string; paths: string[] }[] = [
   { sectionKey: 'nav.sectionPrincipal', paths: ['/', '/consultant', '/opportunities', '/journal'] },
-  { sectionKey: 'nav.sectionProdutividade', paths: ['/habits', '/goals', '/calendar', '/priorities', '/analytics', '/weekly-review'] },
+  { sectionKey: 'nav.sectionProdutividade', paths: ['/habits', '/goals', '/calendar', '/priorities', '/analytics', '/weekly-review', '/reports'] },
   { sectionKey: 'nav.sectionFerramentas', paths: ['/notifications', '/content-generator', '/automation', '/templates', '/images', '/version-history'] },
   { sectionKey: 'nav.sectionConfig', paths: ['/workspace', '/import', '/help', '/settings'] },
 ]
@@ -116,6 +118,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   return (
     <aside
+      id="main-nav"
+      aria-label={collapsed ? 'Canvas - Navigation (collapsed)' : 'Canvas - Navigation'}
       className={cn(
         'flex h-screen flex-col bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out',
         collapsed ? 'w-16' : 'w-64'
@@ -124,7 +128,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* Brand + Notification Bell + Language Toggle */}
       <div className="flex h-16 items-center justify-between border-b border-border/50 px-4">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-6 w-6 shrink-0 text-primary" />
+          <Sparkles className="h-6 w-6 shrink-0 text-primary" aria-hidden="true" />
           {!collapsed && (
             <span className="text-lg font-semibold tracking-tight">Canvas</span>
           )}
@@ -140,6 +144,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               collapsed && 'px-1'
             )}
             title={t('common.switchLanguage')}
+            aria-label={t('common.switchLanguage')}
           >
             <Globe className="h-4 w-4 shrink-0" />
             {!collapsed && (
@@ -192,34 +197,42 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           const open = isSectionOpen(section.sectionKey)
           const items = navItems.filter((item) => section.paths.includes(item.to))
           return (
-            <div key={section.sectionKey} className="space-y-0.5">
+            <div key={section.sectionKey} className="space-y-0.5" role="group" aria-label={t(section.sectionKey)}>
               {!collapsed ? (
                 <>
                   <button
                     type="button"
                     className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                     onClick={() => toggleSection(section.sectionKey)}
+                    aria-expanded={open}
+                    aria-controls={`nav-section-${section.sectionKey.replace(/\./g, '-')}`}
                   >
                     <span>{t(section.sectionKey)}</span>
-                    <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', !open && '-rotate-90')} />
+                    <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', !open && '-rotate-90')} aria-hidden="true" />
                   </button>
-                  {open && items.map((item) => (
-                    <NavLink
-                      key={item.to}
-                      to={item.to}
-                      end={item.to === '/'}
-                      className={({ isActive }) =>
-                        cn(
-                          'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
-                          'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                          isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-muted-foreground'
-                        )
-                      }
-                    >
-                      <item.icon className="h-5 w-5 shrink-0" />
-                      <span>{t(item.labelKey)}</span>
-                    </NavLink>
-                  ))}
+                  {open && (
+                    <ul id={`nav-section-${section.sectionKey.replace(/\./g, '-')}`} role="list" className="space-y-0.5">
+                      {items.map((item) => (
+                        <li key={item.to}>
+                          <NavLink
+                            to={item.to}
+                            end={item.to === '/'}
+                            aria-current={undefined}
+                            className={({ isActive }) =>
+                              cn(
+                                'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+                                'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                                isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-muted-foreground'
+                              )
+                            }
+                          >
+                            <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                            <span>{t(item.labelKey)}</span>
+                          </NavLink>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </>
               ) : (
                 <TooltipProvider delayDuration={0}>
@@ -229,6 +242,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                         <NavLink
                           to={item.to}
                           end={item.to === '/'}
+                          aria-label={t(item.labelKey)}
                           className={({ isActive }) =>
                             cn(
                               'flex justify-center rounded-xl px-2 py-2.5 text-sm transition-colors',
@@ -237,7 +251,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                             )
                           }
                         >
-                          <item.icon className="h-5 w-5 shrink-0" />
+                          <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
                         </NavLink>
                       </TooltipTrigger>
                       <TooltipContent side="right">{t(item.labelKey)}</TooltipContent>
@@ -255,6 +269,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {/* Deep Work Mode toggle */}
         <button
           onClick={toggleDeepWorkMode}
+          aria-label={t('nav.deepWork')}
+          aria-pressed={deepWorkMode}
           className={cn(
             'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
             'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
@@ -264,13 +280,15 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             collapsed && 'justify-center px-2'
           )}
         >
-          <Focus className="h-5 w-5 shrink-0" />
+          <Focus className="h-5 w-5 shrink-0" aria-hidden="true" />
           {!collapsed && <span>{t('nav.deepWork')}</span>}
         </button>
 
         {/* Collapse toggle */}
         <button
           onClick={onToggle}
+          aria-label={collapsed ? t('nav.expand') || 'Expand sidebar' : t('nav.collapse')}
+          aria-expanded={!collapsed}
           className={cn(
             'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors',
             'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
@@ -278,10 +296,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           )}
         >
           {collapsed ? (
-            <ChevronRight className="h-5 w-5 shrink-0" />
+            <ChevronRight className="h-5 w-5 shrink-0" aria-hidden="true" />
           ) : (
             <>
-              <ChevronLeft className="h-5 w-5 shrink-0" />
+              <ChevronLeft className="h-5 w-5 shrink-0" aria-hidden="true" />
               <span>{t('nav.collapse')}</span>
             </>
           )}

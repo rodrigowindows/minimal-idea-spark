@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { ChatMessage as ChatMessageType, ContextSource } from '@/types'
 import { ChatMessage } from '@/components/consultant/ChatMessage'
 import { ChatInput } from '@/components/consultant/ChatInput'
@@ -16,8 +17,10 @@ import { calculateXPReward } from '@/lib/constants'
 import { Badge } from '@/components/ui/badge'
 import type { Opportunity } from '@/types'
 import { buildCombinedRAGContext } from '@/lib/rag/goal-embeddings'
+import type { TFunction } from 'i18next'
 
 function generateContextualResponse(
+  t: TFunction,
   query: string,
   opportunities: Opportunity[],
   deepWorkMinutes: number,
@@ -33,8 +36,7 @@ function generateContextualResponse(
   const doneTasks = opportunities.filter(o => o.status === 'done')
   const backlogTasks = opportunities.filter(o => o.status === 'backlog')
 
-  // Priority context prefix - always included when available
-  const ctxPrefix = priorityContext ? `\n\n---\n*Context from your priorities:*\n${priorityContext}\n---\n\n` : ''
+  const ctxPrefix = priorityContext ? t('consultant.responses.priorityContextPrefix', { context: priorityContext }) : ''
 
   // Priority / Today
   if (lower.includes('priorit') || lower.includes('today') || lower.includes('what should') || lower.includes('foco') || lower.includes('focus')) {
@@ -42,8 +44,8 @@ function generateContextualResponse(
     const topXP = top ? calculateXPReward(top.type, top.strategic_value ?? 5) : 0
     return {
       content: (top
-        ? `Based on strategic value analysis, I recommend focusing on **"${top.title}"** (${top.type}, SV: ${top.strategic_value}/10, worth **${topXP} XP**). You currently have ${doingTasks.length} tasks in progress and ${backlogTasks.length} in backlog. Consider using Deep Work mode for a focused 25-minute Pomodoro session to maximize your XP gains.`
-        : `You have ${opportunities.length} opportunities total. Start by moving a high-value item from backlog to "Doing" and activating Deep Work mode.`) + ctxPrefix,
+        ? t('consultant.responses.priorityRecommend', { title: top.title, type: top.type, sv: top.strategic_value, xp: topXP, doing: doingTasks.length, backlog: backlogTasks.length })
+        : t('consultant.responses.priorityGeneric', { total: opportunities.length })) + ctxPrefix,
       sources: [
         { title: 'Opportunity Analysis', type: 'opportunity' as const, relevance: 0.95 },
         { title: 'Priority Context', type: 'knowledge' as const, relevance: 0.92 },
@@ -56,9 +58,9 @@ function generateContextualResponse(
   if (lower.includes('tired') || lower.includes('energy') || lower.includes('cansaço') || lower.includes('burnout') || lower.includes('cansado')) {
     const deepHours = Math.floor(deepWorkMinutes / 60)
     const recentMoods = dailyLogs.slice(0, 3).map(l => l.mood).filter(Boolean)
-    const moodSummary = recentMoods.length > 0 ? `Your recent moods: ${recentMoods.join(', ')}.` : ''
+    const moodSummary = recentMoods.length > 0 ? t('consultant.responses.recentMoods', { moods: recentMoods.join(', ') }) : ''
     return {
-      content: `Your deep work total is **${deepHours}h**. ${deepHours > 8 ? 'That is quite intensive - consider lighter tasks or a break.' : 'You still have capacity for focused work.'} ${moodSummary} Your streak is at **${streakDays} days**. Energy management tips:\n\n1. Switch to low-SV tasks (networking, small actions)\n2. Take a 5-min walk\n3. Write a quick journal entry about how you feel\n4. Try a shorter 15-min Pomodoro instead of 25`,
+      content: `${t('consultant.responses.energyDeepWork', { hours: deepHours })} ${deepHours > 8 ? t('consultant.responses.energyIntensive') : t('consultant.responses.energyCapacity')} ${moodSummary} ${t('consultant.responses.streakAt', { days: streakDays })} ${t('consultant.responses.energyTips')}`,
       sources: [
         { title: 'Deep Work History', type: 'journal' as const, relevance: 0.92 },
         { title: 'Energy Patterns', type: 'journal' as const, relevance: 0.85 },
@@ -79,9 +81,9 @@ function generateContextualResponse(
       .join(', ')
     const max = Object.entries(domainCounts).sort((a, b) => b[1] - a[1])[0]
     const maxPct = max ? Math.round((max[1] / total) * 100) : 0
-    const warning = maxPct > 40 ? `\n\n**Warning:** ${max[0]} is at ${maxPct}% - this exceeds the 40% balance threshold. Consider redistributing effort.` : ''
+    const warning = maxPct > 40 ? t('consultant.responses.domainWarning', { domain: max[0], pct: maxPct }) : ''
     return {
-      content: `Current domain distribution: ${breakdown}.${warning}\n\nCheck the Balance Radar on your dashboard for a visual breakdown.`,
+      content: `${t('consultant.responses.domainDistribution', { breakdown })}${warning}${t('consultant.responses.domainCheckRadar')}`,
       sources: [
         { title: 'Domain Analysis', type: 'opportunity' as const, relevance: 0.9 },
         { title: 'Balance Guidelines', type: 'knowledge' as const, relevance: 0.82 },
@@ -93,14 +95,14 @@ function generateContextualResponse(
   if (lower.includes('goal') || lower.includes('meta') || lower.includes('objective')) {
     if (goals.length === 0) {
       return {
-        content: 'You haven\'t set any goals yet. I recommend creating 2-3 strategic goals with clear milestones. Go to the Goals page to get started. Focus on outcomes, not activities.',
+        content: t('consultant.responses.noGoals'),
         sources: [{ title: 'Goal Setting', type: 'knowledge' as const, relevance: 0.9 }],
       }
     }
     const activeGoals = goals.filter((g: any) => g.progress < 100)
     const summary = activeGoals.map((g: any) => `"${g.title}" (${g.progress}%)`).join(', ')
     return {
-      content: `You have **${activeGoals.length} active goals**: ${summary}. Focus on the goal closest to completion to build momentum, or the most strategic one to maximize long-term impact.`,
+      content: t('consultant.responses.activeGoals', { count: activeGoals.length, summary }),
       sources: [
         { title: 'Goal Progress', type: 'knowledge' as const, relevance: 0.95 },
         { title: 'Strategic Planning', type: 'knowledge' as const, relevance: 0.85 },
@@ -112,14 +114,14 @@ function generateContextualResponse(
   if (lower.includes('habit') || lower.includes('hábito') || lower.includes('routine') || lower.includes('rotina')) {
     if (habits.length === 0) {
       return {
-        content: 'No habits tracked yet. Start with 1-3 keystone habits like morning exercise, reading, or journaling. Small daily wins compound over time.',
+        content: t('consultant.responses.noHabits'),
         sources: [{ title: 'Habit Formation', type: 'knowledge' as const, relevance: 0.9 }],
       }
     }
     const today = new Date().toISOString().split('T')[0]
     const completedToday = habits.filter((h: any) => h.completions?.includes(today)).length
     return {
-      content: `You're tracking **${habits.length} habits**. Today: ${completedToday}/${habits.length} completed. ${completedToday === habits.length ? 'Amazing - 100% completion!' : 'Complete your remaining habits to maintain your streak.'} Each habit completion earns +10 XP.`,
+      content: `${t('consultant.responses.habitProgress', { total: habits.length, done: completedToday })} ${completedToday === habits.length ? t('consultant.responses.habitPerfect') : t('consultant.responses.habitRemaining')} ${t('consultant.responses.habitXP')}`,
       sources: [
         { title: 'Habit Tracking', type: 'knowledge' as const, relevance: 0.9 },
       ],
@@ -130,7 +132,7 @@ function generateContextualResponse(
   if (lower.includes('xp') || lower.includes('level') || lower.includes('progress') || lower.includes('progresso')) {
     const totalXP = doneTasks.reduce((sum, o) => sum + calculateXPReward(o.type, o.strategic_value ?? 5), 0)
     return {
-      content: `You've completed **${doneTasks.length} opportunities** worth approximately **${totalXP} XP** from tasks alone. Your streak is **${streakDays} days**. Deep work has contributed **${Math.floor(deepWorkMinutes / 25) * 50} XP** from Pomodoro sessions. To level up faster, focus on high-SV Study tasks (50 base XP * SV) - they yield the most XP.`,
+      content: t('consultant.responses.xpCompleted', { count: doneTasks.length, xp: totalXP, streak: streakDays, dwXp: Math.floor(deepWorkMinutes / 25) * 50 }),
       sources: [
         { title: 'XP Breakdown', type: 'knowledge' as const, relevance: 0.95 },
         { title: 'Level Progress', type: 'knowledge' as const, relevance: 0.9 },
@@ -144,8 +146,8 @@ function generateContextualResponse(
     const topStudy = studyTasks.sort((a, b) => (b.strategic_value ?? 0) - (a.strategic_value ?? 0))[0]
     return {
       content: topStudy
-        ? `You have **${studyTasks.length} study tasks** pending. Top priority: **"${topStudy.title}"** (SV: ${topStudy.strategic_value}/10, worth ${calculateXPReward('study', topStudy.strategic_value ?? 5)} XP). Study tasks yield the highest XP (50 base * SV). Use Deep Work mode with 25-min Pomodoros for maximum retention.`
-        : `No active study tasks. Create one for your most important learning goal and set a high strategic value (8-10) to reflect its importance.`,
+        ? t('consultant.responses.studyPending', { count: studyTasks.length, title: topStudy.title, sv: topStudy.strategic_value, xp: calculateXPReward('study', topStudy.strategic_value ?? 5) })
+        : t('consultant.responses.noStudy'),
       sources: [
         { title: 'Study Analysis', type: 'opportunity' as const, relevance: 0.95 },
         { title: 'Learning Strategy', type: 'knowledge' as const, relevance: 0.85 },
@@ -156,7 +158,7 @@ function generateContextualResponse(
   // Weekly review
   if (lower.includes('week') || lower.includes('review') || lower.includes('semana') || lower.includes('revisão')) {
     return {
-      content: `This week's snapshot:\n\n- **${doneTasks.length}** completed\n- **${doingTasks.length}** in progress\n- **${backlogTasks.length}** in backlog\n- Deep work: **${Math.floor(deepWorkMinutes / 60)}h**\n- Streak: **${streakDays} days**\n\nVisit the Weekly Review page for a detailed analysis with insights and reflection prompts.`,
+      content: t('consultant.responses.weekSnapshot', { done: doneTasks.length, doing: doingTasks.length, backlog: backlogTasks.length, hours: Math.floor(deepWorkMinutes / 60), streak: streakDays }),
       sources: [
         { title: 'Weekly Summary', type: 'opportunity' as const, relevance: 0.95 },
         { title: 'Progress Analytics', type: 'knowledge' as const, relevance: 0.88 },
@@ -168,10 +170,10 @@ function generateContextualResponse(
   if (lower.includes('plan') || lower.includes('schedule') || lower.includes('agenda') || lower.includes('planejar') || lower.includes('dia')) {
     const morningTasks = highPriority.filter(o => o.type === 'study').slice(0, 2)
     const afternoonTasks = highPriority.filter(o => o.type === 'action').slice(0, 2)
-    const morningList = morningTasks.map(t => `- "${t.title}" (SV:${t.strategic_value}, ${calculateXPReward(t.type, t.strategic_value ?? 5)} XP)`).join('\n')
-    const afternoonList = afternoonTasks.map(t => `- "${t.title}" (SV:${t.strategic_value}, ${calculateXPReward(t.type, t.strategic_value ?? 5)} XP)`).join('\n')
+    const morningList = morningTasks.map(tsk => `- "${tsk.title}" (SV:${tsk.strategic_value}, ${calculateXPReward(tsk.type, tsk.strategic_value ?? 5)} XP)`).join('\n')
+    const afternoonList = afternoonTasks.map(tsk => `- "${tsk.title}" (SV:${tsk.strategic_value}, ${calculateXPReward(tsk.type, tsk.strategic_value ?? 5)} XP)`).join('\n')
     return {
-      content: `Here's an optimized day plan based on your priorities:\n\n### Morning (High Energy - Deep Work)\n${morningList || '- No study tasks pending'}\n\n### Afternoon (Moderate Energy - Action Items)\n${afternoonList || '- No action tasks pending'}\n\n### Evening\n- Journal reflection (+15 XP)\n- Review tomorrow's priorities\n\nUse the Time Blocking calendar on your Dashboard to schedule these blocks.`,
+      content: `${t('consultant.responses.dayPlanTitle')}\n\n${t('consultant.responses.dayPlanMorning')}\n${morningList || t('consultant.responses.noStudyTasks')}\n\n${t('consultant.responses.dayPlanAfternoon')}\n${afternoonList || t('consultant.responses.noActionTasks')}\n\n${t('consultant.responses.dayPlanEvening')}`,
       sources: [
         { title: 'Daily Planning', type: 'knowledge' as const, relevance: 0.95 },
         { title: 'Energy Optimization', type: 'knowledge' as const, relevance: 0.85 },
@@ -185,7 +187,7 @@ function generateContextualResponse(
     const actionCount = opportunities.filter(o => o.type === 'action').length
     const highSVTasks = opportunities.filter(o => (o.strategic_value ?? 0) >= 8)
     return {
-      content: `Strategic overview: You have **${highSVTasks.length} high-impact tasks** (SV >= 8). Study-to-action ratio: **${studyCount}:${actionCount}**.\n\n### Recommendations\n1. ${studyCount > actionCount ? 'Good study focus! Make sure to convert learning into action.' : 'Consider adding more study tasks - they yield the highest XP.'}\n2. Focus on completing high-SV tasks first - they give disproportionate returns.\n3. Your streak (${streakDays} days) is ${streakDays >= 7 ? 'strong! Keep it going.' : 'building. Aim for 7+ days for the Daily Master achievement.'}\n4. Set 2-3 strategic goals with clear milestones on the Goals page.`,
+      content: `${t('consultant.responses.strategyOverview', { highSV: highSVTasks.length, study: studyCount, action: actionCount })}\n\n### Recommendations\n1. ${studyCount > actionCount ? t('consultant.responses.strategyGoodStudy') : t('consultant.responses.strategyNeedStudy')}\n2. ${t('consultant.responses.strategyHighSV')}\n3. ${t('consultant.responses.streakAt', { days: streakDays })} ${streakDays >= 7 ? t('consultant.responses.strategyStreakStrong') : t('consultant.responses.strategyStreakBuilding')}\n4. ${t('consultant.responses.strategySetGoals')}`,
       sources: [
         { title: 'Strategic Analysis', type: 'knowledge' as const, relevance: 0.95 },
         { title: 'XP Optimization', type: 'knowledge' as const, relevance: 0.9 },
@@ -195,24 +197,13 @@ function generateContextualResponse(
 
   // Default
   return {
-    content: `I have access to **${opportunities.length} opportunities**, **${dailyLogs.length} journal entries**, **${habits.length} habits**, and **${goals.length} goals**. I can help with:\n\n- **Prioritization**: "What should I focus on today?"\n- **Energy management**: "I feel tired, what now?"\n- **Domain balance**: "Am I balanced across domains?"\n- **Goals & habits**: "How are my goals going?"\n- **Study strategy**: "Help me optimize my study plan"\n- **XP & progress**: "How can I level up faster?"\n- **Weekly review**: "How was my week?"\n- **Day planning**: "Plan my day"\n- **Strategy**: "What's my long-term strategy?"\n\nWhat would you like to explore?` + ctxPrefix,
+    content: `${t('consultant.responses.defaultIntro', { opportunities: opportunities.length, logs: dailyLogs.length, habits: habits.length, goals: goals.length })}\n\n- ${t('consultant.responses.defaultPrioritization')}\n- ${t('consultant.responses.defaultEnergy')}\n- ${t('consultant.responses.defaultDomain')}\n- ${t('consultant.responses.defaultGoals')}\n- ${t('consultant.responses.defaultStudy')}\n- ${t('consultant.responses.defaultXP')}\n- ${t('consultant.responses.defaultWeekly')}\n- ${t('consultant.responses.defaultPlanning')}\n- ${t('consultant.responses.defaultStrategy')}\n\n${t('consultant.responses.defaultAsk')}` + ctxPrefix,
     sources: [
       { title: 'System Overview', type: 'knowledge' as const, relevance: 0.7 },
       ...(priorityContext ? [{ title: 'Priority Context', type: 'knowledge' as const, relevance: 0.85 }] : []),
     ],
   }
 }
-
-const SUGGESTED_QUESTIONS = [
-  'What should I prioritize today?',
-  'Plan my day',
-  'Am I balanced across domains?',
-  'I feel tired, what now?',
-  'How are my goals going?',
-  'How can I level up faster?',
-  "What's my long-term strategy?",
-  'How was my week?',
-]
 
 function isSupabaseConfigured(): boolean {
   const url = import.meta.env.VITE_SUPABASE_URL
@@ -221,19 +212,29 @@ function isSupabaseConfigured(): boolean {
 }
 
 export function Consultant() {
+  const { t } = useTranslation()
   const { opportunities, dailyLogs, habits, goals } = useLocalData()
   const { deepWorkMinutes, streakDays } = useXPSystem()
   const { activePriorities } = usePriorities(opportunities, goals)
   const rag = useRagChat()
   const useAI = isSupabaseConfigured()
 
+  const SUGGESTED_QUESTIONS = [
+    t('consultant.suggestedQuestions.prioritize'),
+    t('consultant.suggestedQuestions.planDay'),
+    t('consultant.suggestedQuestions.balanced'),
+    t('consultant.suggestedQuestions.tired'),
+    t('consultant.suggestedQuestions.goalsProgress'),
+    t('consultant.suggestedQuestions.levelUp'),
+    t('consultant.suggestedQuestions.strategy'),
+    t('consultant.suggestedQuestions.weekReview'),
+  ]
+
   const [messages, setMessages] = useState<ChatMessageType[]>([
     {
       id: 'welcome',
       role: 'assistant',
-      content: useAI
-        ? "Hello! I'm your **Strategic Advisor** powered by AI. I use semantic search across your opportunities, journal entries, and knowledge base to provide personalized, context-aware advice. Ask me anything!"
-        : "Hello! I'm your **Strategic Advisor**. I analyze your opportunities, focus sessions, habits, goals, and journal to provide data-driven recommendations. Ask me anything about your productivity, priorities, or progress!",
+      content: useAI ? t('consultant.welcomeAI') : t('consultant.welcomeLocal'),
       timestamp: new Date(),
     },
   ])
@@ -269,12 +270,12 @@ export function Consultant() {
         await new Promise(resolve => setTimeout(resolve, 500))
         const ragContext = buildCombinedRAGContext(activePriorities, goals || [], content)
         const response = generateContextualResponse(
-          content, opportunities || [], deepWorkMinutes, streakDays,
+          t, content, opportunities || [], deepWorkMinutes, streakDays,
           dailyLogs || [], habits || [], goals || [], ragContext,
         )
         const assistantMessage: ChatMessageType = {
           id: `assistant-${Date.now()}`, role: 'assistant',
-          content: `*(Offline mode)* ${response.content}`, timestamp: new Date(),
+          content: `*${t('consultant.offlineMode')}* ${response.content}`, timestamp: new Date(),
           sources: response.sources as ContextSource[],
         }
         setMessages(prev => [...prev, assistantMessage])
@@ -285,7 +286,7 @@ export function Consultant() {
 
       const ragContext = buildCombinedRAGContext(activePriorities, goals || [], content)
       const response = generateContextualResponse(
-        content, opportunities || [], deepWorkMinutes, streakDays,
+        t, content, opportunities || [], deepWorkMinutes, streakDays,
         dailyLogs || [], habits || [], goals || [], ragContext,
       )
       const assistantMessage: ChatMessageType = {
@@ -313,9 +314,7 @@ export function Consultant() {
       {
         id: 'welcome',
         role: 'assistant',
-        content: useAI
-          ? "New session started. I'm your **Strategic Advisor** powered by AI. How can I help you today?"
-          : "New session started. I'm your **Strategic Advisor**. What would you like to explore?",
+        content: useAI ? t('consultant.newSessionAI') : t('consultant.newSessionLocal'),
         timestamp: new Date(),
       },
     ])
@@ -331,8 +330,8 @@ export function Consultant() {
           <Brain className="h-5 w-5 text-primary" />
         </div>
         <div className="flex-1">
-          <h1 className="text-xl font-bold tracking-tight">Strategic Advisor</h1>
-          <p className="text-sm text-muted-foreground">AI-powered insights from your second brain</p>
+          <h1 className="text-xl font-bold tracking-tight">{t('consultant.title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('consultant.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -340,10 +339,10 @@ export function Consultant() {
             size="icon"
             onClick={handleNewSession}
             disabled={isBusy}
-            title="New conversation"
+            title={t('consultant.newConversation')}
           >
             <Trash2 className="h-4 w-4" />
-            <span className="sr-only">New conversation</span>
+            <span className="sr-only">{t('consultant.newConversation')}</span>
           </Button>
           <Badge variant="outline" className="gap-1.5 text-xs">
             {useAI ? (
@@ -399,7 +398,7 @@ export function Consultant() {
           {rag.error && lastFailedMessage && (
             <div className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-2 text-sm text-destructive">
               <AlertCircle className="h-4 w-4 shrink-0" />
-              <span className="flex-1">AI connection failed: {rag.error}</span>
+              <span className="flex-1">{t('consultant.aiFailed')}: {rag.error}</span>
               <Button
                 variant="outline"
                 size="sm"
@@ -408,7 +407,7 @@ export function Consultant() {
                 className="gap-1.5"
               >
                 <RotateCcw className="h-3 w-3" />
-                Retry
+                {t('consultant.retry')}
               </Button>
             </div>
           )}

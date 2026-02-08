@@ -11,6 +11,21 @@ if (stored === 'pt') {
   localStorage.setItem('lifeos_language', 'pt-BR')
 }
 
+/**
+ * RTL language codes. When adding RTL languages (e.g. Arabic, Hebrew),
+ * add them here and the LanguageContext will auto-set `dir="rtl"`.
+ */
+export const RTL_LANGUAGES = new Set<string>([
+  // 'ar', 'he', 'fa', 'ur' — add RTL languages here when supported
+])
+
+/**
+ * Check if a language code is RTL.
+ */
+export function isRTL(lang: string): boolean {
+  return RTL_LANGUAGES.has(lang)
+}
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)

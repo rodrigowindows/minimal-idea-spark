@@ -15,7 +15,7 @@ Open [http://localhost:8080](http://localhost:8080). Data is mock by default. To
 
 - **Unit tests (Vitest):** `npm run test` — runs all `*.test.ts` / `*.test.tsx` under `src/`.
 - **Coverage:** `npm run test -- --coverage` — report in `coverage/` (v8).
-- **E2E (Playwright):** `npm run test:e2e` — smoke tests (requires `npm run dev` or deployed app). Optional: install Playwright with `npx playwright install`.
+- **E2E (Playwright):** `npm run test:e2e` — smoke tests in `e2e/`. First run `npx playwright install` to install browsers. Starts dev server automatically unless `CI=1`.
 
 Mocks for Supabase and APIs are in test setup and per-file `vi.mock()`. CI runs tests on push/PR (see `.github/workflows/test.yml`).
 

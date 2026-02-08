@@ -16,6 +16,7 @@ import { useXPSystem } from '@/hooks/useXPSystem'
 import { useAppContext } from '@/contexts/AppContext'
 import { OpportunityDialog } from '@/components/opportunities/OpportunityDialog'
 import { EmptyState } from '@/components/EmptyState'
+import { VirtualList } from '@/components/VirtualList'
 import { TagFilter } from '@/components/tags/TagFilter'
 import { TagBadge } from '@/components/tags/TagBadge'
 import { getTagsForOpportunity, setTagsForOpportunity, getAllTags } from '@/lib/tags/tag-service'
@@ -42,6 +43,7 @@ export function Opportunities() {
   const {
     opportunities,
     domains,
+    goals,
     isLoading,
     addOpportunity,
     updateOpportunity,
@@ -54,6 +56,7 @@ export function Opportunities() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingOpp, setEditingOpp] = useState<Opportunity | null>(null)
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null)
+  const [dueFilter, setDueFilter] = useState<'all' | 'due_today' | 'overdue' | 'this_week'>('all')
   const { addXP, awardTaskComplete } = useXPSystem()
   const { setCurrentOpportunity, toggleDeepWorkMode } = useAppContext()
 
@@ -72,6 +75,13 @@ export function Opportunities() {
     return new Map(domains.map((d) => [d.id, d]))
   }, [domains])
 
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
+  const weekEnd = useMemo(() => {
+    const d = new Date()
+    d.setDate(d.getDate() + 7)
+    return d.toISOString().slice(0, 10)
+  }, [])
+
   const filteredOpportunities = useMemo(() => {
     if (!opportunities) return []
     return opportunities.filter((opp) => {
@@ -82,9 +92,18 @@ export function Opportunities() {
         opp.status.toLowerCase() === selectedStatus.toLowerCase()
       const matchesTag = selectedTagId === null ||
         getTagsForOpportunity(opp.id).includes(selectedTagId)
-      return matchesSearch && matchesStatus && matchesTag
+      const matchesDue = (() => {
+        if (dueFilter === 'all') return true
+        const due = opp.due_date?.slice(0, 10)
+        if (!due) return false
+        if (dueFilter === 'overdue') return due < today
+        if (dueFilter === 'due_today') return due === today
+        if (dueFilter === 'this_week') return due >= today && due <= weekEnd
+        return true
+      })()
+      return matchesSearch && matchesStatus && matchesTag && matchesDue
     })
-  }, [opportunities, searchQuery, selectedStatus, selectedTagId])
+  }, [opportunities, searchQuery, selectedStatus, selectedTagId, dueFilter, today, weekEnd])
 
   const statusCounts = useMemo(() => {
     if (!opportunities) return {}
@@ -192,12 +211,12 @@ export function Opportunities() {
 
       {viewMode === 'matrix' ? (
         <EisenhowerMatrix
-          opportunities={opportunities || []}
+          opportunities={filteredOpportunities}
           onSelect={(opp) => handleEdit(opp)}
         />
       ) : viewMode === 'kanban' ? (
         <KanbanBoard
-          opportunities={opportunities || []}
+          opportunities={filteredOpportunities}
           domainMap={domainMap}
           onComplete={handleComplete}
           onEdit={handleEdit}
@@ -213,6 +232,16 @@ export function Opportunities() {
                 placeholder="Search opportunities..." className="pl-9" />
             </div>
             <TagFilter selectedTagId={selectedTagId} onSelectTag={setSelectedTagId} className="mb-2" />
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-xs text-muted-foreground mr-1">Due:</span>
+              {(['all', 'due_today', 'overdue', 'this_week'] as const).map((key) => (
+                <button key={key} onClick={() => setDueFilter(key)}
+                  className={cn('rounded-full px-3 py-1 text-sm font-medium transition-colors',
+                    dueFilter === key ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground hover:bg-secondary/80')}>
+                  {key === 'all' ? 'All' : key === 'due_today' ? 'Due today' : key === 'overdue' ? 'Overdue' : 'This week'}
+                </button>
+              ))}
+            </div>
             <div className="flex flex-wrap gap-2">
               <button onClick={() => setSelectedStatus('All')}
                 className={cn('rounded-full px-3 py-1 text-sm font-medium transition-colors',
@@ -250,6 +279,25 @@ export function Opportunities() {
                 actionLabel={searchQuery || selectedStatus !== 'All' ? undefined : 'New opportunity'}
                 onAction={searchQuery || selectedStatus !== 'All' ? undefined : () => { setEditingOpp(null); setDialogOpen(true) }}
               />
+            ) : filteredOpportunities.length > 30 ? (
+              <VirtualList
+                items={filteredOpportunities}
+                itemHeight={140}
+                className="h-[calc(100vh-280px)]"
+                getItemKey={(opp) => opp.id}
+                renderItem={(opp) => (
+                  <div className="pb-3">
+                    <SwipeableCard
+                      opp={opp}
+                      domainMap={domainMap}
+                      onComplete={handleComplete}
+                      onDelete={handleDelete}
+                      onFocus={handleFocus}
+                      onEdit={handleEdit}
+                    />
+                  </div>
+                )}
+              />
             ) : (
               <div className="space-y-3">
                 <AnimatePresence>
@@ -280,6 +328,7 @@ export function Opportunities() {
         }}
         opportunity={editingOpp}
         domains={domains || []}
+        goals={goals?.map((g) => ({ id: g.id, title: g.title })) ?? []}
         onSave={handleSave}
       />
     </div>
@@ -362,6 +411,9 @@ function SwipeableCard({
                   ))}
                 </div>
                 <span className="text-[10px] text-amber-400 font-medium">{xpReward} XP</span>
+                {opp.due_date && opp.due_date.slice(0, 10) < new Date().toISOString().slice(0, 10) && (
+                  <Badge variant="destructive" className="text-xs">Overdue</Badge>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-2">

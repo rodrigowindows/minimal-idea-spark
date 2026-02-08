@@ -174,16 +174,43 @@ nav {
   user-select: none;
 }
 
-/* Focus visible for keyboard navigation (WCAG) */
+/* Focus visible for keyboard navigation (WCAG 2.1 AA) */
 :focus {
   outline: none;
 }
 :focus-visible {
   outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
+  border-radius: 2px;
 }
 
-/* Respect reduced motion preference */
+/* Enhanced focus for interactive elements */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px hsl(var(--ring) / 0.15);
+}
+
+/* Skip link and sr-only utilities */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Respect reduced motion preference (WCAG 2.3.3) */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -191,5 +218,33 @@ nav {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-fade-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* High contrast mode support */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 2px solid CanvasText;
+  }
+
+  button, a, [role="button"] {
+    border: 1px solid ButtonText;
+  }
+}
+
+/* Minimum touch target size (WCAG 2.5.8 - 44x44px) */
+@media (pointer: coarse) {
+  button:not(.sr-only),
+  a:not(.sr-only),
+  [role="button"]:not(.sr-only) {
+    min-height: 44px;
+    min-width: 44px;
   }
 }

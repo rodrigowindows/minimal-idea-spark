@@ -29,6 +29,9 @@ export interface Opportunity {
   strategic_value: number | null
   xp_reward?: number
   created_at: string
+  due_date?: string | null
+  reminder_at?: string | null
+  goal_id?: string | null
   domain?: LifeDomain
 }
 

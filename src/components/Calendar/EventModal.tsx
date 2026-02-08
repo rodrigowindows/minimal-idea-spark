@@ -193,16 +193,16 @@ export function EventModal({
 
           {/* Category */}
           <div className="grid gap-2">
-            <Label>Categoria</Label>
+            <Label htmlFor="event-category">Categoria</Label>
             <Select value={category} onValueChange={handleCategoryChange}>
-              <SelectTrigger>
+              <SelectTrigger id="event-category" aria-label="Categoria">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {CATEGORIES.map(c => (
                   <SelectItem key={c.value} value={c.value}>
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: c.color }} />
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: c.color }} aria-hidden="true" />
                       {c.label}
                     </div>
                   </SelectItem>
@@ -214,12 +214,12 @@ export function EventModal({
           {/* Link to Opportunity */}
           {opportunities.length > 0 && (
             <div className="grid gap-2">
-              <Label>Vincular a Oportunidade</Label>
+              <Label htmlFor="event-opportunity">Vincular a Oportunidade</Label>
               <Select
                 value={opportunityId || 'none'}
                 onValueChange={handleOpportunitySelect}
               >
-                <SelectTrigger>
+                <SelectTrigger id="event-opportunity" aria-label="Vincular a Oportunidade">
                   <SelectValue placeholder="Nenhuma" />
                 </SelectTrigger>
                 <SelectContent>
@@ -258,8 +258,8 @@ export function EventModal({
               <Label>Data de inicio</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="justify-start text-left text-sm">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
+                  <Button variant="outline" className="justify-start text-left text-sm" aria-label={`Data de inicio: ${format(startDate, 'PP', { locale: ptBR })}`}>
+                    <CalendarIcon className="mr-2 h-4 w-4" aria-hidden="true" />
                     {format(startDate, 'PP', { locale: ptBR })}
                   </Button>
                 </PopoverTrigger>
@@ -294,8 +294,8 @@ export function EventModal({
               <Label>Data de termino</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="justify-start text-left text-sm">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
+                  <Button variant="outline" className="justify-start text-left text-sm" aria-label={`Data de termino: ${format(endDate, 'PP', { locale: ptBR })}`}>
+                    <CalendarIcon className="mr-2 h-4 w-4" aria-hidden="true" />
                     {format(endDate, 'PP', { locale: ptBR })}
                   </Button>
                 </PopoverTrigger>
@@ -322,9 +322,9 @@ export function EventModal({
           {/* Recurrence + Reminder */}
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
-              <Label>Recorrencia</Label>
+              <Label htmlFor="event-recurrence">Recorrencia</Label>
               <Select value={recurrence} onValueChange={setRecurrence}>
-                <SelectTrigger>
+                <SelectTrigger id="event-recurrence" aria-label="Recorrencia">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -335,9 +335,9 @@ export function EventModal({
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label>Lembrete</Label>
+              <Label htmlFor="event-reminder">Lembrete</Label>
               <Select value={reminderMinutes} onValueChange={setReminderMinutes}>
-                <SelectTrigger>
+                <SelectTrigger id="event-reminder" aria-label="Lembrete">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -361,7 +361,7 @@ export function EventModal({
               }}
               className="mr-auto"
             >
-              <Trash2 className="h-4 w-4 mr-1" />
+              <Trash2 className="h-4 w-4 mr-1" aria-hidden="true" />
               Excluir
             </Button>
           )}

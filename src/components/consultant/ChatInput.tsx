@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Send } from 'lucide-react'
@@ -10,6 +11,7 @@ interface ChatInputProps {
 }
 
 export function ChatInput({ onSend, disabled }: ChatInputProps) {
+  const { t } = useTranslation()
   const [input, setInput] = useState('')
 
   function handleSubmit(e: React.FormEvent) {
@@ -38,14 +40,14 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Ask your strategic consultant..."
+        placeholder={t('consultant.placeholder')}
         disabled={disabled}
         className="flex-1"
       />
       <VoiceInput onTranscript={handleVoiceTranscript} disabled={disabled} />
       <Button type="submit" disabled={!input.trim() || disabled}>
         <Send className="h-4 w-4" />
-        <span className="sr-only">Send</span>
+        <span className="sr-only">{t('consultant.send')}</span>
       </Button>
     </form>
   )

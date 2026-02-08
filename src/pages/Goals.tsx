@@ -37,11 +37,12 @@ import {
   Milestone,
 } from 'lucide-react'
 import { VoiceInput } from '@/components/smart-capture/VoiceInput'
+import { getOpportunitiesForGoal } from '@/lib/goals/goal-service'
 import { format, differenceInDays, isPast } from 'date-fns'
 
 export function Goals() {
   const { t } = useTranslation()
-  const { goals, domains, addGoal, updateGoal, toggleMilestone, deleteGoal } = useLocalData()
+  const { goals, domains, opportunities, addGoal, updateGoal, toggleMilestone, deleteGoal } = useLocalData()
   const [showNew, setShowNew] = useState(false)
   const [expandedGoal, setExpandedGoal] = useState<string | null>(null)
 
@@ -114,6 +115,7 @@ export function Goals() {
                     key={goal.id}
                     goal={goal}
                     domains={domains}
+                    linkedCount={getOpportunitiesForGoal(opportunities ?? [], goal.id).length}
                     expanded={expandedGoal === goal.id}
                     onToggleExpand={() => setExpandedGoal(expandedGoal === goal.id ? null : goal.id)}
                     onToggleMilestone={(milestoneId) => toggleMilestone(goal.id, milestoneId)}
@@ -135,6 +137,7 @@ export function Goals() {
                   key={goal.id}
                   goal={goal}
                   domains={domains}
+                  linkedCount={getOpportunitiesForGoal(opportunities ?? [], goal.id).length}
                   expanded={expandedGoal === goal.id}
                   onToggleExpand={() => setExpandedGoal(expandedGoal === goal.id ? null : goal.id)}
                   onToggleMilestone={(milestoneId) => toggleMilestone(goal.id, milestoneId)}
@@ -250,6 +253,7 @@ export function Goals() {
 function GoalCard({
   goal,
   domains,
+  linkedCount = 0,
   expanded,
   onToggleExpand,
   onToggleMilestone,
@@ -257,6 +261,7 @@ function GoalCard({
 }: {
   goal: Goal
   domains: any[]
+  linkedCount?: number
   expanded: boolean
   onToggleExpand: () => void
   onToggleMilestone: (id: string) => void
@@ -311,6 +316,9 @@ function GoalCard({
                   <Milestone className="h-3 w-3" />
                   {goal.milestones.filter(m => m.done).length}/{goal.milestones.length}
                 </Badge>
+                {linkedCount > 0 && (
+                  <Badge variant="outline" className="text-xs">{linkedCount} {t('goals.linked')}</Badge>
+                )}
               </div>
 
               <div className="mt-3">

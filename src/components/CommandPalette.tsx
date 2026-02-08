@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Dialog,
   DialogContent,
@@ -34,6 +34,7 @@ const NAV_ITEMS: { to: string; labelKey: string; icon: typeof LayoutDashboard }[
   { to: '/version-history', labelKey: 'nav.versionHistory', icon: FileText },
   { to: '/workspace', labelKey: 'nav.workspace', icon: FileText },
   { to: '/import', labelKey: 'nav.import', icon: FileText },
+  { to: '/reports', labelKey: 'nav.reports', icon: FileText },
   { to: '/settings', labelKey: 'nav.settings', icon: Settings2 },
 ]
 

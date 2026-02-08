@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, type ReactNode } from 'react'
 import { useTranslation as useI18nTranslation } from 'react-i18next'
 import '@/i18n'
+import { isRTL } from '@/i18n'
 
 export type Language = 'pt-BR' | 'en' | 'es'
 
@@ -28,7 +29,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     i18n.changeLanguage(lang)
     localStorage.setItem('lifeos_language', lang)
     document.documentElement.lang = lang
-    document.documentElement.dir = 'ltr' // RTL-ready: change to 'rtl' for RTL languages
+    document.documentElement.dir = isRTL(lang) ? 'rtl' : 'ltr'
   }, [i18n])
 
   const toggleLanguage = useCallback(() => {
