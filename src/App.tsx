@@ -20,6 +20,7 @@ import { TemplatesPage } from "@/pages/TemplatesPage";
 import { ImageGenerationPage } from "@/pages/ImageGenerationPage";
 import { VersionHistoryPage } from "@/pages/VersionHistoryPage";
 import { Settings } from "@/pages/Settings";
+import { NotificationsPage } from "@/pages/Notifications";
 import { Workspace } from "@/pages/Workspace";
 import { AcceptInvite } from "@/pages/AcceptInvite";
 import { SharedView } from "@/pages/SharedView";
@@ -28,6 +29,7 @@ import { DeepWorkOverlay } from "@/components/deep-work/DeepWorkOverlay";
 import { ConfettiEffect } from "@/components/gamification/ConfettiEffect";
 import { XPNotificationListener } from "@/components/gamification/XPNotificationListener";
 import { ChatWidget } from "@/components/AIAssistant/ChatWidget";
+import { useNotificationGenerator } from "@/hooks/useNotificationGenerator";
 import { AppProvider, useAppContext } from "@/contexts/AppContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
@@ -47,6 +49,7 @@ const queryClient = new QueryClient({
 
 function AppContent() {
   const { levelUpTriggered } = useAppContext();
+  useNotificationGenerator();
   return (
     <>
       <Routes>
@@ -66,6 +69,7 @@ function AppContent() {
           <Route path="/templates" element={<TemplatesPage />} />
           <Route path="/images" element={<ImageGenerationPage />} />
           <Route path="/version-history" element={<VersionHistoryPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/workspace" element={<Workspace />} />
         </Route>

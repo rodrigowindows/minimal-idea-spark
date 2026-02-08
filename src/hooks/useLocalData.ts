@@ -1,9 +1,11 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import type { DailyLog, LifeDomain, Opportunity } from '@/types'
 import { useAuth } from '@/contexts/AuthContext'
 import type { Automation } from '@/lib/automation/engine'
 import type { Trigger } from '@/lib/automation/triggers'
 import type { Action } from '@/lib/automation/actions'
+import { createSnapshot } from '@/lib/versioning/manager'
+import type { EntityType } from '@/lib/db/schema-versions'
 
 const STORAGE_KEYS = {
   domains: 'lifeos_domains',
@@ -121,6 +123,19 @@ export function useLocalData() {
   useEffect(() => { saveToStorage(STORAGE_KEYS.weeklyTargets, weeklyTargets) }, [weeklyTargets])
   useEffect(() => { saveToStorage(STORAGE_KEYS.automations, automations) }, [automations])
 
+  // Auto-versioning: debounced snapshot creation on entity changes
+  const snapshotTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+
+  const autoSnapshot = useCallback((entityType: EntityType, entityId: string, content: string, comment: string) => {
+    const key = `${entityType}:${entityId}`
+    if (snapshotTimers.current[key]) clearTimeout(snapshotTimers.current[key])
+    snapshotTimers.current[key] = setTimeout(() => {
+      try {
+        createSnapshot(entityType, entityId, content, comment)
+      } catch { /* silent fail for auto-snapshot */ }
+    }, 2000) // 2 second debounce to avoid excessive snapshots
+  }, [])
+
   // Enrich opportunities with domain
   const enrichedOpportunities = opportunities.map(opp => ({
     ...opp,
@@ -136,14 +151,18 @@ export function useLocalData() {
       created_at: new Date().toISOString(),
     }
     setOpportunities(prev => [newOpp, ...prev])
+    autoSnapshot('opportunity', newOpp.id, JSON.stringify(newOpp, null, 2), `Created: ${newOpp.title}`)
     return newOpp
-  }, [userId])
+  }, [userId, autoSnapshot])
 
   const updateOpportunity = useCallback((id: string, data: Partial<Opportunity>) => {
-    setOpportunities(prev => prev.map(opp =>
-      opp.id === id ? { ...opp, ...data } : opp
-    ))
-  }, [])
+    setOpportunities(prev => {
+      const updated = prev.map(opp => opp.id === id ? { ...opp, ...data } : opp)
+      const opp = updated.find(o => o.id === id)
+      if (opp) autoSnapshot('opportunity', id, JSON.stringify(opp, null, 2), `Updated: ${opp.title}`)
+      return updated
+    })
+  }, [autoSnapshot])
 
   const deleteOpportunity = useCallback((id: string) => {
     setOpportunities(prev => prev.filter(opp => opp.id !== id))
@@ -164,8 +183,9 @@ export function useLocalData() {
       created_at: new Date().toISOString(),
     }
     setDailyLogs(prev => [newLog, ...prev])
+    autoSnapshot('journal', newLog.id, JSON.stringify(newLog, null, 2), `Journal: ${data.log_date}`)
     return newLog
-  }, [userId])
+  }, [userId, autoSnapshot])
 
   const deleteDailyLog = useCallback((id: string) => {
     setDailyLogs(prev => prev.filter(log => log.id !== id))
@@ -224,12 +244,18 @@ export function useLocalData() {
       created_at: new Date().toISOString(),
     }
     setGoals(prev => [...prev, newGoal])
+    autoSnapshot('goal', newGoal.id, JSON.stringify(newGoal, null, 2), `Created: ${newGoal.title}`)
     return newGoal
-  }, [userId])
+  }, [userId, autoSnapshot])
 
   const updateGoal = useCallback((id: string, data: Partial<Goal>) => {
-    setGoals(prev => prev.map(g => g.id === id ? { ...g, ...data } : g))
-  }, [])
+    setGoals(prev => {
+      const updated = prev.map(g => g.id === id ? { ...g, ...data } : g)
+      const goal = updated.find(g => g.id === id)
+      if (goal) autoSnapshot('goal', id, JSON.stringify(goal, null, 2), `Updated: ${goal.title}`)
+      return updated
+    })
+  }, [autoSnapshot])
 
   const toggleMilestone = useCallback((goalId: string, milestoneId: string) => {
     setGoals(prev => prev.map(g => {

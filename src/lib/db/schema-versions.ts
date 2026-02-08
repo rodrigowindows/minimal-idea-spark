@@ -2,7 +2,7 @@
  * Schema for version history system (Git-like version control for app content).
  */
 
-export const ENTITY_TYPES = ['opportunity', 'journal', 'goal', 'habit', 'document', 'template'] as const
+export const ENTITY_TYPES = ['opportunity', 'journal', 'goal', 'habit', 'document', 'template', 'automation', 'calendar'] as const
 export type EntityType = (typeof ENTITY_TYPES)[number]
 
 export interface VersionRecord {
@@ -56,4 +56,6 @@ export const ENTITY_TYPE_LABELS: Record<EntityType, string> = {
   habit: 'Habits',
   document: 'Documents',
   template: 'Templates',
+  automation: 'Automations',
+  calendar: 'Calendar Events',
 }

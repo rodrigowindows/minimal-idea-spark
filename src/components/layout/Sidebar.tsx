@@ -1,4 +1,5 @@
 import {
+  Bell,
   BookOpen,
   CalendarDays,
   ChevronLeft,
@@ -29,6 +30,7 @@ import { useTranslation } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/contexts/LanguageContext'
 import { XPProgressBar } from '@/components/gamification/XPProgressBar'
 import { WorkspaceSwitcher } from '@/components/WorkspaceSwitcher'
+import { NotificationCenter } from '@/components/NotificationCenter'
 
 interface SidebarProps {
   collapsed: boolean
@@ -46,6 +48,7 @@ const navItems: { to: string; icon: typeof LayoutDashboard; labelKey: Translatio
   { to: '/priorities', icon: Crosshair, labelKey: 'priorities' },
   { to: '/analytics', icon: BarChart3, labelKey: 'analytics' },
   { to: '/weekly-review', icon: ClipboardCheck, labelKey: 'weeklyReview' },
+  { to: '/notifications', icon: Bell, labelKey: 'notifications' },
   { to: '/content-generator', icon: PenTool, labelKey: 'contentGenerator' },
   { to: '/automation', icon: Zap, labelKey: 'automation' },
   { to: '/templates', icon: FileStack, labelKey: 'templates' },
@@ -66,7 +69,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         collapsed ? 'w-16' : 'w-64'
       )}
     >
-      {/* Brand + Language Toggle */}
+      {/* Brand + Notification Bell + Language Toggle */}
       <div className="flex h-16 items-center justify-between border-b border-border/50 px-4">
         <div className="flex items-center gap-2">
           <Sparkles className="h-6 w-6 shrink-0 text-primary" />
@@ -74,20 +77,23 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             <span className="text-lg font-semibold tracking-tight">Canvas</span>
           )}
         </div>
-        <button
-          onClick={toggleLanguage}
-          className={cn(
-            'flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors',
-            'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-muted-foreground',
-            collapsed && 'px-1'
-          )}
-          title={t.switchLanguage}
-        >
-          <Globe className="h-4 w-4 shrink-0" />
-          {!collapsed && (
-            <span className="uppercase font-bold">{language === 'pt' ? '🇧🇷 PT' : '🇺🇸 EN'}</span>
-          )}
-        </button>
+        <div className="flex items-center gap-1">
+          <NotificationCenter />
+          <button
+            onClick={toggleLanguage}
+            className={cn(
+              'flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors',
+              'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-muted-foreground',
+              collapsed && 'px-1'
+            )}
+            title={t.switchLanguage}
+          >
+            <Globe className="h-4 w-4 shrink-0" />
+            {!collapsed && (
+              <span className="uppercase font-bold">{language === 'pt' ? '🇧🇷 PT' : '🇺🇸 EN'}</span>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Workspace Switcher */}
