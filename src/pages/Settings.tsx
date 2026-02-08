@@ -4,8 +4,11 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useLocalData } from '@/hooks/useLocalData'
 import { useAuth } from '@/contexts/AuthContext'
+import { useNotifications } from '@/hooks/useNotifications'
 import { DEFAULT_DOMAIN_COLORS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -22,6 +25,7 @@ import {
   Target,
   Save,
   LogOut,
+  Bell,
 } from 'lucide-react'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { TranscriptionHistory } from '@/components/TranscriptionHistory'
@@ -36,6 +40,7 @@ import {
 export function Settings() {
   const { exportData, importData, opportunities, dailyLogs, habits, goals, domains, addDomain, weeklyTargets, setWeeklyTarget } = useLocalData()
   const { user, signOut } = useAuth()
+  const { preferences: notifPrefs, updatePreferences } = useNotifications()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [importing, setImporting] = useState(false)
   const [showDomainDialog, setShowDomainDialog] = useState(false)
@@ -324,6 +329,118 @@ export function Settings() {
             <Button variant="outline" onClick={signOut} className="w-full gap-2">
               <LogOut className="h-4 w-4" />Sair da conta
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Notification Preferences */}
+        <Card className="rounded-xl">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Bell className="h-5 w-5 text-primary" />
+              Notifications
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Master toggle */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-sm">Enable notifications</p>
+                <p className="text-xs text-muted-foreground">Receive in-app notifications</p>
+              </div>
+              <Switch
+                checked={notifPrefs.enabled}
+                onCheckedChange={(enabled) => updatePreferences({ enabled })}
+              />
+            </div>
+
+            {/* Channels */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Channels</Label>
+              {(['in_app', 'push', 'email'] as const).map(ch => (
+                <div key={ch} className="flex items-center justify-between rounded-lg bg-muted/50 p-2">
+                  <span className="text-sm capitalize">{ch.replace('_', '-')}</span>
+                  <Switch
+                    checked={notifPrefs.channels[ch]}
+                    onCheckedChange={(val) => updatePreferences({
+                      channels: { ...notifPrefs.channels, [ch]: val }
+                    })}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Notification types */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Notification Types</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {Object.entries(notifPrefs.types).map(([type, enabled]) => (
+                  <div key={type} className="flex items-center justify-between rounded-lg bg-muted/50 p-2">
+                    <span className="text-xs capitalize">{type.replace(/_/g, ' ')}</span>
+                    <Switch
+                      checked={enabled}
+                      onCheckedChange={(val) => updatePreferences({
+                        types: { ...notifPrefs.types, [type]: val }
+                      })}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Quiet hours */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Quiet Hours</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Start</Label>
+                  <Input
+                    type="time"
+                    value={notifPrefs.quietHoursStart ?? ''}
+                    onChange={(e) => updatePreferences({ quietHoursStart: e.target.value || null })}
+                    className="h-8"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">End</Label>
+                  <Input
+                    type="time"
+                    value={notifPrefs.quietHoursEnd ?? ''}
+                    onChange={(e) => updatePreferences({ quietHoursEnd: e.target.value || null })}
+                    className="h-8"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Digest frequency */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Digest</Label>
+              <Select
+                value={notifPrefs.digestFrequency}
+                onValueChange={(val) => updatePreferences({ digestFrequency: val as 'none' | 'daily' | 'weekly' })}
+              >
+                <SelectTrigger className="h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="daily">Daily digest</SelectItem>
+                  <SelectItem value="weekly">Weekly digest</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Group similar */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-sm">Group similar</p>
+                <p className="text-xs text-muted-foreground">Group notifications by type</p>
+              </div>
+              <Switch
+                checked={notifPrefs.groupSimilar}
+                onCheckedChange={(groupSimilar) => updatePreferences({ groupSimilar })}
+              />
+            </div>
           </CardContent>
         </Card>
 
