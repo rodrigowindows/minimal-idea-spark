@@ -74,6 +74,7 @@ function classifySingle(text: string): Omit<ClassificationResult, 'title'> {
 
 /** Split raw text into multiple items when conjunctions/separators are found */
 function splitIntoItems(input: string): string[] {
+  if (!input || typeof input !== 'string') return []
   // Split on " e " (Portuguese "and"), " and ", semicolons
   const parts = input
     .split(/\s+e\s+|\s+and\s+|;\s*/i)

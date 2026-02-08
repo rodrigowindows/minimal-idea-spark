@@ -422,7 +422,7 @@ function generateLocalResponse(
   if (lower.includes('schedule') || lower.includes('agenda') || lower.includes('today') || lower.includes('hoje')) {
     if (ctx.todayEvents.length > 0) {
       return "Today's schedule:\n" + ctx.todayEvents.map(e =>
-        `- ${e.title} at ${e.start.split('T')[1]?.slice(0, 5) ?? '?'}`
+        `- ${e.title} at ${e.start?.split('T')[1]?.slice(0, 5) ?? '?'}`
       ).join('\n')
     }
     return 'Nothing scheduled for today. Head to /calendar to plan your day!'
