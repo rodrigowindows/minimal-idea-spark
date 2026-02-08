@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Toaster } from 'sonner'
-import { Menu } from 'lucide-react'
+import { Menu, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppContext } from '@/contexts/AppContext'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
@@ -17,15 +17,32 @@ import { PresenceIndicator } from '@/components/PresenceIndicator'
 import { NotificationCenter } from '@/components/NotificationCenter'
 import { CollaborativeCursor } from '@/components/CollaborativeCursor'
 import { useRealtime } from '@/contexts/RealtimeContext'
+import { SkipLink } from '@/components/SkipLink'
+import { useOnlineStatus } from '@/hooks/useOnlineStatus'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { KeyboardShortcutsHelp } from '@/components/layout/KeyboardShortcutsHelp'
+import { SyncStatusIndicator } from '@/components/SyncStatusIndicator'
+import { CommandPalette } from '@/components/CommandPalette'
+import { useScrollToTopOnRouteChange } from '@/hooks/useScrollToTopOnRouteChange'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 export function AppLayout() {
-  const { sidebarOpen, deepWorkMode, toggleSidebar } = useAppContext()
+  const { sidebarOpen, deepWorkMode, toggleSidebar, setCommandPaletteOpen } = useAppContext()
+  useScrollToTopOnRouteChange()
   const isMobile = !useMediaQuery('(min-width: 768px)')
   const [mobileOpen, setMobileOpen] = useState(false)
   const { presences, currentUserId, isConnected } = useRealtime()
+  const isOnline = useOnlineStatus()
+  useKeyboardShortcuts()
 
   return (
     <div className="relative flex h-screen overflow-hidden bg-background">
+      <SkipLink />
+      {!isOnline && (
+        <div className="sticky top-0 z-50 flex items-center justify-center bg-amber-500/90 px-4 py-2 text-sm font-medium text-amber-950" role="status">
+          Você está offline. Algumas ações serão sincronizadas quando a conexão voltar.
+        </div>
+      )}
       <Toaster
         theme="dark"
         position="top-right"
@@ -52,8 +69,18 @@ export function AppLayout() {
               <Menu className="h-5 w-5" />
               <span className="sr-only">Open menu</span>
             </Button>
-            <div className="flex items-center gap-1">
-              <NotificationCenter />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="min-h-[44px] min-w-[44px] touch-manipulation"
+              onClick={() => setCommandPaletteOpen(true)}
+              aria-label="Search"
+            >
+              <Search className="h-5 w-5" />
+            </Button>
+        <div className="flex items-center gap-1">
+          <SyncStatusIndicator className="shrink-0" />
+          <NotificationCenter />
               <PresenceIndicator
                 presences={presences}
                 currentUserId={currentUserId}
@@ -80,6 +107,8 @@ export function AppLayout() {
 
       {/* Main content area */}
       <main
+        id="main-content"
+        tabIndex={-1}
         className={cn(
           'flex-1 overflow-y-auto transition-all duration-300 ease-in-out',
           isMobile && !deepWorkMode && 'pt-14 pb-16',
@@ -103,12 +132,17 @@ export function AppLayout() {
         )}
 
         <div className={cn('relative', deepWorkMode && 'z-20')}>
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </div>
       </main>
 
       {/* Mobile bottom nav with PWA features */}
       {isMobile && !deepWorkMode && <MobileNav />}
+
+      <CommandPalette />
+      <KeyboardShortcutsHelp />
     </div>
   )
 }

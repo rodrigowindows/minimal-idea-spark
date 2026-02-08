@@ -30,6 +30,138 @@ function getSupabaseUrl(): string {
   return url;
 }
 
+/** True if backend transcription (Supabase + transcribe-audio) is configured. */
+export function isTranscriptionConfigured(): boolean {
+  const url = import.meta.env.VITE_SUPABASE_URL;
+  return Boolean(url && url !== 'undefined');
+}
+
+/** Browser SpeechRecognition (Chrome, Edge, Safari). Not in Firefox. */
+declare global {
+  interface Window {
+    SpeechRecognition?: new () => SpeechRecognitionInstance;
+    webkitSpeechRecognition?: new () => SpeechRecognitionInstance;
+  }
+}
+interface SpeechRecognitionInstance extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((e: SpeechRecognitionEvent) => void) | null;
+  onend: (() => void) | null;
+  onerror: ((e: { error: string }) => void) | null;
+  start(): void;
+  stop(): void;
+}
+interface SpeechRecognitionEvent {
+  results: SpeechRecognitionResultList;
+}
+interface SpeechRecognitionResultList {
+  length: number;
+  item(i: number): SpeechRecognitionResult;
+  [i: number]: SpeechRecognitionResult;
+}
+interface SpeechRecognitionResult {
+  length: number;
+  item(i: number): SpeechRecognitionResultItem;
+  [i: number]: SpeechRecognitionResultItem;
+  isFinal: boolean;
+}
+interface SpeechRecognitionResultItem {
+  transcript: string;
+  confidence: number;
+}
+
+const SpeechRecognitionCtor =
+  typeof window !== 'undefined'
+    ? window.SpeechRecognition || window.webkitSpeechRecognition
+    : undefined;
+
+/** Whether the browser supports live speech recognition (no backend). */
+export function isBrowserRecognitionSupported(): boolean {
+  return Boolean(SpeechRecognitionCtor);
+}
+
+const langToBrowserCode: Record<SupportedLanguage, string> = {
+  'pt-BR': 'pt-BR',
+  en: 'en',
+  es: 'es',
+};
+
+/**
+ * Use the browser's built-in speech recognition (no API keys, no backend).
+ * Chrome, Edge, Safari. Not supported in Firefox.
+ * Call start() on pointer down, stop() on pointer up; stop() resolves with the transcript.
+ */
+export function createBrowserRecognizer(
+  language: SupportedLanguage
+): { start: () => void; stop: () => Promise<{ text: string }> } {
+  if (!SpeechRecognitionCtor) {
+    return {
+      start: () => {},
+      stop: () => Promise.reject(new Error('Browser speech recognition not supported')),
+    };
+  }
+  let recognizer: SpeechRecognitionInstance | null = null;
+  let resolveStop: ((value: { text: string }) => void) | null = null;
+  let stopPromise: Promise<{ text: string }> = Promise.resolve({ text: '' });
+  const transcripts: string[] = [];
+
+  const onResult = (e: SpeechRecognitionEvent) => {
+    const result = e.results[e.results.length - 1];
+    const item = result[0];
+    if (item?.transcript && result.isFinal) {
+      transcripts.push(item.transcript.trim());
+    }
+  };
+
+  const onEnd = () => {
+    if (recognizer) {
+      recognizer.onresult = null;
+      recognizer.onend = null;
+      recognizer.onerror = null;
+      recognizer = null;
+    }
+    if (resolveStop) {
+      resolveStop({ text: transcripts.join(' ').trim() });
+      resolveStop = null;
+    }
+  };
+
+  const onError = (e: { error: string }) => {
+    if (e.error !== 'aborted') {
+      console.warn('Speech recognition error:', e.error);
+    }
+    onEnd();
+  };
+
+  return {
+    start() {
+      transcripts.length = 0;
+      stopPromise = new Promise<{ text: string }>((resolve) => {
+        resolveStop = resolve;
+      });
+      const r = new SpeechRecognitionCtor!();
+      r.continuous = true;
+      r.interimResults = true;
+      r.lang = langToBrowserCode[language] ?? 'pt-BR';
+      r.onresult = onResult;
+      r.onend = onEnd;
+      r.onerror = onError;
+      recognizer = r;
+      r.start();
+    },
+    stop() {
+      if (recognizer) {
+        recognizer.stop();
+      } else {
+        onEnd();
+      }
+      return stopPromise;
+    },
+  };
+}
+
 export async function transcribeAudio(
   audioBlob: Blob,
   options: TranscriptionOptions = {}

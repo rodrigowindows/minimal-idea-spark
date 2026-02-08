@@ -8,6 +8,8 @@ interface AppContextValue {
   deepWorkMode: boolean
   currentOpportunity: Opportunity | null
   levelUpTriggered: boolean
+  commandPaletteOpen: boolean
+  setCommandPaletteOpen: (open: boolean) => void
   toggleSidebar: () => void
   toggleDeepWorkMode: () => void
   setCurrentOpportunity: (opportunity: Opportunity | null) => void
@@ -22,6 +24,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [deepWorkMode, setDeepWorkMode] = useState(false)
   const [currentOpportunity, setCurrentOpportunity] = useState<Opportunity | null>(null)
   const [levelUpTriggered, setLevelUpTriggered] = useState(false)
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
 
   const toggleSidebar = useCallback(() => setSidebarOpen(prev => !prev), [])
   const toggleDeepWorkMode = useCallback(() => setDeepWorkMode(prev => !prev), [])
@@ -34,6 +37,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{
       sidebarOpen, deepWorkMode, currentOpportunity, levelUpTriggered,
+      commandPaletteOpen, setCommandPaletteOpen,
       toggleSidebar, toggleDeepWorkMode, setCurrentOpportunity, triggerLevelUp,
     }}>
       {children}

@@ -39,11 +39,11 @@ import { toast } from 'sonner';
 import { VoiceInput } from '@/components/smart-capture/VoiceInput';
 import { AudioToText } from '@/components/AudioToText';
 import { PromptTemplates } from '@/components/PromptTemplates';
-import { useTranslation } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 export function ContentGenerator() {
-  const { language } = useTranslation();
-  const isEn = language === 'en';
+  const { i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
 
   const [prompt, setPrompt] = useState('');
   const [generatedContent, setGeneratedContent] = useState('');

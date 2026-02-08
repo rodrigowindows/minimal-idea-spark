@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -36,10 +37,12 @@ import {
 } from 'lucide-react'
 import { VoiceInput } from '@/components/smart-capture/VoiceInput'
 import { format, subDays, startOfWeek, addDays } from 'date-fns'
+import { getDateLocale } from '@/lib/date-locale'
 
 const HABIT_COLORS = ['#3b82f6', '#22c55e', '#ef4444', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316']
 
 export function Habits() {
+  const { t } = useTranslation()
   const { habits, domains, addHabit, toggleHabitCompletion, deleteHabit } = useLocalData()
   const { addXP } = useXPSystem()
   const [showNew, setShowNew] = useState(false)
@@ -65,7 +68,7 @@ export function Habits() {
     })
     setNewName('')
     setShowNew(false)
-    toast.success('Habit created!')
+    toast.success(t('habits.habitCreated'))
   }
 
   function handleToggle(habit: Habit, date: string) {
@@ -76,7 +79,7 @@ export function Habits() {
       toast.success(
         <div className="flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4 text-green-400" />
-          <span>{habit.name} done!</span>
+          <span>{habit.name} {t('habits.done')}!</span>
           <Badge variant="secondary" className="gap-1 bg-amber-500/20 text-amber-400">
             <Zap className="h-3 w-3" />+10 XP
           </Badge>
@@ -106,14 +109,14 @@ export function Habits() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Repeat className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold tracking-tight">Habits</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{t('habits.title')}</h1>
           </div>
           <Button onClick={() => setShowNew(true)} className="gap-2">
-            <Plus className="h-4 w-4" />New Habit
+            <Plus className="h-4 w-4" />{t('habits.newHabit')}
           </Button>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          Build consistency. Each completion = +10 XP.
+          {t('habits.description')}
         </p>
       </header>
 
@@ -121,7 +124,7 @@ export function Habits() {
         <Card className="rounded-xl">
           <CardContent className="py-12 text-center">
             <Repeat className="mx-auto mb-4 h-12 w-12 text-muted-foreground/50" />
-            <p className="text-muted-foreground">No habits yet. Create one to start building streaks!</p>
+            <p className="text-muted-foreground">{t('habits.noHabits')}</p>
           </CardContent>
         </Card>
       ) : (
@@ -131,7 +134,7 @@ export function Habits() {
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Calendar className="h-5 w-5 text-primary" />
-                Today
+                {t('habits.today')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -181,7 +184,7 @@ export function Habits() {
                         className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
                         onClick={() => {
                           deleteHabit(habit.id)
-                          toast.success('Habit deleted')
+                          toast.success(t('habits.habitDeleted'))
                         }}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -196,17 +199,17 @@ export function Habits() {
           {/* Week view */}
           <Card className="rounded-xl">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg">This Week</CardTitle>
+              <CardTitle className="text-lg">{t('habits.thisWeek')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr>
-                      <th className="text-left font-medium text-muted-foreground py-2 pr-4">Habit</th>
+                      <th className="text-left font-medium text-muted-foreground py-2 pr-4">{t('habits.habit')}</th>
                       {weekDays.map(day => (
                         <th key={day} className="px-2 py-2 text-center text-xs font-medium text-muted-foreground">
-                          {format(new Date(day + 'T12:00:00'), 'EEE')}
+                          {format(new Date(day + 'T12:00:00'), 'EEE', { locale: getDateLocale() })}
                         </th>
                       ))}
                     </tr>
@@ -253,7 +256,7 @@ export function Habits() {
           {/* 30-day heatmap */}
           <Card className="rounded-xl">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg">30-Day Overview</CardTitle>
+              <CardTitle className="text-lg">{t('habits.thirtyDayOverview')}</CardTitle>
             </CardHeader>
             <CardContent>
               {habits.map(habit => {
@@ -279,7 +282,7 @@ export function Habits() {
                               done ? 'opacity-100' : 'opacity-20'
                             )}
                             style={{ backgroundColor: done ? habit.color : '#6b7280' }}
-                            title={`${format(new Date(day + 'T12:00:00'), 'MMM d')} - ${done ? 'Done' : 'Missed'}`}
+                            title={`${format(new Date(day + 'T12:00:00'), 'MMM d', { locale: getDateLocale() })} - ${done ? t('habits.done') : t('habits.missed')}`}
                           />
                         )
                       })}
@@ -297,16 +300,16 @@ export function Habits() {
       <Dialog open={showNew} onOpenChange={setShowNew}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>New Habit</DialogTitle>
+            <DialogTitle>{t('habits.newHabit')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCreateHabit} className="space-y-4">
             <div className="space-y-2">
-              <Label>Name</Label>
+              <Label>{t('habits.name')}</Label>
               <div className="flex items-center gap-1">
                 <Input
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder="e.g. Morning meditation"
+                  placeholder={t('habits.namePlaceholder')}
                   required
                   className="flex-1"
                 />
@@ -317,19 +320,19 @@ export function Habits() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Frequency</Label>
+                <Label>{t('habits.frequency')}</Label>
                 <Select value={newFrequency} onValueChange={(v) => setNewFrequency(v as 'daily' | 'weekly')}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="daily">Daily</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="daily">{t('habits.daily')}</SelectItem>
+                    <SelectItem value="weekly">{t('habits.weekly')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Domain</Label>
+                <Label>{t('habits.domain')}</Label>
                 <Select value={newDomainId} onValueChange={setNewDomainId}>
-                  <SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t('habits.optional')} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
                     {domains.map(d => (
@@ -340,7 +343,7 @@ export function Habits() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Color</Label>
+              <Label>{t('habits.color')}</Label>
               <div className="flex gap-2">
                 {HABIT_COLORS.map(color => (
                   <button
@@ -357,8 +360,8 @@ export function Habits() {
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowNew(false)}>Cancel</Button>
-              <Button type="submit" disabled={!newName.trim()}>Create</Button>
+              <Button type="button" variant="outline" onClick={() => setShowNew(false)}>{t('common.cancel')}</Button>
+              <Button type="submit" disabled={!newName.trim()}>{t('common.create')}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

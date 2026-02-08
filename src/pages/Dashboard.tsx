@@ -37,10 +37,10 @@ export function Dashboard() {
 
   function getGreeting(): string {
     const hour = new Date().getHours()
-    if (hour < 6) return t.nightOwlMode
-    if (hour < 12) return t.goodMorning
-    if (hour < 18) return t.goodAfternoon
-    return t.goodEvening
+    if (hour < 6) return t('dashboard.nightOwlMode')
+    if (hour < 12) return t('dashboard.goodMorning')
+    if (hour < 18) return t('dashboard.goodAfternoon')
+    return t('dashboard.goodEvening')
   }
 
   return (
@@ -49,24 +49,24 @@ export function Dashboard() {
         <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-              {getGreeting()} <span className="text-gradient">{t.commander}</span>
+              {getGreeting()} <span className="text-gradient">{t('dashboard.commander')}</span>
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {t.level} {level} {levelTitle} &middot; {xpTotal.toLocaleString()} XP
+              {t('dashboard.level')} {level} {levelTitle} &middot; {xpTotal.toLocaleString()} XP
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Badge variant="secondary" className="gap-1.5 px-3 py-1.5">
               <Flame className="h-3.5 w-3.5 text-orange-400" />
-              <span className="font-semibold">{streakDays}</span> {t.dayStreak}
+              <span className="font-semibold">{streakDays}</span> {t('dashboard.dayStreak')}
             </Badge>
             <Badge variant="secondary" className="gap-1.5 px-3 py-1.5">
               <Target className="h-3.5 w-3.5 text-green-400" />
-              <span className="font-semibold">{doingCount}</span> {t.inProgress}
+              <span className="font-semibold">{doingCount}</span> {t('dashboard.inProgress')}
             </Badge>
             <Badge variant="secondary" className="gap-1.5 px-3 py-1.5">
               <Brain className="h-3.5 w-3.5 text-purple-400" />
-              <span className="font-semibold">{Math.floor(deepWorkMinutes / 60)}h</span> {t.focus}
+              <span className="font-semibold">{Math.floor(deepWorkMinutes / 60)}h</span> {t('dashboard.focus')}
             </Badge>
           </div>
         </div>

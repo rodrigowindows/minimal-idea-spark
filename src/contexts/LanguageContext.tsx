@@ -1,179 +1,73 @@
-import { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, type ReactNode } from 'react'
+import { useTranslation as useI18nTranslation } from 'react-i18next'
+import '@/i18n'
 
-export type Language = 'pt' | 'en'
+export type Language = 'pt-BR' | 'en' | 'es'
 
-const translations = {
-  pt: {
-    // Sidebar nav
-    dashboard: 'Painel',
-    consultant: 'Consultor',
-    opportunities: 'Oportunidades',
-    journal: 'Diario',
-    habits: 'Habitos',
-    goals: 'Metas',
-    priorities: 'Prioridades',
-    analytics: 'Analiticos',
-    weeklyReview: 'Revisao Semanal',
-    contentGenerator: 'Gerador de Conteudo',
-    automation: 'Automação',
-    templates: 'Templates',
-    images: 'Imagens',
-    versionHistory: 'Histórico',
-    workspace: 'Espaco de Trabalho',
-    notifications: 'Notificações',
-    settings: 'Configuracoes',
-    deepWork: 'Foco Profundo',
-    collapse: 'Recolher',
-
-    // Dashboard
-    nightOwlMode: 'Modo noturno',
-    goodMorning: 'Bom dia',
-    goodAfternoon: 'Boa tarde',
-    goodEvening: 'Boa noite',
-    commander: 'Comandante',
-    dayStreak: 'dias seguidos',
-    inProgress: 'em andamento',
-    focus: 'foco',
-    theOneThing: 'A Unica Coisa',
-    capturePlaceholder: 'Capture qualquer coisa... IA classifica automaticamente',
-    capture: 'Capturar',
-    quickLog: 'Registro Rapido',
-    setGoal: 'Definir Meta',
-    brainDump: 'Descarga Mental',
-    reviewWeek: 'Revisar Semana',
-    level: 'Nivel',
-
-    // Voice input
-    holdToRecord: 'Segure para gravar',
-    stopRecording: 'Parar gravacao',
-    recording: 'Gravando...',
-    transcribing: 'Transcrevendo...',
-    voiceError: 'Erro na gravacao. Tente novamente.',
-    micNotSupported: 'Microfone nao suportado neste navegador.',
-
-    // Smart capture
-    identifyingDomain: 'Identificando dominio, tipo e valor estrategico...',
-    itemsCaptured: 'itens capturados',
-    capturedAs: 'Capturado como',
-    in: 'em',
-
-    // Widgets
-    opportunityRadar: 'Radar de Oportunidades',
-    timeBlocking: 'Blocos de Tempo',
-    quickJournal: 'Diario Rapido',
-    activityHeatmap: 'Mapa de Atividades',
-
-    // Calendar
-    calendar: 'Calendario',
-
-    // Language
-    switchLanguage: 'Idioma',
-  },
-  en: {
-    // Sidebar nav
-    dashboard: 'Dashboard',
-    consultant: 'Consultant',
-    opportunities: 'Opportunities',
-    journal: 'Journal',
-    habits: 'Habits',
-    goals: 'Goals',
-    priorities: 'Priorities',
-    analytics: 'Analytics',
-    weeklyReview: 'Weekly Review',
-    contentGenerator: 'Content Generator',
-    automation: 'Automation',
-    templates: 'Templates',
-    images: 'Images',
-    versionHistory: 'Version history',
-    workspace: 'Workspace',
-    notifications: 'Notifications',
-    settings: 'Settings',
-    deepWork: 'Deep Work',
-    collapse: 'Collapse',
-
-    // Dashboard
-    nightOwlMode: 'Night owl mode',
-    goodMorning: 'Good morning',
-    goodAfternoon: 'Good afternoon',
-    goodEvening: 'Good evening',
-    commander: 'Commander',
-    dayStreak: 'day streak',
-    inProgress: 'in progress',
-    focus: 'focus',
-    theOneThing: 'The One Thing',
-    capturePlaceholder: 'Capture anything... AI classifies automatically',
-    capture: 'Capture',
-    quickLog: 'Quick Log',
-    setGoal: 'Set Goal',
-    brainDump: 'Brain Dump',
-    reviewWeek: 'Review Week',
-    level: 'Level',
-
-    // Voice input
-    holdToRecord: 'Hold to record',
-    stopRecording: 'Stop recording',
-    recording: 'Recording...',
-    transcribing: 'Transcribing...',
-    voiceError: 'Recording error. Please try again.',
-    micNotSupported: 'Microphone not supported in this browser.',
-
-    // Smart capture
-    identifyingDomain: 'Identifying domain, type, and strategic value...',
-    itemsCaptured: 'items captured',
-    capturedAs: 'Captured as',
-    in: 'in',
-
-    // Widgets
-    opportunityRadar: 'Opportunity Radar',
-    timeBlocking: 'Time Blocking',
-    quickJournal: 'Quick Journal',
-    activityHeatmap: 'Activity Heatmap',
-
-    // Calendar
-    calendar: 'Calendar',
-
-    // Language
-    switchLanguage: 'Language',
-  },
-} as const
-
-export type TranslationKey = keyof typeof translations.en
+const LANGUAGE_MAP: Record<string, Language> = {
+  pt: 'pt-BR',
+  'pt-BR': 'pt-BR',
+  en: 'en',
+  es: 'es',
+}
 
 interface LanguageContextValue {
   language: Language
   setLanguage: (lang: Language) => void
   toggleLanguage: () => void
-  t: Record<TranslationKey, string>
 }
 
 const LanguageContext = createContext<LanguageContextValue | undefined>(undefined)
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState<Language>(() => {
-    const stored = localStorage.getItem('lifeos_language')
-    return (stored === 'pt' || stored === 'en') ? stored : 'pt'
-  })
+  const { i18n } = useI18nTranslation()
+
+  const language = (LANGUAGE_MAP[i18n.language] || 'pt-BR') as Language
 
   const handleSetLanguage = useCallback((lang: Language) => {
-    setLanguage(lang)
+    i18n.changeLanguage(lang)
     localStorage.setItem('lifeos_language', lang)
-  }, [])
+    document.documentElement.lang = lang
+    document.documentElement.dir = 'ltr' // RTL-ready: change to 'rtl' for RTL languages
+  }, [i18n])
 
   const toggleLanguage = useCallback(() => {
-    handleSetLanguage(language === 'pt' ? 'en' : 'pt')
+    const langs: Language[] = ['pt-BR', 'en', 'es']
+    const currentIndex = langs.indexOf(language)
+    const nextLang = langs[(currentIndex + 1) % langs.length]
+    handleSetLanguage(nextLang)
   }, [language, handleSetLanguage])
 
-  const t = translations[language]
-
   return (
-    <LanguageContext.Provider value={{ language, setLanguage: handleSetLanguage, toggleLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage: handleSetLanguage, toggleLanguage }}>
       {children}
     </LanguageContext.Provider>
   )
 }
 
-export function useTranslation() {
+/**
+ * Hook for accessing language context (language switching).
+ * For translations, use `useTranslation()` from react-i18next directly,
+ * or import from this file which re-exports it with the language context.
+ */
+export function useLanguage() {
   const context = useContext(LanguageContext)
-  if (context === undefined) throw new Error('useTranslation must be used within a LanguageProvider')
+  if (context === undefined) throw new Error('useLanguage must be used within a LanguageProvider')
   return context
+}
+
+/**
+ * Backwards-compatible hook. Returns both i18next `t` function and language context.
+ */
+export function useTranslation() {
+  const langContext = useContext(LanguageContext)
+  if (langContext === undefined) throw new Error('useTranslation must be used within a LanguageProvider')
+  const { t, i18n } = useI18nTranslation()
+  return {
+    t,
+    i18n,
+    language: langContext.language,
+    setLanguage: langContext.setLanguage,
+    toggleLanguage: langContext.toggleLanguage,
+  }
 }

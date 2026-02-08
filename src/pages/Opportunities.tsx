@@ -1,4 +1,5 @@
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo, useState, useCallback, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence, useMotionValue, useTransform, type PanInfo } from 'framer-motion'
 import { useLocalData } from '@/hooks/useLocalData'
 import { Card, CardContent } from '@/components/ui/card'
@@ -14,6 +15,10 @@ import type { Opportunity, LifeDomain } from '@/types'
 import { useXPSystem } from '@/hooks/useXPSystem'
 import { useAppContext } from '@/contexts/AppContext'
 import { OpportunityDialog } from '@/components/opportunities/OpportunityDialog'
+import { EmptyState } from '@/components/EmptyState'
+import { TagFilter } from '@/components/tags/TagFilter'
+import { TagBadge } from '@/components/tags/TagBadge'
+import { getTagsForOpportunity, setTagsForOpportunity, getAllTags } from '@/lib/tags/tag-service'
 import { EisenhowerMatrix } from '@/components/opportunities/EisenhowerMatrix'
 import { KanbanBoard } from '@/components/opportunities/KanbanBoard'
 import {
@@ -32,6 +37,8 @@ import {
 import { toast } from 'sonner'
 
 export function Opportunities() {
+  const { id: opportunityId } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const {
     opportunities,
     domains,
@@ -46,8 +53,19 @@ export function Opportunities() {
   const [viewMode, setViewMode] = useState<'list' | 'matrix' | 'kanban'>('list')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingOpp, setEditingOpp] = useState<Opportunity | null>(null)
+  const [selectedTagId, setSelectedTagId] = useState<string | null>(null)
   const { addXP, awardTaskComplete } = useXPSystem()
   const { setCurrentOpportunity, toggleDeepWorkMode } = useAppContext()
+
+  // Deep link: open opportunity dialog when URL has /opportunities/:id
+  useEffect(() => {
+    if (!opportunityId || !opportunities) return
+    const opp = opportunities.find((o) => o.id === opportunityId)
+    if (opp) {
+      setEditingOpp(opp)
+      setDialogOpen(true)
+    }
+  }, [opportunityId, opportunities])
 
   const domainMap = useMemo(() => {
     if (!domains) return new Map<string, LifeDomain>()
@@ -62,9 +80,11 @@ export function Opportunities() {
         opp.description?.toLowerCase().includes(searchQuery.toLowerCase())
       const matchesStatus = selectedStatus === 'All' ||
         opp.status.toLowerCase() === selectedStatus.toLowerCase()
-      return matchesSearch && matchesStatus
+      const matchesTag = selectedTagId === null ||
+        getTagsForOpportunity(opp.id).includes(selectedTagId)
+      return matchesSearch && matchesStatus && matchesTag
     })
-  }, [opportunities, searchQuery, selectedStatus])
+  }, [opportunities, searchQuery, selectedStatus, selectedTagId])
 
   const statusCounts = useMemo(() => {
     if (!opportunities) return {}
@@ -96,12 +116,13 @@ export function Opportunities() {
     toggleDeepWorkMode()
   }, [setCurrentOpportunity, toggleDeepWorkMode])
 
-  const handleSave = useCallback((data: Omit<Opportunity, 'id' | 'user_id' | 'created_at' | 'domain'>) => {
+  const handleSave = useCallback((data: Omit<Opportunity, 'id' | 'user_id' | 'created_at' | 'domain'>, tagIds?: string[]) => {
     if (editingOpp) {
       updateOpportunity(editingOpp.id, data)
       toast.success('Opportunity updated!')
     } else {
-      addOpportunity(data)
+      const newOpp = addOpportunity(data)
+      if (newOpp && tagIds?.length) setTagsForOpportunity(newOpp.id, tagIds)
       addXP(5)
       toast.success('Opportunity created! +5 XP')
     }
@@ -191,6 +212,7 @@ export function Opportunities() {
               <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search opportunities..." className="pl-9" />
             </div>
+            <TagFilter selectedTagId={selectedTagId} onSelectTag={setSelectedTagId} className="mb-2" />
             <div className="flex flex-wrap gap-2">
               <button onClick={() => setSelectedStatus('All')}
                 className={cn('rounded-full px-3 py-1 text-sm font-medium transition-colors',
@@ -222,14 +244,12 @@ export function Opportunities() {
                 ))}
               </div>
             ) : filteredOpportunities.length === 0 ? (
-              <Card className="rounded-xl">
-                <CardContent className="py-12 text-center">
-                  <Target className="mx-auto mb-4 h-12 w-12 text-muted-foreground/50" />
-                  <p className="text-muted-foreground">
-                    {searchQuery || selectedStatus !== 'All' ? 'No opportunities match your filters.' : 'No opportunities yet. Create one!'}
-                  </p>
-                </CardContent>
-              </Card>
+              <EmptyState
+                icon={Target}
+                title={searchQuery || selectedStatus !== 'All' ? 'No opportunities match your filters.' : 'No opportunities yet. Create one!'}
+                actionLabel={searchQuery || selectedStatus !== 'All' ? undefined : 'New opportunity'}
+                onAction={searchQuery || selectedStatus !== 'All' ? undefined : () => { setEditingOpp(null); setDialogOpen(true) }}
+              />
             ) : (
               <div className="space-y-3">
                 <AnimatePresence>
@@ -253,7 +273,11 @@ export function Opportunities() {
 
       <OpportunityDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open)
+          if (!open && opportunityId) navigate('/opportunities', { replace: true })
+          if (!open) setEditingOpp(null)
+        }}
         opportunity={editingOpp}
         domains={domains || []}
         onSave={handleSave}
@@ -326,6 +350,11 @@ function SwipeableCard({
                 {domain && (
                   <span className="text-xs font-medium" style={{ color: domain.color_theme }}>{domain.name}</span>
                 )}
+                {getAllTags()
+                  .filter((t) => getTagsForOpportunity(opp.id).includes(t.id))
+                  .map((t) => (
+                    <TagBadge key={t.id} tag={t} />
+                  ))}
                 <Badge variant="secondary" className="text-xs capitalize">{opp.type}</Badge>
                 <div className="flex items-center gap-0.5">
                   {Array.from({ length: 5 }).map((_, i) => (

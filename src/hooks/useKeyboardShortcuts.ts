@@ -4,11 +4,18 @@ import { useAppContext } from '@/contexts/AppContext'
 
 export function useKeyboardShortcuts() {
   const navigate = useNavigate()
-  const { toggleDeepWorkMode, deepWorkMode } = useAppContext()
+  const { toggleDeepWorkMode, deepWorkMode, setCommandPaletteOpen } = useAppContext()
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      // Skip if user is typing in an input
+      // Cmd+K / Ctrl+K opens command palette from anywhere
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setCommandPaletteOpen(true)
+        return
+      }
+
+      // Skip if user is typing in an input (except Escape)
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       if (deepWorkMode && e.key !== 'Escape') return
@@ -29,22 +36,40 @@ export function useKeyboardShortcuts() {
         return
       }
 
-      // Global shortcuts
-      switch (e.key) {
+      // Global shortcuts (single key)
+      switch (e.key.toLowerCase()) {
+        case 'n':
+          if (e.ctrlKey || e.metaKey) return
+          e.preventDefault()
+          navigate('/')
+          break
+        case 'j':
+          if (e.ctrlKey || e.metaKey) return
+          e.preventDefault()
+          navigate('/journal')
+          break
+        case 'c':
+          if (e.ctrlKey || e.metaKey) return
+          e.preventDefault()
+          navigate('/consultant')
+          break
         case 'f':
-          if (e.ctrlKey || e.metaKey) return // let browser handle Ctrl+F
+          if (e.ctrlKey || e.metaKey) return
           e.preventDefault()
           toggleDeepWorkMode()
           break
         case '?':
           e.preventDefault()
-          // Toggle shortcuts help via custom event
           window.dispatchEvent(new CustomEvent('toggle-shortcuts-help'))
+          break
+        case '/':
+          e.preventDefault()
+          window.dispatchEvent(new CustomEvent('focus-global-search'))
           break
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [navigate, toggleDeepWorkMode, deepWorkMode])
+  }, [navigate, toggleDeepWorkMode, deepWorkMode, setCommandPaletteOpen])
 }

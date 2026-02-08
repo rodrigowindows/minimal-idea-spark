@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -39,6 +40,7 @@ import { VoiceInput } from '@/components/smart-capture/VoiceInput'
 import { format, differenceInDays, isPast } from 'date-fns'
 
 export function Goals() {
+  const { t } = useTranslation()
   const { goals, domains, addGoal, updateGoal, toggleMilestone, deleteGoal } = useLocalData()
   const [showNew, setShowNew] = useState(false)
   const [expandedGoal, setExpandedGoal] = useState<string | null>(null)
@@ -71,7 +73,7 @@ export function Goals() {
     setNewTargetDate('')
     setNewMilestones([''])
     setShowNew(false)
-    toast.success('Goal created!')
+    toast.success(t('goals.goalCreated'))
   }
 
   const activeGoals = goals.filter(g => g.progress < 100)
@@ -83,14 +85,14 @@ export function Goals() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Flag className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold tracking-tight">Goals & Milestones</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{t('goals.title')}</h1>
           </div>
           <Button onClick={() => setShowNew(true)} className="gap-2">
-            <Plus className="h-4 w-4" />New Goal
+            <Plus className="h-4 w-4" />{t('goals.newGoal')}
           </Button>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          Set ambitious goals and break them into milestones.
+          {t('goals.description')}
         </p>
       </header>
 
@@ -98,14 +100,14 @@ export function Goals() {
         <Card className="rounded-xl">
           <CardContent className="py-12 text-center">
             <Flag className="mx-auto mb-4 h-12 w-12 text-muted-foreground/50" />
-            <p className="text-muted-foreground">No goals yet. Define what you're aiming for!</p>
+            <p className="text-muted-foreground">{t('goals.noGoals')}</p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-6">
           {activeGoals.length > 0 && (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Active Goals</h2>
+              <h2 className="text-lg font-semibold">{t('goals.activeGoals')}</h2>
               <AnimatePresence>
                 {activeGoals.map((goal) => (
                   <GoalCard
@@ -117,7 +119,7 @@ export function Goals() {
                     onToggleMilestone={(milestoneId) => toggleMilestone(goal.id, milestoneId)}
                     onDelete={() => {
                       deleteGoal(goal.id)
-                      toast.success('Goal deleted')
+                      toast.success(t('goals.goalDeleted'))
                     }}
                   />
                 ))}
@@ -127,7 +129,7 @@ export function Goals() {
 
           {completedGoals.length > 0 && (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-green-400">Completed Goals</h2>
+              <h2 className="text-lg font-semibold text-green-400">{t('goals.completedGoals')}</h2>
               {completedGoals.map((goal) => (
                 <GoalCard
                   key={goal.id}
@@ -138,7 +140,7 @@ export function Goals() {
                   onToggleMilestone={(milestoneId) => toggleMilestone(goal.id, milestoneId)}
                   onDelete={() => {
                     deleteGoal(goal.id)
-                    toast.success('Goal deleted')
+                    toast.success(t('goals.goalDeleted'))
                   }}
                 />
               ))}
@@ -151,16 +153,16 @@ export function Goals() {
       <Dialog open={showNew} onOpenChange={setShowNew}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>New Goal</DialogTitle>
+            <DialogTitle>{t('goals.newGoal')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCreateGoal} className="space-y-4">
             <div className="space-y-2">
-              <Label>Goal Title</Label>
+              <Label>{t('goals.goalTitle')}</Label>
               <div className="flex items-center gap-1">
                 <Input
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="e.g. Pass SEFAZ exam"
+                  placeholder={t('goals.goalPlaceholder')}
                   required
                   className="flex-1"
                 />
@@ -170,12 +172,12 @@ export function Goals() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Description</Label>
+              <Label>{t('goals.goalDescription')}</Label>
               <div className="relative">
                 <Textarea
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
-                  placeholder="What does achieving this look like?"
+                  placeholder={t('goals.goalDescPlaceholder')}
                   rows={2}
                   className="pr-12"
                 />
@@ -188,11 +190,11 @@ export function Goals() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Domain</Label>
+                <Label>{t('goals.domain')}</Label>
                 <Select value={newDomainId} onValueChange={setNewDomainId}>
-                  <SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t('goals.optional')} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="none">{t('common.none')}</SelectItem>
                     {domains.map(d => (
                       <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
                     ))}
@@ -200,7 +202,7 @@ export function Goals() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Target Date</Label>
+                <Label>{t('goals.targetDate')}</Label>
                 <Input
                   type="date"
                   value={newTargetDate}
@@ -209,7 +211,7 @@ export function Goals() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Milestones</Label>
+              <Label>{t('goals.milestones')}</Label>
               {newMilestones.map((ms, i) => (
                 <div key={i} className="flex gap-2">
                   <Input
@@ -219,7 +221,7 @@ export function Goals() {
                       updated[i] = e.target.value
                       setNewMilestones(updated)
                     }}
-                    placeholder={`Milestone ${i + 1}`}
+                    placeholder={t('goals.milestonePlaceholder', { number: i + 1 })}
                   />
                   {i === newMilestones.length - 1 && (
                     <Button
@@ -235,8 +237,8 @@ export function Goals() {
               ))}
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowNew(false)}>Cancel</Button>
-              <Button type="submit" disabled={!newTitle.trim()}>Create</Button>
+              <Button type="button" variant="outline" onClick={() => setShowNew(false)}>{t('common.cancel')}</Button>
+              <Button type="submit" disabled={!newTitle.trim()}>{t('common.create')}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -260,6 +262,7 @@ function GoalCard({
   onToggleMilestone: (id: string) => void
   onDelete: () => void
 }) {
+  const { t } = useTranslation()
   const domain = domains.find(d => d.id === goal.domain_id)
   const daysLeft = differenceInDays(new Date(goal.target_date), new Date())
   const isOverdue = isPast(new Date(goal.target_date)) && goal.progress < 100
@@ -302,7 +305,7 @@ function GoalCard({
                 )}
                 <Badge variant="secondary" className={cn('gap-1 text-xs', isOverdue && 'bg-red-500/20 text-red-400')}>
                   <CalendarIcon className="h-3 w-3" />
-                  {isOverdue ? `${Math.abs(daysLeft)}d overdue` : `${daysLeft}d left`}
+                  {isOverdue ? t('goals.daysOverdue', { count: Math.abs(daysLeft) }) : t('goals.daysLeft', { count: daysLeft })}
                 </Badge>
                 <Badge variant="secondary" className="gap-1 text-xs">
                   <Milestone className="h-3 w-3" />
@@ -312,7 +315,7 @@ function GoalCard({
 
               <div className="mt-3">
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Progress</span>
+                  <span className="text-muted-foreground">{t('goals.progress')}</span>
                   <span className="font-medium">{goal.progress}%</span>
                 </div>
                 <Progress value={goal.progress} className="h-2" />

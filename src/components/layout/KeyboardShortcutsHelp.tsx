@@ -8,17 +8,21 @@ import {
 import { Keyboard } from 'lucide-react'
 
 const shortcuts = [
-  { keys: ['Alt', '1'], description: 'Go to Dashboard' },
-  { keys: ['Alt', '2'], description: 'Go to Consultant' },
-  { keys: ['Alt', '3'], description: 'Go to Opportunities' },
-  { keys: ['Alt', '4'], description: 'Go to Journal' },
-  { keys: ['Alt', '5'], description: 'Go to Analytics' },
-  { keys: ['Alt', '6'], description: 'Go to Habits' },
-  { keys: ['Alt', '7'], description: 'Go to Goals' },
-  { keys: ['Alt', '8'], description: 'Go to Weekly Review' },
-  { keys: ['F'], description: 'Toggle Deep Work Mode' },
-  { keys: ['Esc'], description: 'Exit Deep Work Mode' },
-  { keys: ['?'], description: 'Show keyboard shortcuts' },
+  { keys: ['N'], description: 'Dashboard (nova captura)' },
+  { keys: ['J'], description: 'Journal' },
+  { keys: ['C'], description: 'Consultant' },
+  { keys: ['/'], description: 'Busca global' },
+  { keys: ['?'], description: 'Mostrar atalhos' },
+  { keys: ['Alt', '1'], description: 'Dashboard' },
+  { keys: ['Alt', '2'], description: 'Consultant' },
+  { keys: ['Alt', '3'], description: 'Opportunities' },
+  { keys: ['Alt', '4'], description: 'Journal' },
+  { keys: ['Alt', '5'], description: 'Analytics' },
+  { keys: ['Alt', '6'], description: 'Habits' },
+  { keys: ['Alt', '7'], description: 'Goals' },
+  { keys: ['Alt', '8'], description: 'Weekly Review' },
+  { keys: ['F'], description: 'Deep Work Mode' },
+  { keys: ['Esc'], description: 'Sair Deep Work / fechar modal' },
 ]
 
 export function KeyboardShortcutsHelp() {

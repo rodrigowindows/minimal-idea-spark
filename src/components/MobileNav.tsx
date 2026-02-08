@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { usePWA } from '@/hooks/usePWA';
 import {
@@ -15,14 +16,15 @@ import {
 } from 'lucide-react';
 
 const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Home' },
-  { to: '/opportunities', icon: Target, label: 'Tasks' },
-  { to: '__fab__', icon: Plus, label: 'Capture' },
-  { to: '/consultant', icon: MessageSquare, label: 'Advisor' },
-  { to: '/analytics', icon: BarChart3, label: 'Stats' },
+  { to: '/', icon: LayoutDashboard, labelKey: 'nav.home' },
+  { to: '/opportunities', icon: Target, labelKey: 'nav.tasks' },
+  { to: '__fab__', icon: Plus, labelKey: 'nav.capture' },
+  { to: '/consultant', icon: MessageSquare, labelKey: 'nav.advisor' },
+  { to: '/analytics', icon: BarChart3, labelKey: 'nav.stats' },
 ];
 
 export function MobileNav() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const {
@@ -169,7 +171,7 @@ export function MobileNav() {
                   <div className="flex h-12 w-12 -mt-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30">
                     <Plus className="h-6 w-6" />
                   </div>
-                  <span className="text-[10px] font-medium text-primary">{item.label}</span>
+                  <span className="text-[10px] font-medium text-primary">{item.to === '__fab__' ? t(item.labelKey) : t(item.labelKey)}</span>
                 </button>
               );
             }
@@ -196,7 +198,7 @@ export function MobileNav() {
                         <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-primary" />
                       )}
                     </div>
-                    <span>{item.label}</span>
+                    <span>{t(item.labelKey)}</span>
                   </>
                 )}
               </NavLink>

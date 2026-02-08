@@ -152,12 +152,25 @@ export async function requestBackgroundSync(): Promise<boolean> {
 }
 
 async function flushQueueWithSync() {
-  // Default sync handler: just clear succeeded ones
-  // The actual sync logic should be registered by the app
+  // New sync-queue (typed opportunities / daily_logs) – registered by app
+  const flushCallback = (globalThis as any).__pwaFlushSyncQueue;
+  if (flushCallback) {
+    try {
+      await flushCallback();
+    } catch (e) {
+      console.warn('Sync queue flush failed:', e);
+    }
+  }
+  // Legacy per-action handler
   const handler = (globalThis as any).__pwaQueueHandler;
   if (handler) {
     await flushQueueWith(handler);
   }
+}
+
+/** Register a callback to run when going online or on background sync (processes sync-queue). */
+export function registerFlushSyncQueue(callback: () => Promise<void>) {
+  (globalThis as any).__pwaFlushSyncQueue = callback;
 }
 
 export function registerQueueHandler(handler: (action: QueuedAction) => Promise<void>) {

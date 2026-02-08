@@ -6,6 +6,7 @@ import type { Trigger } from '@/lib/automation/triggers'
 import type { Action } from '@/lib/automation/actions'
 import { createSnapshot } from '@/lib/versioning/manager'
 import type { EntityType } from '@/lib/db/schema-versions'
+import { enqueue } from '@/lib/pwa/sync-queue'
 
 const STORAGE_KEYS = {
   domains: 'lifeos_domains',
@@ -152,6 +153,17 @@ export function useLocalData() {
     }
     setOpportunities(prev => [newOpp, ...prev])
     autoSnapshot('opportunity', newOpp.id, JSON.stringify(newOpp, null, 2), `Created: ${newOpp.title}`)
+    if (!navigator.onLine) {
+      enqueue('create_opportunity', {
+        domain_id: newOpp.domain_id,
+        title: newOpp.title,
+        description: newOpp.description ?? null,
+        type: newOpp.type,
+        status: newOpp.status,
+        priority: newOpp.priority,
+        strategic_value: newOpp.strategic_value ?? null,
+      }, newOpp.id)
+    }
     return newOpp
   }, [userId, autoSnapshot])
 
@@ -162,10 +174,16 @@ export function useLocalData() {
       if (opp) autoSnapshot('opportunity', id, JSON.stringify(opp, null, 2), `Updated: ${opp.title}`)
       return updated
     })
+    if (!navigator.onLine) {
+      enqueue('update_opportunity', { id, ...data }, id)
+    }
   }, [autoSnapshot])
 
   const deleteOpportunity = useCallback((id: string) => {
     setOpportunities(prev => prev.filter(opp => opp.id !== id))
+    if (!navigator.onLine) {
+      enqueue('delete_opportunity', { id }, id)
+    }
   }, [])
 
   const moveOpportunityStatus = useCallback((id: string, status: Opportunity['status']) => {
@@ -184,6 +202,14 @@ export function useLocalData() {
     }
     setDailyLogs(prev => [newLog, ...prev])
     autoSnapshot('journal', newLog.id, JSON.stringify(newLog, null, 2), `Journal: ${data.log_date}`)
+    if (!navigator.onLine) {
+      enqueue('create_daily_log', {
+        content: data.content,
+        mood: data.mood ?? null,
+        energy_level: data.energy_level ?? 5,
+        log_date: data.log_date,
+      }, newLog.id)
+    }
     return newLog
   }, [userId, autoSnapshot])
 

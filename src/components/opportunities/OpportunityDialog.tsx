@@ -19,6 +19,8 @@ import {
 } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
 import { VoiceInput } from '@/components/smart-capture/VoiceInput'
+import { TagPicker } from '@/components/tags/TagPicker'
+import { getTagsForOpportunity, setTagsForOpportunity } from '@/lib/tags/tag-service'
 import type { Opportunity, LifeDomain, OpportunityTypeValue, OpportunityStatusValue } from '@/types'
 import { OPPORTUNITY_TYPES, OPPORTUNITY_STATUSES } from '@/lib/constants'
 
@@ -27,7 +29,7 @@ interface OpportunityDialogProps {
   onOpenChange: (open: boolean) => void
   opportunity?: Opportunity | null
   domains: LifeDomain[]
-  onSave: (data: Omit<Opportunity, 'id' | 'user_id' | 'created_at' | 'domain'>) => void
+  onSave: (data: Omit<Opportunity, 'id' | 'user_id' | 'created_at' | 'domain'>, tagIds?: string[]) => void
 }
 
 export function OpportunityDialog({
@@ -44,9 +46,11 @@ export function OpportunityDialog({
   const [status, setStatus] = useState<OpportunityStatusValue>('backlog')
   const [priority, setPriority] = useState(5)
   const [strategicValue, setStrategicValue] = useState(5)
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
 
   useEffect(() => {
     if (opportunity) {
+      setSelectedTagIds(getTagsForOpportunity(opportunity.id))
       setTitle(opportunity.title)
       setDescription(opportunity.description || '')
       setDomainId(opportunity.domain_id || '')
@@ -62,6 +66,7 @@ export function OpportunityDialog({
       setStatus('backlog')
       setPriority(5)
       setStrategicValue(5)
+      setSelectedTagIds([])
     }
   }, [opportunity, open, domains])
 
@@ -77,7 +82,8 @@ export function OpportunityDialog({
       status,
       priority,
       strategic_value: strategicValue,
-    })
+    }, selectedTagIds)
+    if (opportunity) setTagsForOpportunity(opportunity.id, selectedTagIds)
     onOpenChange(false)
   }
 
@@ -122,6 +128,15 @@ export function OpportunityDialog({
                 />
               </div>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Tags</Label>
+            <TagPicker
+              selectedTagIds={selectedTagIds}
+              onChange={setSelectedTagIds}
+              placeholder="Add tags..."
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">

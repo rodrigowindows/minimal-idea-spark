@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useLocalData } from '@/hooks/useLocalData'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -13,10 +14,13 @@ import { Badge } from '@/components/ui/badge'
 import { VoiceInput } from '@/components/smart-capture/VoiceInput'
 import { AudioToText } from '@/components/AudioToText'
 import { format, parseISO } from 'date-fns'
+import { getDateLocale } from '@/lib/date-locale'
 import { toast } from 'sonner'
 import { supabase } from '@/integrations/supabase/client'
+import { enqueue } from '@/lib/pwa/sync-queue'
 
 export function Journal() {
+  const { t } = useTranslation()
   const { dailyLogs, isLoading, addDailyLog, deleteDailyLog } = useLocalData()
   const { addXP } = useXPSystem()
   const [showNewEntry, setShowNewEntry] = useState(false)
@@ -86,7 +90,7 @@ export function Journal() {
 
   async function handleSubmit() {
     if (!content.trim()) {
-      toast.error('Please write something before saving.')
+      toast.error(t('journal.writeFirst'))
       return
     }
 
@@ -94,7 +98,7 @@ export function Journal() {
     const trimmedContent = content.trim()
 
     // Save locally
-    addDailyLog({
+    const newLog = addDailyLog({
       content: trimmedContent,
       mood: selectedMood,
       energy_level: energyLevel,
@@ -103,7 +107,7 @@ export function Journal() {
     addXP(15)
     toast.success(
       <div className="flex items-center gap-2">
-        <span>Journal entry saved!</span>
+        <span>{t('journal.entrySaved')}</span>
         <Badge variant="secondary" className="gap-1 bg-amber-500/20 text-amber-400">
           <Zap className="h-3 w-3" />+15 XP
         </Badge>
@@ -124,12 +128,20 @@ export function Journal() {
     })
     if (supabaseLogId) {
       generateEmbeddingForLog(supabaseLogId, embeddingText)
+    } else if (!navigator.onLine) {
+      // Offline: ensure entry is in sync queue (addDailyLog already enqueues when offline; this is a fallback)
+      enqueue('create_daily_log', {
+        content: trimmedContent,
+        mood: selectedMood,
+        energy_level: energyLevel,
+        log_date: logDate,
+      }, newLog.id)
     }
   }
 
   function handleDelete(id: string) {
     deleteDailyLog(id)
-    toast.success('Entry deleted')
+    toast.success(t('journal.entryDeleted'))
   }
 
   const getMoodEmoji = (mood: string | null) => {
@@ -144,11 +156,11 @@ export function Journal() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <BookOpen className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold tracking-tight">Journal</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{t('journal.title')}</h1>
           </div>
           <Button onClick={() => setShowNewEntry(!showNewEntry)} className="gap-2">
             <Plus className="h-4 w-4" />
-            New Entry
+            {t('journal.newEntry')}
           </Button>
         </div>
       </header>
@@ -158,13 +170,13 @@ export function Journal() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Sparkles className="h-5 w-5 text-primary" />
-              Today's Reflection
+              {t('journal.todaysReflection')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="relative">
               <Textarea
-                placeholder="How's your day going? What's on your mind..."
+                placeholder={t('journal.placeholder')}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 className="min-h-[120px] resize-none pr-20"
@@ -182,7 +194,7 @@ export function Journal() {
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Mood</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('journal.mood')}</p>
               <div className="flex gap-2">
                 {MOOD_OPTIONS.map((mood) => (
                   <button
@@ -205,7 +217,7 @@ export function Journal() {
 
             <div className="space-y-2">
               <p className="text-sm font-medium text-muted-foreground">
-                Energy Level: {energyLevel}/10
+                {t('journal.energyLevel')}: {energyLevel}/10
               </p>
               <input
                 type="range"
@@ -220,10 +232,10 @@ export function Journal() {
             <div className="flex gap-2">
               <Button onClick={handleSubmit} className="gap-2">
                 <Send className="h-4 w-4" />
-                Save Entry
+                {t('journal.saveEntry')}
               </Button>
               <Button variant="outline" onClick={() => setShowNewEntry(false)}>
-                Cancel
+                {t('common.cancel')}
               </Button>
             </div>
           </CardContent>
@@ -251,7 +263,7 @@ export function Journal() {
             <CardContent className="py-12 text-center">
               <BookOpen className="mx-auto mb-4 h-12 w-12 text-muted-foreground/50" />
               <p className="text-muted-foreground">
-                No journal entries yet. Start reflecting on your day.
+                {t('journal.noEntries')}
               </p>
             </CardContent>
           </Card>
@@ -259,7 +271,7 @@ export function Journal() {
           <div className="space-y-4">
             {sortedLogs.map((log) => {
               const moodEmoji = getMoodEmoji(log.mood)
-              const formattedDate = format(parseISO(log.log_date), 'EEEE, MMMM d, yyyy')
+              const formattedDate = format(parseISO(log.log_date), 'EEEE, MMMM d, yyyy', { locale: getDateLocale() })
 
               return (
                 <Card key={log.id} className="group rounded-xl">

@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Session, User } from '@supabase/supabase-js';
+import { useSessionTimeout } from '@/hooks/useSessionTimeout';
 
 interface AuthContextValue {
   session: Session | null;
@@ -15,14 +16,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+    setSession(null);
+  }, []);
+
+  useSessionTimeout(
+    () => {
+      void signOut();
+    },
+    () => {
+      // Optional: show warning toast before expiry
+    }
+  );
+
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
@@ -31,11 +44,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, []);
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    setSession(null);
-  };
 
   return (
     <AuthContext.Provider

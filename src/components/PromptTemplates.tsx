@@ -26,7 +26,7 @@ import {
   fillTemplate,
 } from '@/lib/ai/prompt-library';
 import type { ContentGenerationOptions } from '@/lib/ai/content-generator';
-import { useTranslation } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   FileText,
@@ -47,8 +47,8 @@ interface PromptTemplatesProps {
 }
 
 export function PromptTemplates({ onSelectTemplate }: PromptTemplatesProps) {
-  const { language } = useTranslation();
-  const isEn = language === 'en';
+  const { i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
 
   const [selectedCategory, setSelectedCategory] = useState<PromptCategory | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<PromptTemplate | null>(null);

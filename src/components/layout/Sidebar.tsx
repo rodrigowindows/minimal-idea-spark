@@ -1,9 +1,11 @@
+import { useState, useCallback } from 'react'
 import {
   Bell,
   BookOpen,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Crosshair,
   Focus,
   Globe,
@@ -22,45 +24,95 @@ import {
   FileStack,
   ImageIcon,
   History,
+  HelpCircle,
 } from 'lucide-react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useAppContext } from '@/contexts/AppContext'
 import { useTranslation } from '@/contexts/LanguageContext'
-import type { TranslationKey } from '@/contexts/LanguageContext'
 import { XPProgressBar } from '@/components/gamification/XPProgressBar'
 import { WorkspaceSwitcher } from '@/components/WorkspaceSwitcher'
 import { NotificationCenter } from '@/components/NotificationCenter'
+import { SyncStatusIndicator } from '@/components/SyncStatusIndicator'
+import { useRecentPages } from '@/hooks/useRecentPages'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface SidebarProps {
   collapsed: boolean
   onToggle: () => void
 }
 
-const navItems: { to: string; icon: typeof LayoutDashboard; labelKey: TranslationKey }[] = [
-  { to: '/', icon: LayoutDashboard, labelKey: 'dashboard' },
-  { to: '/consultant', icon: MessageSquare, labelKey: 'consultant' },
-  { to: '/opportunities', icon: Target, labelKey: 'opportunities' },
-  { to: '/journal', icon: BookOpen, labelKey: 'journal' },
-  { to: '/habits', icon: Repeat, labelKey: 'habits' },
-  { to: '/goals', icon: Flag, labelKey: 'goals' },
-  { to: '/calendar', icon: CalendarDays, labelKey: 'calendar' },
-  { to: '/priorities', icon: Crosshair, labelKey: 'priorities' },
-  { to: '/analytics', icon: BarChart3, labelKey: 'analytics' },
-  { to: '/weekly-review', icon: ClipboardCheck, labelKey: 'weeklyReview' },
-  { to: '/notifications', icon: Bell, labelKey: 'notifications' },
-  { to: '/content-generator', icon: PenTool, labelKey: 'contentGenerator' },
-  { to: '/automation', icon: Zap, labelKey: 'automation' },
-  { to: '/templates', icon: FileStack, labelKey: 'templates' },
-  { to: '/images', icon: ImageIcon, labelKey: 'images' },
-  { to: '/version-history', icon: History, labelKey: 'versionHistory' },
-  { to: '/workspace', icon: Building2, labelKey: 'workspace' },
-  { to: '/settings', icon: Settings2, labelKey: 'settings' },
+const FLAG_MAP: Record<string, string> = {
+  'pt-BR': '🇧🇷 PT',
+  en: '🇺🇸 EN',
+  es: '🇪🇸 ES',
+}
+
+const navItems: { to: string; icon: typeof LayoutDashboard; labelKey: string }[] = [
+  { to: '/', icon: LayoutDashboard, labelKey: 'nav.dashboard' },
+  { to: '/consultant', icon: MessageSquare, labelKey: 'nav.consultant' },
+  { to: '/opportunities', icon: Target, labelKey: 'nav.opportunities' },
+  { to: '/journal', icon: BookOpen, labelKey: 'nav.journal' },
+  { to: '/habits', icon: Repeat, labelKey: 'nav.habits' },
+  { to: '/goals', icon: Flag, labelKey: 'nav.goals' },
+  { to: '/calendar', icon: CalendarDays, labelKey: 'nav.calendar' },
+  { to: '/priorities', icon: Crosshair, labelKey: 'nav.priorities' },
+  { to: '/analytics', icon: BarChart3, labelKey: 'nav.analytics' },
+  { to: '/weekly-review', icon: ClipboardCheck, labelKey: 'nav.weeklyReview' },
+  { to: '/notifications', icon: Bell, labelKey: 'nav.notifications' },
+  { to: '/content-generator', icon: PenTool, labelKey: 'nav.contentGenerator' },
+  { to: '/automation', icon: Zap, labelKey: 'nav.automation' },
+  { to: '/templates', icon: FileStack, labelKey: 'nav.templates' },
+  { to: '/images', icon: ImageIcon, labelKey: 'nav.images' },
+  { to: '/version-history', icon: History, labelKey: 'nav.versionHistory' },
+  { to: '/workspace', icon: Building2, labelKey: 'nav.workspace' },
+  { to: '/import', icon: FileStack, labelKey: 'nav.import' },
+  { to: '/help', icon: HelpCircle, labelKey: 'nav.help' },
+  { to: '/settings', icon: Settings2, labelKey: 'nav.settings' },
 ]
 
+const SIDEBAR_SECTIONS: { sectionKey: string; paths: string[] }[] = [
+  { sectionKey: 'nav.sectionPrincipal', paths: ['/', '/consultant', '/opportunities', '/journal'] },
+  { sectionKey: 'nav.sectionProdutividade', paths: ['/habits', '/goals', '/calendar', '/priorities', '/analytics', '/weekly-review'] },
+  { sectionKey: 'nav.sectionFerramentas', paths: ['/notifications', '/content-generator', '/automation', '/templates', '/images', '/version-history'] },
+  { sectionKey: 'nav.sectionConfig', paths: ['/workspace', '/import', '/help', '/settings'] },
+]
+
+const STORAGE_KEY = 'lifeos_sidebar_sections'
+
+function getStoredSections(): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw) as Record<string, boolean>
+    return typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
-  const { deepWorkMode, toggleDeepWorkMode } = useAppContext()
-  const { language, toggleLanguage, t } = useTranslation()
+  const { deepWorkMode, toggleDeepWorkMode, setCommandPaletteOpen } = useAppContext()
+  const { language, t } = useTranslation()
+  const [sectionsOpen, setSectionsOpen] = useState<Record<string, boolean>>(getStoredSections)
+  const { recentPages } = useRecentPages(navItems.map((n) => ({ to: n.to, labelKey: n.labelKey })), t)
+
+  const toggleSection = useCallback((key: string) => {
+    setSectionsOpen((prev) => {
+      const next = { ...prev, [key]: !prev[key] }
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+      } catch { /* ignore */ }
+      return next
+    })
+  }, [])
+
+  const isSectionOpen = (key: string) => sectionsOpen[key] !== false
 
   return (
     <aside
@@ -78,6 +130,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           )}
         </div>
         <div className="flex items-center gap-1">
+          <SyncStatusIndicator className="shrink-0" />
           <NotificationCenter />
           <button
             onClick={toggleLanguage}
@@ -86,11 +139,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-muted-foreground',
               collapsed && 'px-1'
             )}
-            title={t.switchLanguage}
+            title={t('common.switchLanguage')}
           >
             <Globe className="h-4 w-4 shrink-0" />
             {!collapsed && (
-              <span className="uppercase font-bold">{language === 'pt' ? '🇧🇷 PT' : '🇺🇸 EN'}</span>
+              <span className="uppercase font-bold">{FLAG_MAP[language] || '🇧🇷 PT'}</span>
             )}
           </button>
         </div>
@@ -106,28 +159,95 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         <XPProgressBar compact={collapsed} />
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 space-y-1 overflow-y-auto p-2">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === '/'}
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
-                'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                isActive
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-muted-foreground',
-                collapsed && 'justify-center px-2'
-              )
-            }
-          >
-            <item.icon className="h-5 w-5 shrink-0" />
-            {!collapsed && <span>{t[item.labelKey]}</span>}
-          </NavLink>
-        ))}
+      {/* Navigation with sections and recent */}
+      <nav className="flex-1 space-y-1 overflow-y-auto p-2" aria-label="Main navigation">
+        {!collapsed && recentPages.length > 0 && (
+          <div className="mb-2">
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 px-2 py-1.5 text-xs font-medium text-muted-foreground hover:text-sidebar-foreground"
+              onClick={() => setCommandPaletteOpen(true)}
+            >
+              <span>{t('nav.sectionRecent')}</span>
+            </button>
+            {recentPages.slice(0, 3).map((p) => (
+              <NavLink
+                key={p.path + p.timestamp}
+                to={p.path}
+                end={p.path === '/'}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition-colors',
+                    'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                    isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-muted-foreground'
+                  )
+                }
+              >
+                <span className="truncate">{p.label}</span>
+              </NavLink>
+            ))}
+          </div>
+        )}
+        {SIDEBAR_SECTIONS.map((section) => {
+          const open = isSectionOpen(section.sectionKey)
+          const items = navItems.filter((item) => section.paths.includes(item.to))
+          return (
+            <div key={section.sectionKey} className="space-y-0.5">
+              {!collapsed ? (
+                <>
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    onClick={() => toggleSection(section.sectionKey)}
+                  >
+                    <span>{t(section.sectionKey)}</span>
+                    <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', !open && '-rotate-90')} />
+                  </button>
+                  {open && items.map((item) => (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      end={item.to === '/'}
+                      className={({ isActive }) =>
+                        cn(
+                          'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+                          'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                          isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-muted-foreground'
+                        )
+                      }
+                    >
+                      <item.icon className="h-5 w-5 shrink-0" />
+                      <span>{t(item.labelKey)}</span>
+                    </NavLink>
+                  ))}
+                </>
+              ) : (
+                <TooltipProvider delayDuration={0}>
+                  {items.map((item) => (
+                    <Tooltip key={item.to}>
+                      <TooltipTrigger asChild>
+                        <NavLink
+                          to={item.to}
+                          end={item.to === '/'}
+                          className={({ isActive }) =>
+                            cn(
+                              'flex justify-center rounded-xl px-2 py-2.5 text-sm transition-colors',
+                              'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                              isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-muted-foreground'
+                            )
+                          }
+                        >
+                          <item.icon className="h-5 w-5 shrink-0" />
+                        </NavLink>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">{t(item.labelKey)}</TooltipContent>
+                    </Tooltip>
+                  ))}
+                </TooltipProvider>
+              )}
+            </div>
+          )
+        })}
       </nav>
 
       {/* Bottom actions */}
@@ -145,7 +265,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           )}
         >
           <Focus className="h-5 w-5 shrink-0" />
-          {!collapsed && <span>{t.deepWork}</span>}
+          {!collapsed && <span>{t('nav.deepWork')}</span>}
         </button>
 
         {/* Collapse toggle */}
@@ -162,7 +282,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           ) : (
             <>
               <ChevronLeft className="h-5 w-5 shrink-0" />
-              <span>{t.collapse}</span>
+              <span>{t('nav.collapse')}</span>
             </>
           )}
         </button>
