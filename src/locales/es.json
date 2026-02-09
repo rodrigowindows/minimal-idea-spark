@@ -485,6 +485,11 @@
   },
   "layout": {
     "offlineBanner": "Estás sin conexión. Algunas acciones se sincronizarán cuando vuelva la conexión.",
+    "offlineShort": "Sin conexión",
+    "pending": "pendientes",
+    "updateAvailable": "Actualización disponible",
+    "refresh": "Actualizar",
+    "refreshToUpdate": "Actualizar para aplicar",
     "openMenu": "Abrir menú",
     "navigation": "Navegación"
   },

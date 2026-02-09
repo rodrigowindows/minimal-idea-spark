@@ -487,6 +487,11 @@
   },
   "layout": {
     "offlineBanner": "You are offline. Some actions will sync when the connection is back.",
+    "offlineShort": "You're offline",
+    "pending": "pending",
+    "updateAvailable": "Update available",
+    "refresh": "Refresh",
+    "refreshToUpdate": "Refresh to update",
     "openMenu": "Open menu",
     "navigation": "Navigation"
   },

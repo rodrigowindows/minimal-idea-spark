@@ -91,10 +91,10 @@ export function MobileNav() {
       {isOffline && (
         <div className="fixed top-14 inset-x-0 z-50 flex items-center justify-center gap-2 bg-amber-600 px-3 py-1.5 text-xs font-medium text-white" role="status" aria-live="polite">
           <WifiOff className="h-3.5 w-3.5" aria-hidden="true" />
-          <span>You're offline</span>
+          <span>{t('layout.offlineShort')}</span>
           {pendingActions > 0 && (
             <span className="ml-1 rounded-full bg-white/20 px-2 py-0.5">
-              {pendingActions} pending
+              {pendingActions} {t('layout.pending')}
             </span>
           )}
         </div>
@@ -104,13 +104,13 @@ export function MobileNav() {
       {updateAvailable && (
         <div className="fixed top-14 inset-x-0 z-50 flex items-center justify-center gap-2 bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground" role="alert" aria-live="assertive">
           <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
-          <span>Update available</span>
+          <span>{t('layout.updateAvailable')}</span>
           <button
             onClick={applyUpdate}
             className="ml-1 rounded bg-white/20 px-2 py-0.5 text-xs hover:bg-white/30 transition-colors"
-            aria-label="Refresh to update"
+            aria-label={t('layout.refreshToUpdate')}
           >
-            Refresh
+            {t('layout.refresh')}
           </button>
         </div>
       )}
