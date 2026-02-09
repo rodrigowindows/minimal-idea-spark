@@ -89,8 +89,8 @@ export function AudioToText({ onTranscription, className, sourcePage, compact }:
     } catch (error) {
       console.error('Error transcribing audio:', error);
       const msg = error instanceof Error ? error.message : 'Erro na transcricao.';
-      if (msg.includes('not configured') || msg.includes('VITE_SUPABASE')) {
-        toast.error('Audio nao configurado. Defina VITE_SUPABASE_URL e faça deploy da Edge Function transcribe-audio.');
+      if (msg.includes('not configured') || msg.includes('VITE_DEEPGRAM')) {
+        toast.error('Audio nao configurado. Defina VITE_DEEPGRAM_API_KEY no .env.');
       } else {
         toast.error(msg.slice(0, 100));
       }

@@ -1,5 +1,3 @@
-import { supabase } from '@/integrations/supabase/client';
-
 export type SupportedLanguage = 'pt-BR' | 'en' | 'es';
 
 export const SUPPORTED_LANGUAGES: { code: SupportedLanguage; label: string; whisperCode: string }[] = [
@@ -10,7 +8,7 @@ export const SUPPORTED_LANGUAGES: { code: SupportedLanguage; label: string; whis
 
 export interface TranscriptionOptions {
   language?: SupportedLanguage;
-  model?: 'whisper-1';
+  model?: string;
   prompt?: string;
 }
 
@@ -20,20 +18,22 @@ export interface TranscriptionResult {
   duration?: number;
 }
 
-function getSupabaseUrl(): string {
-  const url = import.meta.env.VITE_SUPABASE_URL;
-  if (!url || url === 'undefined') {
+const DEEPGRAM_API = 'https://api.deepgram.com/v1/listen';
+
+function getDeepgramApiKey(): string {
+  const key = import.meta.env.VITE_DEEPGRAM_API_KEY;
+  if (!key || key === 'undefined' || key === 'your-deepgram-api-key') {
     throw new Error(
-      'Transcription not configured. Set VITE_SUPABASE_URL in .env and deploy the transcribe-audio Edge Function.'
+      'Transcription not configured. Set VITE_DEEPGRAM_API_KEY in .env (get a key at https://deepgram.com).'
     );
   }
-  return url;
+  return key;
 }
 
-/** True if backend transcription (Supabase + transcribe-audio) is configured. */
+/** True if backend transcription (Deepgram) is configured. */
 export function isTranscriptionConfigured(): boolean {
-  const url = import.meta.env.VITE_SUPABASE_URL;
-  return Boolean(url && url !== 'undefined');
+  const key = import.meta.env.VITE_DEEPGRAM_API_KEY;
+  return Boolean(key && key !== 'undefined' && key !== 'your-deepgram-api-key');
 }
 
 /** Browser SpeechRecognition (Chrome, Edge, Safari). Not in Firefox. */
@@ -160,30 +160,22 @@ export async function transcribeAudio(
   audioBlob: Blob,
   options: TranscriptionOptions = {}
 ): Promise<TranscriptionResult> {
-  const supabaseUrl = getSupabaseUrl();
+  const apiKey = getDeepgramApiKey();
   const langConfig = SUPPORTED_LANGUAGES.find(l => l.code === options.language) ?? SUPPORTED_LANGUAGES[0];
+  const language = langConfig.whisperCode; // Deepgram uses pt, en, es
+  const model = options.model || 'nova-2';
 
-  const formData = new FormData();
-  const fileName = audioBlob.type === 'audio/webm' ? 'audio.webm' : audioBlob.type === 'audio/mp4' ? 'audio.m4a' : 'audio.webm';
-  formData.append('file', audioBlob, fileName);
-  formData.append('language', langConfig.whisperCode);
-  formData.append('model', options.model || 'whisper-1');
-  if (options.prompt) formData.append('prompt', options.prompt);
+  const params = new URLSearchParams({ language, model });
+  const url = `${DEEPGRAM_API}?${params.toString()}`;
 
-  let token = '';
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    token = session?.access_token ?? '';
-  } catch {
-    // Continue without auth; Edge Function may allow anonymous
-  }
-
-  const response = await fetch(`${supabaseUrl}/functions/v1/transcribe-audio`, {
+  const contentType = audioBlob.type || 'audio/webm';
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      Authorization: `Token ${apiKey}`,
+      'Content-Type': contentType,
     },
-    body: formData,
+    body: audioBlob,
   });
 
   if (!response.ok) {
@@ -191,8 +183,8 @@ export async function transcribeAudio(
     let message = `Transcription failed: ${response.status}`;
     try {
       const errJson = JSON.parse(errorText);
-      if (errJson.error) message = errJson.error;
-      if (errJson.details) message += ' — ' + errJson.details;
+      if (errJson.err_msg) message = errJson.err_msg;
+      if (errJson.message) message = errJson.message;
     } catch {
       if (errorText) message = errorText.slice(0, 200);
     }
@@ -200,11 +192,13 @@ export async function transcribeAudio(
   }
 
   const result = await response.json();
-  const text = result.text ?? '';
+  const transcript =
+    result?.results?.channels?.[0]?.alternatives?.[0]?.transcript ?? '';
+  const duration = result?.metadata?.duration;
   return {
-    text: typeof text === 'string' ? text : String(text),
-    language: result.language ?? langConfig.code,
-    duration: result.duration,
+    text: typeof transcript === 'string' ? transcript.trim() : String(transcript).trim(),
+    language: langConfig.code,
+    duration: typeof duration === 'number' ? duration : undefined,
   };
 }
 

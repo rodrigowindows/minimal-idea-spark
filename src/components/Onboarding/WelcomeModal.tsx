@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Dialog,
   DialogContent,
@@ -8,47 +9,85 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Sparkles } from 'lucide-react'
+import { Sparkles, Rocket, Target, BookOpen, MessageSquare } from 'lucide-react'
 
 const WELCOME_DISMISSED_KEY = 'lifeos_welcome_dismissed'
 
-export function WelcomeModal() {
+interface WelcomeModalProps {
+  onStartTour?: () => void
+}
+
+export function WelcomeModal({ onStartTour }: WelcomeModalProps) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
+  const [dontShow, setDontShow] = useState(false)
 
   useEffect(() => {
     const dismissed = localStorage.getItem(WELCOME_DISMISSED_KEY)
     if (!dismissed) setOpen(true)
   }, [])
 
-  const handleClose = (dontShowAgain: boolean) => {
-    if (dontShowAgain) localStorage.setItem(WELCOME_DISMISSED_KEY, '1')
+  const handleClose = () => {
+    if (dontShow) localStorage.setItem(WELCOME_DISMISSED_KEY, '1')
     setOpen(false)
   }
 
+  const handleStartTour = () => {
+    localStorage.setItem(WELCOME_DISMISSED_KEY, '1')
+    setOpen(false)
+    onStartTour?.()
+  }
+
+  const features = [
+    { icon: Target, labelKey: 'onboarding.welcome.featureWarRoom' },
+    { icon: MessageSquare, labelKey: 'onboarding.welcome.featureConsultant' },
+    { icon: Rocket, labelKey: 'onboarding.welcome.featureOpportunities' },
+    { icon: BookOpen, labelKey: 'onboarding.welcome.featureJournal' },
+  ]
+
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && handleClose(false)}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Bem-vindo ao Canvas
+          <DialogTitle className="flex items-center gap-2 text-xl">
+            <Sparkles className="h-6 w-6 text-primary" />
+            {t('onboarding.welcome.title')}
           </DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground">
-          Capture ideias no War Room, converse com o Consultor, organize Oportunidades e use o Diário.
-          Pressione <kbd className="rounded border bg-muted px-1">?</kbd> para ver atalhos de teclado.
+          {t('onboarding.welcome.description')}
         </p>
-        <DialogFooter className="flex items-center justify-between sm:justify-between">
+        <div className="grid grid-cols-2 gap-3 py-2">
+          {features.map((f) => (
+            <div
+              key={f.labelKey}
+              className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/30 p-3"
+            >
+              <f.icon className="h-4 w-4 shrink-0 text-primary" />
+              <span className="text-xs font-medium">{t(f.labelKey)}</span>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {t('onboarding.welcome.shortcutHint')}
+        </p>
+        <DialogFooter className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <label className="flex items-center gap-2 text-sm text-muted-foreground">
             <Checkbox
-              id="dont-show"
-              onCheckedChange={(checked) => {
-                if (checked) handleClose(true)
-              }}
+              id="welcome-dont-show"
+              checked={dontShow}
+              onCheckedChange={(v) => setDontShow(v === true)}
             />
-            <span>Não mostrar novamente</span>
+            <span>{t('onboarding.dontShowAgain')}</span>
           </label>
-          <Button onClick={() => handleClose(false)}>Continuar</Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleClose}>
+              {t('onboarding.welcome.skipTour')}
+            </Button>
+            <Button onClick={handleStartTour}>
+              {t('onboarding.welcome.startTour')}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

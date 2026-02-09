@@ -63,9 +63,9 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
             }
           } catch (e) {
             const msg = e instanceof Error ? e.message : 'Transcription failed.'
-            if (msg.includes('not configured') || msg.includes('VITE_SUPABASE')) {
+            if (msg.includes('not configured') || msg.includes('VITE_DEEPGRAM')) {
               toast.error(
-                'Audio not configured. Add VITE_SUPABASE_URL to .env, restart the dev server, and run: npx supabase functions deploy transcribe-audio'
+                'Audio not configured. Add VITE_DEEPGRAM_API_KEY to .env and restart the dev server.'
               )
             } else {
               toast.error(msg.slice(0, 80))
@@ -97,7 +97,7 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
     }
 
     toast.error(
-      'Audio not configured. Set VITE_SUPABASE_URL and deploy transcribe-audio, or use Chrome/Edge/Safari for browser voice.'
+      'Audio not configured. Set VITE_DEEPGRAM_API_KEY in .env, or use Chrome/Edge/Safari for browser voice.'
     )
   }, [language, onTranscript])
 

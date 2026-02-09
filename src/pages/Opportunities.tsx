@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useEffect } from 'react'
+import { useMemo, useState, useCallback, useEffect, memo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence, useMotionValue, useTransform, type PanInfo } from 'framer-motion'
 import { useLocalData } from '@/hooks/useLocalData'
@@ -335,7 +335,7 @@ export function Opportunities() {
   )
 }
 
-function SwipeableCard({
+const SwipeableCard = memo(function SwipeableCard({
   opp,
   domainMap,
   onComplete,
@@ -442,4 +442,4 @@ function SwipeableCard({
       </motion.div>
     </motion.div>
   )
-}
+})

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, useCallback, memo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -41,6 +41,7 @@ import { useNotifications } from '@/hooks/useNotifications'
 import { getPriorityLevel } from '@/lib/notifications/priority-engine'
 import type { AppNotification, NotificationType } from '@/lib/notifications/manager'
 import { NotificationDigest } from '@/components/NotificationDigest'
+import { VirtualList } from '@/components/VirtualList'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 
@@ -85,7 +86,7 @@ function formatTimeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString()
 }
 
-function NotificationRow({
+const NotificationRow = memo(function NotificationRow({
   n,
   onMarkRead,
   onArchive,
@@ -167,7 +168,7 @@ function NotificationRow({
       </div>
     </div>
   )
-}
+})
 
 export function NotificationsPage() {
   const { t } = useTranslation()
@@ -180,16 +181,21 @@ export function NotificationsPage() {
     preferences,
   } = useNotifications()
 
-  const filteredActive = active.filter(n => {
+  const filteredActive = useMemo(() => active.filter(n => {
     if (filterType !== 'all' && n.type !== filterType) return false
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
       return n.title.toLowerCase().includes(q) || n.body.toLowerCase().includes(q)
     }
     return true
-  })
+  }), [active, filterType, searchQuery])
 
-  const unread = filteredActive.filter(n => !n.read)
+  const unread = useMemo(() => filteredActive.filter(n => !n.read), [filteredActive])
+
+  const handleMarkRead = useCallback((id: string) => markRead(id), [markRead])
+  const handleArchive = useCallback((id: string) => archive(id), [archive])
+  const handleSnooze = useCallback((id: string, minutes: number) => snooze(id, minutes), [snooze])
+  const handleRemove = useCallback((id: string) => remove(id), [remove])
 
   const typeOptions = [
     'all', 'task_due', 'goal_progress', 'habit_reminder', 'achievement',
@@ -311,16 +317,32 @@ export function NotificationsPage() {
         <TabsContent value="all">
           {filteredActive.length === 0 ? (
             <EmptyState message={t('notificationsPage.emptyNoActive')} />
+          ) : filteredActive.length > 30 ? (
+            <VirtualList
+              items={filteredActive}
+              itemHeight={120}
+              className="h-[calc(100vh-420px)]"
+              getItemKey={(n) => n.id}
+              renderItem={(n) => (
+                <NotificationRow
+                  n={n}
+                  onMarkRead={handleMarkRead}
+                  onArchive={handleArchive}
+                  onSnooze={handleSnooze}
+                  onRemove={handleRemove}
+                />
+              )}
+            />
           ) : (
             <div className="space-y-2">
               {filteredActive.map(n => (
                 <NotificationRow
                   key={n.id}
                   n={n}
-                  onMarkRead={markRead}
-                  onArchive={archive}
-                  onSnooze={snooze}
-                  onRemove={remove}
+                  onMarkRead={handleMarkRead}
+                  onArchive={handleArchive}
+                  onSnooze={handleSnooze}
+                  onRemove={handleRemove}
                 />
               ))}
             </div>
@@ -330,16 +352,32 @@ export function NotificationsPage() {
         <TabsContent value="unread">
           {unread.length === 0 ? (
             <EmptyState message={t('notificationsPage.emptyAllCaughtUp')} />
+          ) : unread.length > 30 ? (
+            <VirtualList
+              items={unread}
+              itemHeight={120}
+              className="h-[calc(100vh-420px)]"
+              getItemKey={(n) => n.id}
+              renderItem={(n) => (
+                <NotificationRow
+                  n={n}
+                  onMarkRead={handleMarkRead}
+                  onArchive={handleArchive}
+                  onSnooze={handleSnooze}
+                  onRemove={handleRemove}
+                />
+              )}
+            />
           ) : (
             <div className="space-y-2">
               {unread.map(n => (
                 <NotificationRow
                   key={n.id}
                   n={n}
-                  onMarkRead={markRead}
-                  onArchive={archive}
-                  onSnooze={snooze}
-                  onRemove={remove}
+                  onMarkRead={handleMarkRead}
+                  onArchive={handleArchive}
+                  onSnooze={handleSnooze}
+                  onRemove={handleRemove}
                 />
               ))}
             </div>
@@ -366,10 +404,10 @@ export function NotificationsPage() {
                       <NotificationRow
                         key={n.id}
                         n={n}
-                        onMarkRead={markRead}
-                        onArchive={archive}
-                        onSnooze={snooze}
-                        onRemove={remove}
+                        onMarkRead={handleMarkRead}
+                        onArchive={handleArchive}
+                        onSnooze={handleSnooze}
+                        onRemove={handleRemove}
                       />
                     ))}
                   </CardContent>
@@ -396,7 +434,7 @@ export function NotificationsPage() {
                       </p>
                     )}
                   </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => remove(n.id)}>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => handleRemove(n.id)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -418,7 +456,7 @@ export function NotificationsPage() {
                     <p className="text-sm text-muted-foreground">{n.body}</p>
                     <span className="text-xs text-muted-foreground">{formatTimeAgo(n.createdAt)}</span>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => remove(n.id)}>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => handleRemove(n.id)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>

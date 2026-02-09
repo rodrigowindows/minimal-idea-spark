@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
 
 const STORAGE_KEY = 'lifeos_warroom_layout'
 
@@ -75,8 +75,10 @@ export function WarRoomLayoutProvider({ children }: { children: ReactNode }) {
     setLayout(defaultLayout)
   }, [])
 
+  const value = useMemo(() => ({ layout, setOrder, setVisible, resetLayout }), [layout, setOrder, setVisible, resetLayout])
+
   return (
-    <Context.Provider value={{ layout, setOrder, setVisible, resetLayout }}>
+    <Context.Provider value={value}>
       {children}
     </Context.Provider>
   )

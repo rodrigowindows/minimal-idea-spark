@@ -63,8 +63,11 @@ const PageFallback = () => (
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5,
+      staleTime: 1000 * 60 * 5, // 5 min stale-while-revalidate
+      gcTime: 1000 * 60 * 30, // 30 min garbage collection
       refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
+      retry: 1,
     },
   },
 });

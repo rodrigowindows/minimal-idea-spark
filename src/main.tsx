@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./i18n";
 import App from "./App.tsx";
 import "./index.css";
+import { reportWebVitals } from "./lib/web-vitals";
 
 // Register service worker for PWA
 if ("serviceWorker" in navigator) {
@@ -20,3 +21,6 @@ createRoot(document.getElementById("root")!).render(
     <App />
   </StrictMode>
 );
+
+// Report Core Web Vitals (LCP < 2.5s, FID < 100ms, CLS < 0.1)
+reportWebVitals();

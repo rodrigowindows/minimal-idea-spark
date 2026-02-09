@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from 'react'
+import { useMemo, useCallback, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -48,7 +48,7 @@ export function KanbanBoard({ opportunities, domainMap, onComplete, onEdit, onFo
   )
 }
 
-function KanbanColumn({
+const KanbanColumn = memo(function KanbanColumn({
   status,
   opportunities,
   domainMap,
@@ -166,7 +166,7 @@ function KanbanColumn({
       </ScrollArea>
     </div>
   )
-}
+})
 
 function getNextStatus(current: Opportunity['status']): Opportunity['status'] | null {
   const flow: Opportunity['status'][] = ['backlog', 'doing', 'review', 'done']

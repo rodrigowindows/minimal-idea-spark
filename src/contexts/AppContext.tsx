@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useState } from 'react'
+import { createContext, useCallback, useContext, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { Opportunity } from '@/types'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
@@ -34,12 +34,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setTimeout(() => setLevelUpTriggered(false), 3500)
   }, [])
 
+  const value = useMemo<AppContextValue>(() => ({
+    sidebarOpen, deepWorkMode, currentOpportunity, levelUpTriggered,
+    commandPaletteOpen, setCommandPaletteOpen,
+    toggleSidebar, toggleDeepWorkMode, setCurrentOpportunity, triggerLevelUp,
+  }), [
+    sidebarOpen, deepWorkMode, currentOpportunity, levelUpTriggered,
+    commandPaletteOpen, toggleSidebar, toggleDeepWorkMode, triggerLevelUp,
+  ])
+
   return (
-    <AppContext.Provider value={{
-      sidebarOpen, deepWorkMode, currentOpportunity, levelUpTriggered,
-      commandPaletteOpen, setCommandPaletteOpen,
-      toggleSidebar, toggleDeepWorkMode, setCurrentOpportunity, triggerLevelUp,
-    }}>
+    <AppContext.Provider value={value}>
       {children}
     </AppContext.Provider>
   )
