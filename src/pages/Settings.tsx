@@ -547,6 +547,9 @@ export function Settings() {
             <p className="text-sm text-muted-foreground">
               {t('settings.backupDescription')}
             </p>
+            {t('settings.privacyExportNote') && (
+              <p className="text-xs text-muted-foreground">{t('settings.privacyExportNote')}</p>
+            )}
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => setExportModalOpen(true)}>
                 <Download className="mr-1 h-4 w-4" /> {t('settings.exportBackup')}

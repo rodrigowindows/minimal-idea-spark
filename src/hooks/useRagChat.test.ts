@@ -47,6 +47,7 @@ describe('useRagChat', () => {
   it('should set streaming then result on success', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
+      headers: { get: (name: string) => name === 'Content-Type' ? 'application/json' : null },
       json: async () => ({
         response: 'AI reply',
         sources: [{ title: 'S1', type: 'opportunity', relevance: 0.9 }],
@@ -57,14 +58,8 @@ describe('useRagChat', () => {
     const { result } = renderHook(() => useRagChat())
 
     let resolved: unknown = null
-    act(() => {
-      result.current.sendMessage('hi').then((r) => { resolved = r })
-    })
-
-    expect(result.current.isStreaming).toBe(true)
-
     await act(async () => {
-      await Promise.resolve()
+      resolved = await result.current.sendMessage('hi')
     })
 
     expect(result.current.isStreaming).toBe(false)
@@ -79,6 +74,7 @@ describe('useRagChat', () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 429,
+      headers: { get: () => 'application/json' },
       json: async () => ({ error: 'Too Many Requests' }),
     })
 

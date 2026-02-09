@@ -123,6 +123,7 @@ vi.mock("@/lib/tags/tag-service", () => ({
   getTagsForOpportunity: () => [],
   setTagsForOpportunity: vi.fn(),
   getAllTags: () => [],
+  getTagCounts: () => ({}),
 }));
 
 // Mock useXPSystem

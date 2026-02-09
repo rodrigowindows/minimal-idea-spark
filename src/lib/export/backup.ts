@@ -1,3 +1,8 @@
+/**
+ * Backup: export all app data to JSON (and CSV for opportunities/journal).
+ * Used by Settings "Backup e exportação" and ExportModal. Restore via restore.ts.
+ * @see restore.ts - validateBackupFile, restoreFromPayload
+ */
 import type { ExportRow } from '@/lib/analytics/export'
 
 const BACKUP_KEYS = [

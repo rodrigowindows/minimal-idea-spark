@@ -17,6 +17,10 @@ import { supabase } from '@/integrations/supabase/client';
 
 export type SyncStatus = 'online' | 'offline' | 'syncing';
 
+/**
+ * Sync status for offline queue (prompt 26). Exposes online/syncing, pending count, conflicts, runSync, clear.
+ * @see lib/pwa/sync-queue.ts
+ */
 export function useSyncStatus() {
   const [online, setOnline] = useState(
     typeof navigator !== 'undefined' ? navigator.onLine : true

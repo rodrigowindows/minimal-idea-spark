@@ -49,7 +49,7 @@ export function MobileNav() {
   }, [canInstall, bannerDismissed]);
 
   // Swipe gesture navigation (left/right between main pages)
-  const pages = ['/', '/opportunities', '/consultant', '/analytics'];
+  const pages = ['/', '/opportunities', '/journal', '/consultant', '/analytics'];
 
   useEffect(() => {
     const main = document.querySelector('main');

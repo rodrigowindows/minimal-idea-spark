@@ -144,6 +144,7 @@
     "importBackup": "Importar Backup",
     "importing": "Importando...",
     "exportDescription": "Exporta todas as oportunidades, entradas do diário, hábitos, metas e progresso XP como arquivo JSON.",
+    "privacyExportNote": "Você pode exportar seus dados a qualquer momento (LGPD/portabilidade).",
     "dataExported": "Dados exportados com sucesso!",
     "dataImported": "Dados importados! Atualize a página para ver as mudanças.",
     "invalidBackup": "Arquivo de backup inválido.",
@@ -465,6 +466,17 @@
     "openConsultant": "Abrir Consultor",
     "deepWork": "Modo Foco Profundo",
     "openSettings": "Configurações"
+  },
+  "templatesPage": {
+    "library": "Biblioteca",
+    "editor": "Editor",
+    "marketplace": "Marketplace",
+    "myTemplates": "Meus Templates",
+    "noTemplatesFound": "Nenhum template encontrado",
+    "createFirstOrBrowse": "Crie seu primeiro template ou navegue no Marketplace.",
+    "tryAdjustingSearch": "Tente ajustar a busca ou o filtro.",
+    "createTemplate": "Criar template",
+    "newTemplate": "Novo template"
   },
   "notificationsPage": {
     "emptyNoActive": "Nenhuma notificação",

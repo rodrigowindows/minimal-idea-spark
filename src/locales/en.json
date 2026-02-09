@@ -73,6 +73,17 @@
     "deepWork": "Deep Work mode",
     "openSettings": "Settings"
   },
+  "templatesPage": {
+    "library": "Library",
+    "editor": "Editor",
+    "marketplace": "Marketplace",
+    "myTemplates": "My Templates",
+    "noTemplatesFound": "No templates found",
+    "createFirstOrBrowse": "Create your first template or browse the Marketplace.",
+    "tryAdjustingSearch": "Try adjusting your search or filter.",
+    "createTemplate": "Create Template",
+    "newTemplate": "New Template"
+  },
   "notificationsPage": {
     "emptyNoActive": "No notifications",
     "emptyAllCaughtUp": "All caught up!",
@@ -189,6 +200,7 @@
     "exportAllData": "Export All Data",
     "importBackup": "Import Backup",
     "importing": "Importing...",
+    "privacyExportNote": "You can export your data at any time (data portability).",
     "exportDescription": "Exports all opportunities, journal entries, habits, goals, and XP progress as a JSON file.",
     "dataExported": "Data exported successfully!",
     "dataImported": "Data imported! Refresh the page to see changes.",

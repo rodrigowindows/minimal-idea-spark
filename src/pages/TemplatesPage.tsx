@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { TemplatesLibrary } from '@/components/Templates/Library'
 import { TemplateEditor } from '@/components/Templates/Editor'
 import { TemplateMarketplace } from '@/components/Templates/Marketplace'
@@ -7,6 +8,7 @@ import type { Template } from '@/lib/db/schema-templates'
 import { FileStack, PenTool, Store } from 'lucide-react'
 
 export function TemplatesPage() {
+  const { t } = useTranslation()
   const [tab, setTab] = useState('library')
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null)
 
@@ -31,15 +33,15 @@ export function TemplatesPage() {
         <TabsList className="mb-6">
           <TabsTrigger value="library" className="gap-2">
             <FileStack className="h-4 w-4" />
-            Library
+            {t('templatesPage.library')}
           </TabsTrigger>
           <TabsTrigger value="editor" className="gap-2">
             <PenTool className="h-4 w-4" />
-            Editor
+            {t('templatesPage.editor')}
           </TabsTrigger>
           <TabsTrigger value="marketplace" className="gap-2">
             <Store className="h-4 w-4" />
-            Marketplace
+            {t('templatesPage.marketplace')}
           </TabsTrigger>
         </TabsList>
 

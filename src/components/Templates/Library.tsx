@@ -32,6 +32,7 @@ import {
   Download,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 
 interface TemplatesLibraryProps {
   onEdit?: (template: Template) => void
@@ -39,6 +40,7 @@ interface TemplatesLibraryProps {
 }
 
 export function TemplatesLibrary({ onEdit, onCreateNew }: TemplatesLibraryProps) {
+  const { t } = useTranslation()
   const { templates, deleteTemplate, duplicateTemplate, togglePublic } = useTemplates()
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState<string>('all')
@@ -96,15 +98,15 @@ export function TemplatesLibrary({ onEdit, onCreateNew }: TemplatesLibraryProps)
     <div className="max-w-5xl mx-auto space-y-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">My Templates</h2>
+          <h2 className="text-2xl font-bold tracking-tight">{t('templatesPage.myTemplates')}</h2>
           <p className="text-sm text-muted-foreground">
-            {templates.length} template{templates.length !== 1 ? 's' : ''} in your library
+            {templates.length} {templates.length === 1 ? 'template' : 'templates'}
           </p>
         </div>
         {onCreateNew && (
           <Button onClick={onCreateNew} className="gap-2">
             <Plus className="h-4 w-4" />
-            New Template
+            {t('templatesPage.newTemplate')}
           </Button>
         )}
       </header>
@@ -145,17 +147,15 @@ export function TemplatesLibrary({ onEdit, onCreateNew }: TemplatesLibraryProps)
       {filtered.length === 0 ? (
         <Card className="py-12">
           <CardContent className="text-center">
-            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold">No templates found</h3>
+            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" aria-hidden />
+            <h3 className="text-lg font-semibold">{t('templatesPage.noTemplatesFound')}</h3>
             <p className="text-sm text-muted-foreground mt-1">
-              {templates.length === 0
-                ? 'Create your first template or browse the Marketplace.'
-                : 'Try adjusting your search or filter.'}
+              {templates.length === 0 ? t('templatesPage.createFirstOrBrowse') : t('templatesPage.tryAdjustingSearch')}
             </p>
             {onCreateNew && templates.length === 0 && (
               <Button onClick={onCreateNew} className="mt-4 gap-2">
                 <Plus className="h-4 w-4" />
-                Create Template
+                {t('templatesPage.createTemplate')}
               </Button>
             )}
           </CardContent>

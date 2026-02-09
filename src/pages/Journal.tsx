@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
+import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useLocalData } from '@/hooks/useLocalData'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,6 +22,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { enqueue } from '@/lib/pwa/sync-queue'
 
 export function Journal() {
+  const { date: dateParam } = useParams<{ date?: string }>()
   const { t } = useTranslation()
   const { dailyLogs, isLoading, addDailyLog, deleteDailyLog } = useLocalData()
   const { addXP } = useXPSystem()
@@ -28,6 +30,13 @@ export function Journal() {
   const [content, setContent] = useState('')
   const [selectedMood, setSelectedMood] = useState<string | null>(null)
   const [energyLevel, setEnergyLevel] = useState(5)
+  const dateTargetRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (dateParam && dateTargetRef.current) {
+      dateTargetRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [dateParam, dailyLogs])
 
   const sortedLogs = useMemo(() => {
     if (!dailyLogs) return []
@@ -277,9 +286,10 @@ export function Journal() {
             renderItem={(log) => {
               const moodEmoji = getMoodEmoji(log.mood)
               const formattedDate = format(parseISO(log.log_date), 'EEEE, MMMM d, yyyy', { locale: getDateLocale() })
+              const isTargetDate = dateParam && log.log_date.slice(0, 10) === dateParam
               return (
-                <div className="pb-4">
-                  <Card className="group rounded-xl">
+                <div className="pb-4" ref={isTargetDate ? dateTargetRef : undefined}>
+                  <Card className={`group rounded-xl ${isTargetDate ? 'ring-2 ring-primary' : ''}`}>
                     <CardContent className="py-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -313,9 +323,10 @@ export function Journal() {
             {sortedLogs.map((log) => {
               const moodEmoji = getMoodEmoji(log.mood)
               const formattedDate = format(parseISO(log.log_date), 'EEEE, MMMM d, yyyy', { locale: getDateLocale() })
-
+              const isTargetDate = dateParam && log.log_date.slice(0, 10) === dateParam
               return (
-                <Card key={log.id} className="group rounded-xl">
+                <div key={log.id} ref={isTargetDate ? dateTargetRef : undefined}>
+                <Card className={`group rounded-xl ${isTargetDate ? 'ring-2 ring-primary' : ''}`}>
                   <CardContent className="py-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -356,6 +367,7 @@ export function Journal() {
                     </p>
                   </CardContent>
                 </Card>
+                </div>
               )
             })}
           </div>

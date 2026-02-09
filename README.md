@@ -15,11 +15,61 @@ Open [http://localhost:8080](http://localhost:8080). Data is mock by default. To
 
 ## Tests
 
-- **Unit tests (Vitest):** `npm run test` — runs all `*.test.ts` / `*.test.tsx` under `src/`.
-- **Coverage:** `npm run test -- --coverage` — report in `coverage/` (v8).
-- **E2E (Playwright):** `npm run test:e2e` — smoke tests in `e2e/`. First run `npx playwright install` to install browsers. Starts dev server automatically unless `CI=1`.
+Unit tests (Vitest), E2E (Playwright in `e2e/`), and CI (`.github/workflows/test.yml`). Accessibility: SkipLink, focus-visible, and `prefers-reduced-motion` in `src/index.css`.
 
-Mocks for Supabase and APIs are in test setup and per-file `vi.mock()`. CI runs tests on push/PR (see `.github/workflows/test.yml`).
+### Unit & Integration Tests (Vitest)
+
+```sh
+npm run test          # Run all tests once
+npm run test:watch    # Watch mode (re-run on file changes)
+npm run test:coverage # Run with coverage report (output in coverage/)
+```
+
+Tests are in `*.test.ts` / `*.test.tsx` files alongside their source modules:
+
+| Category | Files | What they cover |
+|----------|-------|-----------------|
+| **Hook unit tests** | `src/hooks/useXPSystem.test.ts`, `usePriorities.test.ts`, `useRagChat.test.ts` | XP gamification, priority CRUD, RAG chat streaming |
+| **Component tests** | `src/components/smart-capture/SmartCapture.test.tsx`, `src/components/war-room/TheOneThing.test.tsx` | UI interactions, rendering, user events |
+| **Integration tests** | `src/pages/Auth.test.tsx`, `Opportunities.test.tsx`, `Journal.test.tsx` | Full page flows: login/signup, opportunity list/filter, journal create/list |
+| **Utility tests** | `src/lib/ai-parser.test.ts` | XP reward calculations, gamification config |
+| **Accessibility tests** | `src/test/accessibility.test.tsx` | jest-axe a11y checks for core UI components |
+
+### E2E Tests (Playwright)
+
+```sh
+npx playwright install   # First time: install Chromium
+npm run test:e2e         # Run E2E smoke tests
+```
+
+E2E tests live in `e2e/` and cover:
+- Page load & navigation smoke tests
+- Auth form rendering and toggle
+- Route redirects (auth guard)
+- 404 handling
+- Basic accessibility (no duplicate IDs)
+
+Playwright auto-starts the dev server on port 8080 unless `CI=1`.
+
+### Mocks
+
+- **Supabase mock**: `src/test/mocks/supabase.ts` — reusable Supabase client mock with auth, DB, and functions stubs
+- **Context mock**: `src/test/mocks/contexts.tsx` — `TestProviders` wrapper with QueryClient, Router, and Tooltip providers
+- **Test setup**: `src/test/setup.ts` — global mocks for matchMedia, IntersectionObserver, ResizeObserver, import.meta.env
+- Per-file `vi.mock()` for sonner, framer-motion, react-i18next, etc.
+
+### Coverage
+
+Coverage is generated with `v8` provider. Run `npm run test:coverage` and open `coverage/index.html` for detailed per-file reports.
+
+### CI Pipeline
+
+GitHub Actions (`.github/workflows/test.yml`) runs on every push/PR to `main`/`master`:
+
+1. **Unit & Integration Tests** — lint, test with coverage, build
+2. **E2E Tests** — Playwright smoke tests against production build
+
+Coverage and Playwright reports are uploaded as artifacts.
 
 ## Features
 

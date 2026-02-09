@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 
-type Language = 'pt' | 'en';
+export type Language = 'pt' | 'en';
 
 interface LanguageContextType {
   language: Language;
@@ -50,3 +50,6 @@ export const useTranslation = () => {
   }
   return context;
 };
+
+/** Alias for useTranslation — used by Settings and other pages */
+export const useLanguage = useTranslation;

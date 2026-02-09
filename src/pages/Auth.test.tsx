@@ -58,7 +58,7 @@ describe("Auth page", () => {
 
   it("renders login form by default", () => {
     renderAuth();
-    expect(screen.getByText("Login")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /login/i })).toBeInTheDocument();
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
     expect(screen.getByLabelText("Password")).toBeInTheDocument();
   });
@@ -67,11 +67,11 @@ describe("Auth page", () => {
     renderAuth();
     const signUpLink = screen.getByRole("button", { name: /sign up/i });
     await userEvent.click(signUpLink);
-    expect(screen.getByText("Create Account")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /create account/i })).toBeInTheDocument();
 
     const loginLink = screen.getByRole("button", { name: /login/i });
     await userEvent.click(loginLink);
-    expect(screen.getByText("Login")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /login/i })).toBeInTheDocument();
   });
 
   it("calls signInWithPassword on login submit", async () => {

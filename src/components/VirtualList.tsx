@@ -53,6 +53,8 @@ export function VirtualList<T>({
       ref={containerRef}
       className={cn('overflow-auto', className)}
       onScroll={handleScroll}
+      role="list"
+      aria-label="List"
       style={{ height: '100%', minHeight: 200 }}
     >
       <div style={{ height: totalHeight, position: 'relative' }}>

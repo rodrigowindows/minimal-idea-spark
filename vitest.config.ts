@@ -16,6 +16,11 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: { "@": path.resolve(__dirname, "./src") },
+    alias: [
+      { find: "@", replacement: path.resolve(__dirname, "./src") },
+      { find: "date-fns/locale/pt-BR", replacement: path.resolve(__dirname, "./node_modules/date-fns/locale/pt-BR.js") },
+      { find: "date-fns/locale", replacement: path.resolve(__dirname, "./node_modules/date-fns/locale.js") },
+      { find: /^date-fns$/, replacement: path.resolve(__dirname, "./node_modules/date-fns/index.js") },
+    ],
   },
 });

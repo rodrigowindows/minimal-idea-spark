@@ -73,6 +73,17 @@
     "deepWork": "Modo Trabajo Profundo",
     "openSettings": "Configuración"
   },
+  "templatesPage": {
+    "library": "Biblioteca",
+    "editor": "Editor",
+    "marketplace": "Marketplace",
+    "myTemplates": "Mis plantillas",
+    "noTemplatesFound": "No se encontraron plantillas",
+    "createFirstOrBrowse": "Crea tu primera plantilla o explora el Marketplace.",
+    "tryAdjustingSearch": "Prueba ajustando la búsqueda o el filtro.",
+    "createTemplate": "Crear plantilla",
+    "newTemplate": "Nueva plantilla"
+  },
   "notificationsPage": {
     "emptyNoActive": "Sin notificaciones",
     "emptyAllCaughtUp": "¡Al día!",
@@ -189,6 +200,7 @@
     "exportAllData": "Exportar Todos los Datos",
     "importBackup": "Importar Backup",
     "importing": "Importando...",
+    "privacyExportNote": "Puedes exportar tus datos en cualquier momento (portabilidad).",
     "exportDescription": "Exporta todas las oportunidades, entradas del diario, hábitos, metas y progreso XP como archivo JSON.",
     "dataExported": "¡Datos exportados exitosamente!",
     "dataImported": "¡Datos importados! Actualiza la página para ver los cambios.",
