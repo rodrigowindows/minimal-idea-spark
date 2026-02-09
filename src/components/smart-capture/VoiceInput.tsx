@@ -20,12 +20,16 @@ interface VoiceInputProps {
 const useBackendTranscription = isTranscriptionConfigured()
 const useBrowserFallback = !useBackendTranscription && isBrowserRecognitionSupported()
 
+/** Minimum recording duration (ms) before we send to transcription. Shorter = "hold longer" message. */
+const MIN_RECORDING_MS = 1500
+
 export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: VoiceInputProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [isTranscribing, setIsTranscribing] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const browserRecognizerRef = useRef<ReturnType<typeof createBrowserRecognizer> | null>(null)
+  const recordingStartedAtRef = useRef<number>(0)
 
   const startRecording = useCallback(async () => {
     if (useBackendTranscription) {
@@ -48,7 +52,12 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
         mediaRecorder.onstop = async () => {
           stream.getTracks().forEach(track => track.stop())
 
+          const durationMs = Date.now() - recordingStartedAtRef.current
           if (chunksRef.current.length === 0) return
+          if (durationMs < MIN_RECORDING_MS) {
+            toast.info('Hold the button for at least 1–2 seconds while you speak.')
+            return
+          }
 
           const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' })
           chunksRef.current = []
@@ -76,6 +85,7 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
         }
 
         mediaRecorderRef.current = mediaRecorder
+        recordingStartedAtRef.current = Date.now()
         mediaRecorder.start(250)
         setIsRecording(true)
       } catch {
@@ -162,9 +172,6 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
         }}
         onPointerUp={(e) => {
           e.preventDefault()
-          if (isRecording) stopRecording()
-        }}
-        onPointerLeave={() => {
           if (isRecording) stopRecording()
         }}
       >
