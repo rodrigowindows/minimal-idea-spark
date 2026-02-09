@@ -11,13 +11,17 @@ export type ActivityAction =
   | 'member.joined'
   | 'member.removed'
   | 'member.role_changed'
+  | 'invite.revoked'
+  | 'invite.expired'
+  | 'invite.accepted'
   | 'dashboard.shared'
   | 'dashboard.unshared'
   | 'opportunity.created'
   | 'opportunity.updated'
   | 'opportunity.deleted'
   | 'journal.created'
-  | 'settings.updated';
+  | 'settings.updated'
+  | 'session.signout_all';
 
 export interface Organization {
   id: string;
@@ -62,6 +66,8 @@ export interface OrganizationInvite {
   expires_at: string;
   created_at: string;
   accepted_at?: string;
+  revoked_at?: string;
+  revoked_by?: string;
   status: InviteStatus;
 }
 

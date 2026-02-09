@@ -6,6 +6,8 @@ import { QuickJournal } from '@/components/war-room/QuickJournal'
 import { TimeBlockCalendar } from '@/components/time-blocking/TimeBlockCalendar'
 import { ActivityHeatmap } from '@/components/analytics/ActivityHeatmap'
 import { CustomizeWarRoomModal } from '@/components/WarRoom/CustomizeWarRoomModal'
+import { OnboardingChecklist } from '@/components/Onboarding/OnboardingChecklist'
+import { ContextualTip } from '@/components/Onboarding/ContextualTip'
 import { useLocalData } from '@/hooks/useLocalData'
 import { useXPSystem } from '@/hooks/useXPSystem'
 import { useTranslation } from '@/contexts/LanguageContext'
@@ -121,6 +123,17 @@ export function Dashboard() {
           )
         })}
       </div>
+
+      <div className="mt-8">
+        <OnboardingChecklist />
+      </div>
+
+      <ContextualTip
+        tipId="deep-work"
+        titleKey="onboarding.contextualTips.deepWorkTitle"
+        descriptionKey="onboarding.contextualTips.deepWorkDesc"
+        className="mt-6"
+      />
 
       <CustomizeWarRoomModal open={customizeOpen} onOpenChange={setCustomizeOpen} />
     </div>

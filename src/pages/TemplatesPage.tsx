@@ -6,6 +6,7 @@ import { TemplateMarketplace } from '@/components/Templates/Marketplace'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { Template } from '@/lib/db/schema-templates'
 import { FileStack, PenTool, Store } from 'lucide-react'
+import { ContextualTip } from '@/components/Onboarding/ContextualTip'
 
 export function TemplatesPage() {
   const { t } = useTranslation()
@@ -29,6 +30,12 @@ export function TemplatesPage() {
 
   return (
     <div className="min-h-screen p-4 md:p-6 lg:p-8">
+      <ContextualTip
+        tipId="templates-intro"
+        titleKey="onboarding.contextualTips.templatesTitle"
+        descriptionKey="onboarding.contextualTips.templatesDesc"
+        className="mb-6"
+      />
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="mb-6">
           <TabsTrigger value="library" className="gap-2">

@@ -27,6 +27,7 @@ import { CommandPalette } from '@/components/CommandPalette'
 import { useScrollToTopOnRouteChange } from '@/hooks/useScrollToTopOnRouteChange'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AriaLiveRegion } from '@/components/AriaLiveRegion'
+import { OfflineBanner } from '@/components/OfflineBanner'
 import { useRouteAnnouncer } from '@/hooks/useRouteAnnouncer'
 
 export function AppLayout() {
@@ -41,14 +42,10 @@ export function AppLayout() {
   useKeyboardShortcuts()
 
   return (
-    <div className="relative flex h-screen overflow-hidden bg-background">
+    <div className="relative flex h-screen flex-col overflow-hidden bg-background md:flex-row">
       <SkipLink />
       <AriaLiveRegion />
-      {!isOnline && (
-        <div className="sticky top-0 z-50 flex items-center justify-center bg-amber-500/90 px-4 py-2 text-sm font-medium text-amber-950" role="status" aria-live="polite">
-          {t('layout.offlineBanner')}
-        </div>
-      )}
+      <OfflineBanner />
       <Toaster
         theme="dark"
         position="top-right"
@@ -86,9 +83,9 @@ export function AppLayout() {
             >
               <Search className="h-5 w-5" aria-hidden="true" />
             </Button>
-        <div className="flex items-center gap-1">
-          <SyncStatusIndicator className="shrink-0" />
-          <NotificationCenter />
+            <div className="flex items-center gap-1">
+              <SyncStatusIndicator className="shrink-0" />
+              <NotificationCenter />
               <PresenceIndicator
                 presences={presences}
                 currentUserId={currentUserId}
@@ -108,23 +105,25 @@ export function AppLayout() {
         </>
       )}
 
-      {/* Desktop sidebar */}
-      {!isMobile && !deepWorkMode && (
-        <Sidebar collapsed={!sidebarOpen} onToggle={toggleSidebar} />
-      )}
-
-      {/* Main content area */}
-      <main
-        id="main-content"
-        tabIndex={-1}
-        role="main"
-        aria-label={t('layout.mainContent') || 'Main content'}
-        className={cn(
-          'flex-1 overflow-y-auto transition-all duration-300 ease-in-out',
-          isMobile && !deepWorkMode && 'pt-14 pb-16',
-          deepWorkMode && 'bg-background/95'
+      {/* Layout: sidebar + main in one flex row so they don't get squeezed by other nodes */}
+      <div className="flex min-h-0 flex-1 basis-0 flex-row overflow-hidden">
+        {/* Desktop sidebar */}
+        {!isMobile && !deepWorkMode && (
+          <Sidebar collapsed={!sidebarOpen} onToggle={toggleSidebar} />
         )}
-      >
+
+        {/* Main content area */}
+        <main
+          id="main-content"
+          tabIndex={-1}
+          role="main"
+          aria-label={t('layout.mainContent') || 'Main content'}
+          className={cn(
+            'min-w-0 flex-1 overflow-y-auto overflow-x-hidden transition-all duration-300 ease-in-out',
+            isMobile && !deepWorkMode && 'pt-14 pb-16',
+            deepWorkMode && 'bg-background/95'
+          )}
+        >
         {/* Presence indicator bar for desktop */}
         {!isMobile && !deepWorkMode && presences.filter(p => p.user_id !== currentUserId).length > 0 && (
           <div className="sticky top-0 z-30 flex items-center justify-end px-4 py-2 bg-background/80 backdrop-blur-sm border-b border-border/30">
@@ -147,6 +146,7 @@ export function AppLayout() {
           </ErrorBoundary>
         </div>
       </main>
+      </div>
 
       {/* Mobile bottom nav with PWA features */}
       {isMobile && !deepWorkMode && <MobileNav />}

@@ -37,6 +37,7 @@ import {
   Milestone,
 } from 'lucide-react'
 import { VoiceInput } from '@/components/smart-capture/VoiceInput'
+import { EmptyState } from '@/components/EmptyState'
 import { getOpportunitiesForGoal } from '@/lib/goals/goal-service'
 import { format, differenceInDays, isPast } from 'date-fns'
 
@@ -98,12 +99,12 @@ export function Goals() {
       </header>
 
       {goals.length === 0 ? (
-        <Card className="rounded-xl">
-          <CardContent className="py-12 text-center">
-            <Flag className="mx-auto mb-4 h-12 w-12 text-muted-foreground/50" />
-            <p className="text-muted-foreground">{t('goals.noGoals')}</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Flag}
+          title={t('emptyStates.goals')}
+          actionLabel={t('emptyStates.goalsAction')}
+          onAction={() => setShowNew(true)}
+        />
       ) : (
         <div className="space-y-6">
           {activeGoals.length > 0 && (

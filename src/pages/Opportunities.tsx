@@ -22,6 +22,7 @@ import { TagBadge } from '@/components/tags/TagBadge'
 import { getTagsForOpportunity, setTagsForOpportunity, getAllTags } from '@/lib/tags/tag-service'
 import { EisenhowerMatrix } from '@/components/opportunities/EisenhowerMatrix'
 import { KanbanBoard } from '@/components/opportunities/KanbanBoard'
+import { ContextualTip } from '@/components/Onboarding/ContextualTip'
 import {
   Target,
   Search,
@@ -160,6 +161,12 @@ export function Opportunities() {
 
   return (
     <div className="min-h-screen p-4 md:p-6 lg:p-8">
+      <ContextualTip
+        tipId="opportunities-views"
+        titleKey="onboarding.contextualTips.kanbanTitle"
+        descriptionKey="onboarding.contextualTips.kanbanDesc"
+        className="mb-6"
+      />
       <header className="mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

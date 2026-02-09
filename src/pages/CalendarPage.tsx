@@ -20,9 +20,12 @@ import { autoScheduleDay, analyzeProductivity } from '@/lib/ai-scheduling'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale/pt-BR'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
+import { EmptyState } from '@/components/EmptyState'
 import type { CalendarEvent } from '@/types'
 
 export function CalendarPage() {
+  const { t } = useTranslation()
   const {
     events,
     addEvent,
@@ -225,9 +228,17 @@ export function CalendarPage() {
 
             if (upcoming.length === 0) {
               return (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  Nenhum evento futuro agendado
-                </p>
+                <EmptyState
+                  icon={CalendarDays}
+                  title={t('emptyStates.calendar')}
+                  actionLabel={t('emptyStates.calendarAction')}
+                  onAction={() => {
+                    setEditEvent(null)
+                    setSelectedDate(null)
+                    setModalOpen(true)
+                  }}
+                  className="border-0 bg-transparent"
+                />
               )
             }
 

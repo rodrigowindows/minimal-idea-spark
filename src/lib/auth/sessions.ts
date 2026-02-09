@@ -57,3 +57,14 @@ export function registerCurrentSession(deviceLabel?: string) {
   list = [{ id, device: deviceLabel ?? 'Device', current: true }, ...list.slice(0, 9)]
   localStorage.setItem(STORAGE_KEY, JSON.stringify(list))
 }
+
+export async function signOutAllDevices(): Promise<{ error?: string }> {
+  try {
+    const { error } = await supabase.auth.signOut({ scope: 'global' })
+    if (error) return { error: error.message }
+    localStorage.removeItem(STORAGE_KEY)
+    return {}
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to sign out all devices' }
+  }
+}

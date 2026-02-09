@@ -9,6 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Sparkles, Brain, Wifi, WifiOff, RotateCcw, Trash2, AlertCircle } from 'lucide-react'
+import { ContextualTip } from '@/components/Onboarding/ContextualTip'
 import { useLocalData } from '@/hooks/useLocalData'
 import { useXPSystem } from '@/hooks/useXPSystem'
 import { useRagChat } from '@/hooks/useRagChat'
@@ -359,6 +360,13 @@ export function Consultant() {
           </Badge>
         </div>
       </header>
+
+      <ContextualTip
+        tipId="rag-consultant"
+        titleKey="onboarding.contextualTips.ragTitle"
+        descriptionKey="onboarding.contextualTips.ragDesc"
+        className="mb-4"
+      />
 
       <ScrollArea className="flex-1 pr-4">
         <div className="space-y-6 pb-4">

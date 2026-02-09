@@ -39,6 +39,10 @@ import {
   Key,
   Webhook,
   Mail,
+  RotateCcw,
+  Play,
+  Square,
+  Sparkles,
 } from 'lucide-react'
 import { useSyncStatus } from '@/hooks/useSyncStatus'
 import { removeConflict, enqueue } from '@/lib/pwa/sync-queue'
@@ -46,15 +50,20 @@ import { clearAllMappings } from '@/lib/pwa/sync-id-map'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { Enable2FAModal } from '@/components/Security/Enable2FAModal'
 import { SessionsList } from '@/components/Security/SessionsList'
+import { signOutAllDevices } from '@/lib/auth/sessions'
+import { useWorkspaceContext } from '@/contexts/WorkspaceContext'
 import { TranscriptionHistory } from '@/components/TranscriptionHistory'
 import { ExportModal } from '@/components/ExportImport/ExportModal'
 import { ImportModal } from '@/components/ExportImport/ImportModal'
+import { getLastBackupDate, isBackupDue, getBackupSchedule, type BackupFrequency } from '@/lib/export/backup'
 import { TagBadge } from '@/components/tags/TagBadge'
 import { getAllTags, createTag, deleteTag } from '@/lib/tags/tag-service'
 import { getDigestFrequency, setDigestFrequency, type DigestFrequency } from '@/lib/email/digest'
 import { listApiKeys, createApiKey, revokeApiKey } from '@/lib/api/keys'
 import { listWebhooks, addWebhook, removeWebhook } from '@/lib/api/webhooks'
 import { Link } from 'react-router-dom'
+import { useOnboarding } from '@/hooks/useOnboarding'
+import { loadDemoData, unloadDemoData } from '@/lib/demo-data'
 import {
   Dialog,
   DialogContent,
@@ -76,6 +85,7 @@ export function Settings() {
   const { user, signOut } = useAuth()
   const { preferences: notifPrefs, updatePreferences } = useNotifications()
   const { status, pendingCount, queueItems, conflicts, clearPendingQueue, clearPendingConflicts, runSync, lastError } = useSyncStatus()
+  const { logActivity } = useWorkspaceContext()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [importing, setImporting] = useState(false)
   const [showDomainDialog, setShowDomainDialog] = useState(false)
@@ -91,6 +101,7 @@ export function Settings() {
   const [webhooks, setWebhooks] = useState(() => listWebhooks())
   const [newWebhookUrl, setNewWebhookUrl] = useState('')
   const [tags, setTags] = useState(() => getAllTags())
+  const { demoMode, resetTour, toggleDemoMode } = useOnboarding()
   const [newDomainName, setNewDomainName] = useState('')
   const [newDomainColor, setNewDomainColor] = useState<string>(DEFAULT_DOMAIN_COLORS[0])
   const [newDomainTarget, setNewDomainTarget] = useState(20)
@@ -265,6 +276,31 @@ export function Settings() {
             <div>
               <p className="text-sm font-medium mb-2">{t('settings.sessions')}</p>
               <SessionsList />
+            </div>
+            <div>
+              <p className="text-sm font-medium mb-1">Sair de todos os dispositivos</p>
+              <p className="text-xs text-muted-foreground mb-2">
+                Encerra todas as sessoes ativas, incluindo este dispositivo.
+              </p>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="gap-2"
+                onClick={async () => {
+                  if (!window.confirm('Tem certeza? Voce sera deslogado de todos os dispositivos.')) return
+                  logActivity('session.signout_all', 'session', undefined, { device: 'all' })
+                  const { error } = await signOutAllDevices()
+                  if (error) {
+                    toast.error(error)
+                  } else {
+                    toast.success('Todas as sessoes foram encerradas')
+                    setTimeout(() => window.location.reload(), 1000)
+                  }
+                }}
+              >
+                <LogOut className="h-4 w-4" />
+                Sair de Todos os Dispositivos
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -544,13 +580,40 @@ export function Settings() {
               {t('settings.backupExport')}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-3">
             <p className="text-sm text-muted-foreground">
               {t('settings.backupDescription')}
             </p>
             {t('settings.privacyExportNote') && (
               <p className="text-xs text-muted-foreground">{t('settings.privacyExportNote')}</p>
             )}
+            {/* Last backup info */}
+            {(() => {
+              const lastBackup = getLastBackupDate()
+              const schedule = getBackupSchedule()
+              const due = isBackupDue()
+              return (
+                <div className="rounded-lg bg-muted/50 p-2 text-sm space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Último backup:</span>
+                    <span className="font-medium">
+                      {lastBackup ? new Date(lastBackup).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Nunca'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Agendamento:</span>
+                    <Badge variant={due ? 'destructive' : 'secondary'}>
+                      {schedule === 'off' ? 'Desativado' : schedule === 'daily' ? 'Diário' : schedule === 'weekly' ? 'Semanal' : 'Mensal'}
+                    </Badge>
+                  </div>
+                  {due && (
+                    <p className="text-xs text-destructive font-medium mt-1">
+                      Seu backup está atrasado! Exporte agora.
+                    </p>
+                  )}
+                </div>
+              )
+            })()}
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => setExportModalOpen(true)}>
                 <Download className="mr-1 h-4 w-4" /> {t('settings.exportBackup')}
@@ -737,6 +800,49 @@ export function Settings() {
             <p className="text-xs text-muted-foreground">
               {t('settings.exportDescription')}
             </p>
+          </CardContent>
+        </Card>
+
+        {/* Onboarding & Demo */}
+        <Card className="rounded-xl">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Sparkles className="h-5 w-5 text-primary" />
+              {t('onboarding.help.demoMode')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              {t('onboarding.help.demoModeDesc')}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => {
+                resetTour()
+                toast.info(t('onboarding.help.tourRestarted'))
+              }}>
+                <RotateCcw className="h-4 w-4" />
+                {t('onboarding.help.restartTour')}
+              </Button>
+              <Button
+                variant={demoMode ? 'destructive' : 'outline'}
+                size="sm"
+                className="gap-2"
+                onClick={() => {
+                  if (demoMode) {
+                    unloadDemoData()
+                    toggleDemoMode()
+                    toast.info(t('onboarding.help.demoUnloaded'))
+                  } else {
+                    loadDemoData()
+                    toggleDemoMode()
+                    toast.info(t('onboarding.help.demoLoaded'))
+                  }
+                }}
+              >
+                {demoMode ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                {demoMode ? t('onboarding.help.disableDemo') : t('onboarding.help.enableDemo')}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 

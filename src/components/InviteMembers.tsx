@@ -28,17 +28,19 @@ import {
   CheckCircle2,
   XCircle,
   Shield,
+  Ban,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { ROLE_LABELS, type InviteRole, type InviteStatus } from '@/lib/db/schema-organizations';
+import { formatDistanceToNow } from 'date-fns';
 
 const STATUS_CONFIG: Record<InviteStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: typeof Clock }> = {
   pending: { label: 'Pendente', variant: 'outline', icon: Clock },
   accepted: { label: 'Aceito', variant: 'default', icon: CheckCircle2 },
   expired: { label: 'Expirado', variant: 'destructive', icon: XCircle },
-  revoked: { label: 'Revogado', variant: 'destructive', icon: X },
+  revoked: { label: 'Revogado', variant: 'destructive', icon: Ban },
 };
 
 export function InviteMembers() {
@@ -87,14 +89,12 @@ export function InviteMembers() {
   };
 
   const pendingInvites = orgInvites.filter(i => i.status === 'pending');
-
-  // Invitations disabled for now - focusing on single-user security first
-  const invitesDisabled = true;
+  const allInvites = orgInvites;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button disabled={!permissions.canInvite || invitesDisabled} size="sm" className="gap-2" title={invitesDisabled ? 'Convites serao habilitados em breve (Plano Pro)' : undefined}>
+        <Button disabled={!permissions.canInvite} size="sm" className="gap-2">
           <UserPlus className="h-4 w-4" />
           Convidar
         </Button>
@@ -135,6 +135,9 @@ export function InviteMembers() {
               </Select>
               <Button onClick={handleSendInvite}>Enviar</Button>
             </div>
+            <p className="text-xs text-muted-foreground">
+              O convite expira em 7 dias. Voce pode revogar a qualquer momento.
+            </p>
           </div>
         )}
 
@@ -205,45 +208,68 @@ export function InviteMembers() {
           </ScrollArea>
         </div>
 
-        {/* Pending invites */}
-        {pendingInvites.length > 0 && (
+        {/* All invites with status */}
+        {allInvites.length > 0 && (
           <>
             <Separator />
             <div className="space-y-2">
-              <h4 className="text-sm font-medium">Convites Pendentes ({pendingInvites.length})</h4>
-              <ScrollArea className="max-h-[150px]">
+              <h4 className="text-sm font-medium">
+                Convites ({pendingInvites.length} pendente{pendingInvites.length !== 1 ? 's' : ''} / {allInvites.length} total)
+              </h4>
+              <ScrollArea className="max-h-[200px]">
                 <div className="space-y-2">
-                  {pendingInvites.map((invite) => {
+                  {allInvites.map((invite) => {
                     const config = STATUS_CONFIG[invite.status];
                     const StatusIcon = config.icon;
+                    const isExpired = new Date(invite.expires_at) < new Date();
+                    const effectiveStatus = invite.status === 'pending' && isExpired ? 'expired' : invite.status;
+                    const effectiveConfig = STATUS_CONFIG[effectiveStatus];
+                    const EffectiveIcon = effectiveConfig.icon;
+
                     return (
                       <div
                         key={invite.id}
                         className="flex items-center justify-between rounded-lg bg-muted/50 p-2.5"
                       >
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="text-sm truncate">{invite.email}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <Badge variant={config.variant} className="text-xs gap-1">
-                              <StatusIcon className="h-3 w-3" />
-                              {config.label}
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                            <Badge variant={effectiveConfig.variant} className="text-xs gap-1">
+                              <EffectiveIcon className="h-3 w-3" />
+                              {effectiveConfig.label}
                             </Badge>
                             <span className="text-xs text-muted-foreground">
                               {ROLE_LABELS[invite.role]}
                             </span>
                           </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {invite.status === 'pending' && !isExpired && (
+                              <>Expira {formatDistanceToNow(new Date(invite.expires_at), { addSuffix: true })}</>
+                            )}
+                            {invite.status === 'accepted' && invite.accepted_at && (
+                              <>Aceito {formatDistanceToNow(new Date(invite.accepted_at), { addSuffix: true })}</>
+                            )}
+                            {invite.status === 'revoked' && invite.revoked_at && (
+                              <>Revogado {formatDistanceToNow(new Date(invite.revoked_at), { addSuffix: true })}</>
+                            )}
+                            {(invite.status === 'expired' || (invite.status === 'pending' && isExpired)) && (
+                              <>Expirou {formatDistanceToNow(new Date(invite.expires_at), { addSuffix: true })}</>
+                            )}
+                          </p>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => handleCopyLink(invite.token)}
-                            title="Copiar link"
-                          >
-                            <Copy className="h-3.5 w-3.5" />
-                          </Button>
-                          {permissions.canInvite && (
+                        <div className="flex items-center gap-1 shrink-0">
+                          {invite.status === 'pending' && !isExpired && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => handleCopyLink(invite.token)}
+                              title="Copiar link"
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          {permissions.canInvite && invite.status === 'pending' && !isExpired && (
                             <Button
                               variant="ghost"
                               size="icon"

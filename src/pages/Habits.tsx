@@ -36,6 +36,7 @@ import {
   Calendar,
 } from 'lucide-react'
 import { VoiceInput } from '@/components/smart-capture/VoiceInput'
+import { EmptyState } from '@/components/EmptyState'
 import { format, subDays, startOfWeek, addDays } from 'date-fns'
 import { getDateLocale } from '@/lib/date-locale'
 
@@ -121,12 +122,12 @@ export function Habits() {
       </header>
 
       {habits.length === 0 ? (
-        <Card className="rounded-xl">
-          <CardContent className="py-12 text-center">
-            <Repeat className="mx-auto mb-4 h-12 w-12 text-muted-foreground/50" />
-            <p className="text-muted-foreground">{t('habits.noHabits')}</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Repeat}
+          title={t('emptyStates.habits')}
+          actionLabel={t('emptyStates.habitsAction')}
+          onAction={() => setShowNew(true)}
+        />
       ) : (
         <div className="space-y-4">
           {/* Today's habits */}

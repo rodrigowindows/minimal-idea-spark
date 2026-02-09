@@ -23,7 +23,7 @@ import { RealtimeProvider } from "@/contexts/RealtimeContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { registerFlushSyncQueue } from "@/lib/pwa/offline-manager";
 import { processQueue } from "@/lib/pwa/sync-queue";
 import { createSyncProcessor } from "@/lib/pwa/sync-processor";
@@ -74,6 +74,7 @@ const queryClient = new QueryClient({
 
 function AppContent() {
   const { levelUpTriggered } = useAppContext();
+  const [tourForceOpen, setTourForceOpen] = useState(false);
   useNotificationGenerator();
 
   useEffect(() => {
@@ -83,12 +84,20 @@ function AppContent() {
     });
   }, []);
 
+  const handleStartTour = () => {
+    setTourForceOpen(true);
+  };
+
+  const handleTourClose = () => {
+    setTourForceOpen(false);
+  };
+
   return (
     <>
       <Routes>
         <Route element={<AppLayout />}>
           <Route path="/" element={<Suspense fallback={<PageFallback />}><Dashboard /></Suspense>} />
-          <Route path="/consultant" element={<Suspense fallback={<PageFallback />}><Consultant /></Suspense>} />
+          <Route path="/consultant" element={<Suspense fallback={<PageFallback />}><ErrorBoundary><Consultant /></ErrorBoundary></Suspense>} />
           <Route path="/opportunities/:id" element={<Suspense fallback={<PageFallback />}><Opportunities /></Suspense>} />
           <Route path="/opportunities" element={<Suspense fallback={<PageFallback />}><Opportunities /></Suspense>} />
           <Route path="/journal/:date" element={<Suspense fallback={<PageFallback />}><Journal /></Suspense>} />
@@ -100,7 +109,7 @@ function AppContent() {
           <Route path="/priorities" element={<PriorityDashboard />} />
           <Route path="/weekly-review" element={<Suspense fallback={<PageFallback />}><WeeklyReview /></Suspense>} />
           <Route path="/content-generator" element={<Suspense fallback={<PageFallback />}><ContentGeneratorPage /></Suspense>} />
-          <Route path="/automation" element={<Suspense fallback={<PageFallback />}><AutomationPage /></Suspense>} />
+          <Route path="/automation" element={<Suspense fallback={<PageFallback />}><ErrorBoundary><AutomationPage /></ErrorBoundary></Suspense>} />
           <Route path="/templates" element={<Suspense fallback={<PageFallback />}><TemplatesPage /></Suspense>} />
           <Route path="/images" element={<Suspense fallback={<PageFallback />}><ImageGenerationPage /></Suspense>} />
           <Route path="/version-history" element={<Suspense fallback={<PageFallback />}><VersionHistoryPage /></Suspense>} />
@@ -119,8 +128,8 @@ function AppContent() {
       <ConfettiEffect trigger={levelUpTriggered} />
       <XPNotificationListener />
       <ChatWidget />
-      <WelcomeModal />
-      <Tour />
+      <WelcomeModal onStartTour={handleStartTour} />
+      <Tour forceOpen={tourForceOpen} onClose={handleTourClose} />
       <ReminderChecker />
     </>
   );

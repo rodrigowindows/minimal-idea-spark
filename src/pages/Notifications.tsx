@@ -42,6 +42,7 @@ import { getPriorityLevel } from '@/lib/notifications/priority-engine'
 import type { AppNotification, NotificationType } from '@/lib/notifications/manager'
 import { NotificationDigest } from '@/components/NotificationDigest'
 import { VirtualList } from '@/components/VirtualList'
+import { EmptyState } from '@/components/EmptyState'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 
@@ -316,7 +317,7 @@ export function NotificationsPage() {
 
         <TabsContent value="all">
           {filteredActive.length === 0 ? (
-            <EmptyState message={t('notificationsPage.emptyNoActive')} />
+            <EmptyState icon={Inbox} title={t('emptyStates.notifications')} />
           ) : filteredActive.length > 30 ? (
             <VirtualList
               items={filteredActive}
@@ -351,7 +352,7 @@ export function NotificationsPage() {
 
         <TabsContent value="unread">
           {unread.length === 0 ? (
-            <EmptyState message={t('notificationsPage.emptyAllCaughtUp')} />
+            <EmptyState icon={CheckCheck} title={t('emptyStates.notificationsAllRead')} />
           ) : unread.length > 30 ? (
             <VirtualList
               items={unread}
@@ -386,7 +387,7 @@ export function NotificationsPage() {
 
         <TabsContent value="grouped">
           {groups.length === 0 ? (
-            <EmptyState message={t('notificationsPage.emptyNoGroup')} />
+            <EmptyState icon={Inbox} title={t('emptyStates.notificationsGrouped')} />
           ) : (
             <div className="space-y-4">
               {groups.map(group => (
@@ -419,7 +420,7 @@ export function NotificationsPage() {
 
         <TabsContent value="snoozed">
           {snoozed.length === 0 ? (
-            <EmptyState message={t('notificationsPage.emptyNoSnoozed')} />
+            <EmptyState icon={BellOff} title={t('emptyStates.notificationsSnoozed')} />
           ) : (
             <div className="space-y-2">
               {snoozed.map(n => (
@@ -445,7 +446,7 @@ export function NotificationsPage() {
 
         <TabsContent value="archived">
           {archived.length === 0 ? (
-            <EmptyState message={t('notificationsPage.emptyNoArchived')} />
+            <EmptyState icon={Archive} title={t('emptyStates.notificationsArchived')} />
           ) : (
             <div className="space-y-2">
               {archived.slice(0, 50).map(n => (
@@ -469,11 +470,3 @@ export function NotificationsPage() {
   )
 }
 
-function EmptyState({ message }: { message: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-      <Inbox className="h-12 w-12 mb-3 opacity-40" />
-      <p className="text-sm">{message}</p>
-    </div>
-  )
-}

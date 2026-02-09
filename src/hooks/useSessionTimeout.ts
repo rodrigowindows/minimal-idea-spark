@@ -7,7 +7,9 @@ import {
   setSessionWarningShown,
   wasSessionWarningShown,
   clearSessionWarning,
+  refreshTokenIfNeeded,
 } from '@/lib/auth/session-utils'
+import { toast } from 'sonner'
 
 const WARNING_BEFORE_MS = 2 * 60 * 1000 // warn 2 min before expiry
 const CHECK_INTERVAL_MS = 60 * 1000 // check every minute
@@ -26,7 +28,10 @@ export function useSessionTimeout(onExpire: () => void, onWarning?: () => void) 
     const onActivity = () => touchSession()
     window.addEventListener('click', onActivity)
     window.addEventListener('keydown', onActivity)
-    const interval = setInterval(() => {
+    const interval = setInterval(async () => {
+      // Proactively refresh token before it expires
+      await refreshTokenIfNeeded()
+
       if (isSessionExpired(timeoutMs)) {
         expire()
         return
@@ -36,6 +41,11 @@ export function useSessionTimeout(onExpire: () => void, onWarning?: () => void) 
       if (remaining > 0 && remaining <= WARNING_BEFORE_MS && !wasSessionWarningShown()) {
         setSessionWarningShown()
         setShowWarning(true)
+        const minutes = Math.ceil(remaining / 60_000)
+        toast.warning(
+          `Sua sessao expira em ${minutes} minuto${minutes > 1 ? 's' : ''}. Interaja para manter-se conectado.`,
+          { duration: 10_000 }
+        )
         onWarning?.()
       }
     }, CHECK_INTERVAL_MS)

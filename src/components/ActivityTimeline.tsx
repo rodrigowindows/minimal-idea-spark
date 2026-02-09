@@ -10,6 +10,10 @@ import {
   Shield,
   Link as LinkIcon,
   Activity,
+  Ban,
+  Clock,
+  CheckCircle2,
+  LogOut,
 } from 'lucide-react';
 import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
 import type { ActivityAction } from '@/lib/db/schema-organizations';
@@ -29,8 +33,12 @@ const ACTION_CONFIG: Record<ActivityAction, { label: string; icon: typeof Activi
   'opportunity.created': { label: 'Oportunidade criada', icon: Target, color: 'text-green-500' },
   'opportunity.updated': { label: 'Oportunidade atualizada', icon: Target, color: 'text-blue-500' },
   'opportunity.deleted': { label: 'Oportunidade removida', icon: Target, color: 'text-red-500' },
+  'invite.revoked': { label: 'Convite revogado', icon: Ban, color: 'text-red-500' },
+  'invite.expired': { label: 'Convite expirado', icon: Clock, color: 'text-yellow-500' },
+  'invite.accepted': { label: 'Convite aceito', icon: CheckCircle2, color: 'text-green-500' },
   'journal.created': { label: 'Entrada no diario', icon: BookOpen, color: 'text-emerald-500' },
   'settings.updated': { label: 'Configuracoes atualizadas', icon: Settings2, color: 'text-yellow-500' },
+  'session.signout_all': { label: 'Saiu de todos os dispositivos', icon: LogOut, color: 'text-red-500' },
 };
 
 interface ActivityTimelineProps {
@@ -78,6 +86,7 @@ export function ActivityTimeline({ limit }: ActivityTimelineProps) {
                     config.color === 'text-yellow-500' && 'border-yellow-500/30',
                     config.color === 'text-purple-500' && 'border-purple-500/30',
                     config.color === 'text-emerald-500' && 'border-emerald-500/30',
+                    config.color === 'text-amber-500' && 'border-amber-500/30',
                   )}
                 >
                   <Icon className={cn('h-3.5 w-3.5', config.color)} />
@@ -117,6 +126,12 @@ function formatMetadata(action: ActivityAction, metadata: Record<string, unknown
       return metadata.new_role ? `Nova permissao: ${metadata.new_role}` : '';
     case 'dashboard.shared':
       return `${metadata.dashboard_type || ''} (${metadata.share_type || ''})`;
+    case 'invite.revoked':
+      return metadata.email ? `${metadata.email} (${metadata.role || ''})` : '';
+    case 'invite.accepted':
+      return metadata.email ? `${metadata.email}` : '';
+    case 'member.removed':
+      return metadata.user_id ? `ID: ${String(metadata.user_id).slice(0, 8)}...` : '';
     default:
       return '';
   }

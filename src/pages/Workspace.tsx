@@ -36,6 +36,7 @@ import {
   MessageSquare,
   History,
   Circle,
+  Mail,
 } from 'lucide-react';
 import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
 import { useRealtime } from '@/contexts/RealtimeContext';
@@ -46,6 +47,7 @@ import { RealtimeChat } from '@/components/RealtimeChat';
 import { ChangeHistory } from '@/components/ChangeHistory';
 import { PresenceIndicator } from '@/components/PresenceIndicator';
 import { ROLE_LABELS } from '@/lib/db/schema-organizations';
+import { Unauthorized } from '@/components/Unauthorized';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
@@ -59,10 +61,12 @@ export function Workspace() {
     currentRole,
     permissions,
     orgMembers,
+    orgInvites,
     orgShares,
     orgActivity,
     updateOrganization,
     deleteOrganization,
+    revokeInvite,
     organizations,
   } = useWorkspaceContext();
   const { presences, isConnected, chatMessages } = useRealtime();
@@ -157,6 +161,17 @@ export function Workspace() {
             <Users className="h-4 w-4" />
             Membros
           </TabsTrigger>
+          {permissions.canInvite && (
+            <TabsTrigger value="invites" className="gap-2">
+              <Mail className="h-4 w-4" />
+              Convites
+              {orgInvites.filter(i => i.status === 'pending').length > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] text-xs">
+                  {orgInvites.filter(i => i.status === 'pending').length}
+                </Badge>
+              )}
+            </TabsTrigger>
+          )}
           <TabsTrigger value="history" className="gap-2">
             <History className="h-4 w-4" />
             Historico
@@ -307,6 +322,94 @@ export function Workspace() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Invites Tab */}
+        {permissions.canInvite && (
+          <TabsContent value="invites">
+            <Card className="rounded-xl">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Mail className="h-5 w-5 text-primary" />
+                    Convites Ativos
+                  </span>
+                  <InviteMembers />
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {orgInvites.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Mail className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm">Nenhum convite enviado ainda</p>
+                    <p className="text-xs mt-1">Use o botao acima para convidar membros</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {orgInvites.map((invite) => {
+                      const isExpired = new Date(invite.expires_at) < new Date();
+                      const effectiveStatus = invite.status === 'pending' && isExpired ? 'expired' : invite.status;
+
+                      return (
+                        <div
+                          key={invite.id}
+                          className="flex items-center justify-between rounded-lg border p-3"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium">{invite.email}</p>
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              <Badge
+                                variant={
+                                  effectiveStatus === 'pending' ? 'outline' :
+                                  effectiveStatus === 'accepted' ? 'default' :
+                                  'destructive'
+                                }
+                                className="text-xs"
+                              >
+                                {effectiveStatus === 'pending' && 'Pendente'}
+                                {effectiveStatus === 'accepted' && 'Aceito'}
+                                {effectiveStatus === 'expired' && 'Expirado'}
+                                {effectiveStatus === 'revoked' && 'Revogado'}
+                              </Badge>
+                              <Badge variant="secondary" className="text-xs">
+                                {invite.role}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                {effectiveStatus === 'pending' && (
+                                  <>Expira {formatDistanceToNow(new Date(invite.expires_at), { addSuffix: true })}</>
+                                )}
+                                {effectiveStatus === 'accepted' && invite.accepted_at && (
+                                  <>Aceito {formatDistanceToNow(new Date(invite.accepted_at), { addSuffix: true })}</>
+                                )}
+                                {effectiveStatus === 'revoked' && invite.revoked_at && (
+                                  <>Revogado {formatDistanceToNow(new Date(invite.revoked_at), { addSuffix: true })}</>
+                                )}
+                                {effectiveStatus === 'expired' && (
+                                  <>Expirou {formatDistanceToNow(new Date(invite.expires_at), { addSuffix: true })}</>
+                                )}
+                              </span>
+                            </div>
+                          </div>
+                          {effectiveStatus === 'pending' && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => {
+                                revokeInvite(invite.id);
+                                toast.success('Convite revogado');
+                              }}
+                            >
+                              Revogar
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
         {/* History Tab */}
         <TabsContent value="history">

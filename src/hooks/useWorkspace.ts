@@ -224,6 +224,35 @@ export function useWorkspace() {
     return invite;
   }, [currentOrg, logActivity]);
 
+  // Validate invite token (returns detailed reason)
+  const validateInviteToken = useCallback((token: string): {
+    valid: boolean;
+    reason?: 'not_found' | 'expired' | 'revoked' | 'already_used';
+    organizationName?: string;
+  } => {
+    const invite = invites.find(i => i.token === token);
+    if (!invite) return { valid: false, reason: 'not_found' };
+
+    const org = organizations.find(o => o.id === invite.organization_id);
+
+    if (invite.status === 'accepted') {
+      return { valid: false, reason: 'already_used', organizationName: org?.name };
+    }
+    if (invite.status === 'revoked') {
+      return { valid: false, reason: 'revoked', organizationName: org?.name };
+    }
+    if (invite.status === 'expired' || new Date(invite.expires_at) < new Date()) {
+      if (invite.status !== 'expired') {
+        setInvites(prev => prev.map(i =>
+          i.id === invite.id ? { ...i, status: 'expired' as const } : i
+        ));
+      }
+      return { valid: false, reason: 'expired', organizationName: org?.name };
+    }
+
+    return { valid: true, organizationName: org?.name };
+  }, [invites, organizations]);
+
   // Accept invite (simulate)
   const acceptInvite = useCallback((token: string) => {
     const invite = invites.find(i => i.token === token && i.status === 'pending');
@@ -253,16 +282,19 @@ export function useWorkspace() {
       user_profile: { full_name: invite.email ? invite.email.split('@')[0] : 'User' },
     };
     setMembers(prev => [...prev, member]);
+    logActivity('invite.accepted', 'invite', invite.id, { email: invite.email });
     logActivity('member.joined', 'member', member.id, { email: invite.email });
     return true;
   }, [invites, logActivity]);
 
   // Revoke invite
   const revokeInvite = useCallback((inviteId: string) => {
+    const invite = invites.find(i => i.id === inviteId);
     setInvites(prev => prev.map(i =>
-      i.id === inviteId ? { ...i, status: 'revoked' as const } : i
+      i.id === inviteId ? { ...i, status: 'revoked' as const, revoked_at: new Date().toISOString(), revoked_by: currentUserId } : i
     ));
-  }, []);
+    logActivity('invite.revoked', 'invite', inviteId, { email: invite?.email, role: invite?.role });
+  }, [invites, currentUserId, logActivity]);
 
   // Remove member
   const removeMember = useCallback((memberId: string) => {
@@ -340,6 +372,7 @@ export function useWorkspace() {
     updateOrganization,
     deleteOrganization,
     inviteMember,
+    validateInviteToken,
     acceptInvite,
     revokeInvite,
     removeMember,

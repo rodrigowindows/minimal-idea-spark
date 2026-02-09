@@ -14,6 +14,7 @@ import { BookOpen, Plus, Calendar, Sparkles, Send, Trash2, Zap } from 'lucide-re
 import { Badge } from '@/components/ui/badge'
 import { VoiceInput } from '@/components/smart-capture/VoiceInput'
 import { AudioToText } from '@/components/AudioToText'
+import { EmptyState } from '@/components/EmptyState'
 import { VirtualList } from '@/components/VirtualList'
 import { format, parseISO } from 'date-fns'
 import { getDateLocale } from '@/lib/date-locale'
@@ -269,14 +270,12 @@ export function Journal() {
             ))}
           </div>
         ) : sortedLogs.length === 0 ? (
-          <Card className="rounded-xl">
-            <CardContent className="py-12 text-center">
-              <BookOpen className="mx-auto mb-4 h-12 w-12 text-muted-foreground/50" />
-              <p className="text-muted-foreground">
-                {t('journal.noEntries')}
-              </p>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={BookOpen}
+            title={t('emptyStates.journal')}
+            actionLabel={t('emptyStates.journalAction')}
+            onAction={() => setShowNewEntry(true)}
+          />
         ) : sortedLogs.length > 30 ? (
           <VirtualList
             items={sortedLogs}
