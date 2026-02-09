@@ -39,7 +39,7 @@ describe('usePriorities', () => {
         title: 'Test priority',
         description: 'Desc',
         priority_level: 'high',
-        category: 'goal',
+        category: 'career',
       })
     })
 
@@ -57,7 +57,7 @@ describe('usePriorities', () => {
         title: 'P1',
         description: '',
         priority_level: 'medium',
-        category: 'habit',
+        category: 'personal',
       })
     })
     const id = result.current.priorities[0].id
@@ -77,7 +77,7 @@ describe('usePriorities', () => {
     const { result } = renderHook(() =>
       usePriorities(
         [{ title: 'O1', status: 'backlog', type: 'task', strategic_value: 5 }],
-        [{ id: 'g1', title: 'G1', target: '', progress: 0, status: 'active', created_at: '', updated_at: '' }]
+        [{ id: 'g1', user_id: 'mock-user-001', title: 'G1', description: '', domain_id: null, target_date: '', progress: 0, milestones: [], created_at: '' }]
       )
     )
     expect(result.current.insights).toBeDefined()

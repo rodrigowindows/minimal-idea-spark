@@ -39,7 +39,7 @@ export function ImportModal({ open, onOpenChange, onSuccess }: ImportModalProps)
           exportedAt: validated.payload.exportedAt,
         })
       } else {
-        setError(validated.error)
+        setError((validated as { ok: false; error: string }).error)
       }
     }
     reader.readAsText(f)

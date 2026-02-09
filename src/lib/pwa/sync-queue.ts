@@ -193,17 +193,25 @@ export async function processQueue(
       const result = await handler(item);
       if (result.ok) {
         processed++;
-      } else {
+      } else if ('conflict' in result && 'serverData' in result) {
         newConflicts.push({
           queueId: item.id,
           type: item.type,
           localId: item.localId,
-          reason: result.conflict,
-          serverData: result.serverData,
+          reason: result.conflict as 'rejected' | 'newer_on_server',
+          serverData: result.serverData as Record<string, unknown>,
           payload: item.payload,
           createdAt: item.createdAt,
         });
         conflicts++;
+      } else {
+        // Unknown failure, treat as retry
+        item.retries += 1;
+        if (item.retries >= MAX_RETRIES) {
+          failed++;
+        } else {
+          remaining.push(item);
+        }
       }
     } catch {
       item.retries += 1;

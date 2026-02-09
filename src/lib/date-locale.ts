@@ -1,6 +1,4 @@
-import { ptBR } from 'date-fns/locale/pt-BR'
-import { es } from 'date-fns/locale'
-import { enUS } from 'date-fns/locale'
+import { ptBR, es, enUS, type Locale } from 'date-fns/locale'
 import i18n from '@/i18n'
 
 const LOCALE_MAP: Record<string, Locale> = {
@@ -12,7 +10,7 @@ const LOCALE_MAP: Record<string, Locale> = {
 /**
  * Returns the date-fns locale object matching the current i18n language.
  */
-export function getDateLocale(): Locale {
+export function getDateLocale() {
   return LOCALE_MAP[i18n.language] || ptBR
 }
 

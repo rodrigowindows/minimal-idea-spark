@@ -54,7 +54,6 @@ export function AppLayout() {
         position="top-right"
         toastOptions={{
           className: 'bg-card text-card-foreground border-border',
-          role: 'status',
         }}
       />
 

@@ -37,12 +37,6 @@ export function isTranscriptionConfigured(): boolean {
 }
 
 /** Browser SpeechRecognition (Chrome, Edge, Safari). Not in Firefox. */
-declare global {
-  interface Window {
-    SpeechRecognition?: new () => SpeechRecognitionInstance;
-    webkitSpeechRecognition?: new () => SpeechRecognitionInstance;
-  }
-}
 interface SpeechRecognitionInstance extends EventTarget {
   continuous: boolean;
   interimResults: boolean;
