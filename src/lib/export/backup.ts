@@ -1,11 +1,15 @@
 import type { ExportRow } from '@/lib/analytics/export'
 
 const BACKUP_KEYS = [
+  'lifeos_domains',
   'lifeos_opportunities',
+  'lifeos_daily_logs',
   'lifeos_journal',
   'lifeos_priorities',
   'lifeos_goals',
   'lifeos_habits',
+  'lifeos_weekly_targets',
+  'lifeos_automations',
   'lifeos_version_snapshots',
   'lifeos_version_branches',
   'lifeos_templates',

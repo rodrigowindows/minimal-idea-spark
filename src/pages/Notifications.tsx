@@ -41,6 +41,7 @@ import { useNotifications } from '@/hooks/useNotifications'
 import { getPriorityLevel } from '@/lib/notifications/priority-engine'
 import type { AppNotification, NotificationType } from '@/lib/notifications/manager'
 import { NotificationDigest } from '@/components/NotificationDigest'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 
 const TYPE_ICONS: Record<NotificationType, typeof Bell> = {
@@ -169,6 +170,7 @@ function NotificationRow({
 }
 
 export function NotificationsPage() {
+  const { t } = useTranslation()
   const [tab, setTab] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
@@ -308,7 +310,7 @@ export function NotificationsPage() {
 
         <TabsContent value="all">
           {filteredActive.length === 0 ? (
-            <EmptyState message="No notifications" />
+            <EmptyState message={t('notificationsPage.emptyNoActive')} />
           ) : (
             <div className="space-y-2">
               {filteredActive.map(n => (
@@ -327,7 +329,7 @@ export function NotificationsPage() {
 
         <TabsContent value="unread">
           {unread.length === 0 ? (
-            <EmptyState message="All caught up!" />
+            <EmptyState message={t('notificationsPage.emptyAllCaughtUp')} />
           ) : (
             <div className="space-y-2">
               {unread.map(n => (
@@ -346,7 +348,7 @@ export function NotificationsPage() {
 
         <TabsContent value="grouped">
           {groups.length === 0 ? (
-            <EmptyState message="No notifications to group" />
+            <EmptyState message={t('notificationsPage.emptyNoGroup')} />
           ) : (
             <div className="space-y-4">
               {groups.map(group => (
@@ -379,7 +381,7 @@ export function NotificationsPage() {
 
         <TabsContent value="snoozed">
           {snoozed.length === 0 ? (
-            <EmptyState message="No snoozed notifications" />
+            <EmptyState message={t('notificationsPage.emptyNoSnoozed')} />
           ) : (
             <div className="space-y-2">
               {snoozed.map(n => (
@@ -405,7 +407,7 @@ export function NotificationsPage() {
 
         <TabsContent value="archived">
           {archived.length === 0 ? (
-            <EmptyState message="No archived notifications" />
+            <EmptyState message={t('notificationsPage.emptyNoArchived')} />
           ) : (
             <div className="space-y-2">
               {archived.slice(0, 50).map(n => (

@@ -73,6 +73,13 @@
     "deepWork": "Modo Trabajo Profundo",
     "openSettings": "Configuración"
   },
+  "notificationsPage": {
+    "emptyNoActive": "Sin notificaciones",
+    "emptyAllCaughtUp": "¡Al día!",
+    "emptyNoGroup": "Sin notificaciones para agrupar",
+    "emptyNoSnoozed": "Sin notificaciones pospuestas",
+    "emptyNoArchived": "Sin notificaciones archivadas"
+  },
   "onboarding": {
     "dontShowAgain": "No mostrar de nuevo",
     "finish": "Finalizar",
@@ -513,6 +520,11 @@
     "invalidEmail": "Correo electrónico inválido",
     "minLength": "Mínimo {{count}} caracteres",
     "maxLength": "Máximo {{count}} caracteres"
+  },
+  "a11y": {
+    "skipToContent": "Saltar al contenido principal",
+    "skipToNav": "Saltar a la navegación",
+    "skipLinksLabel": "Enlaces de acceso directo"
   },
   "errors": {
     "generic": "Algo salió mal. Inténtalo de nuevo.",

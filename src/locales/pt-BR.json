@@ -466,6 +466,13 @@
     "deepWork": "Modo Foco Profundo",
     "openSettings": "Configurações"
   },
+  "notificationsPage": {
+    "emptyNoActive": "Nenhuma notificação",
+    "emptyAllCaughtUp": "Tudo em dia!",
+    "emptyNoGroup": "Nenhuma notificação para agrupar",
+    "emptyNoSnoozed": "Nenhuma notificação adiada",
+    "emptyNoArchived": "Nenhuma notificação arquivada"
+  },
   "layout": {
     "offlineBanner": "Você está offline. Algumas ações serão sincronizadas quando a conexão voltar.",
     "openMenu": "Abrir menu",
@@ -515,6 +522,11 @@
     "invalidEmail": "Email inválido",
     "minLength": "Mínimo de {{count}} caracteres",
     "maxLength": "Máximo de {{count}} caracteres"
+  },
+  "a11y": {
+    "skipToContent": "Pular para o conteúdo principal",
+    "skipToNav": "Pular para a navegação",
+    "skipLinksLabel": "Links de atalho"
   },
   "errors": {
     "generic": "Algo deu errado. Tente novamente.",

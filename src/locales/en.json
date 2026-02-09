@@ -73,6 +73,13 @@
     "deepWork": "Deep Work mode",
     "openSettings": "Settings"
   },
+  "notificationsPage": {
+    "emptyNoActive": "No notifications",
+    "emptyAllCaughtUp": "All caught up!",
+    "emptyNoGroup": "No notifications to group",
+    "emptyNoSnoozed": "No snoozed notifications",
+    "emptyNoArchived": "No archived notifications"
+  },
   "onboarding": {
     "dontShowAgain": "Don't show again",
     "finish": "Finish",
@@ -515,6 +522,11 @@
     "invalidEmail": "Invalid email",
     "minLength": "Minimum {{count}} characters",
     "maxLength": "Maximum {{count}} characters"
+  },
+  "a11y": {
+    "skipToContent": "Skip to main content",
+    "skipToNav": "Skip to navigation",
+    "skipLinksLabel": "Skip links"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
