@@ -5,6 +5,10 @@ import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
 import type { Presence, CollaborativeEdit, ChatMessage, ActiveEditor } from '@/lib/realtime/collaboration';
 import { useLocation } from 'react-router-dom';
 
+/**
+ * Realtime collaboration: presences, cursors, collaborative edits, chat by workspace, active editors.
+ * Uses Supabase Realtime and useRealtimeSync; room is derived from current workspace.
+ */
 interface RealtimeContextValue {
   presences: Presence[];
   isConnected: boolean;

@@ -3,6 +3,10 @@ import type { ReactNode } from 'react'
 import type { Opportunity } from '@/types'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 
+/**
+ * Global UI state: sidebar, deep work mode, current opportunity, level-up animation, command palette.
+ * Used by AppLayout, Sidebar, Dashboard, CommandPalette and keyboard shortcuts.
+ */
 interface AppContextValue {
   sidebarOpen: boolean
   deepWorkMode: boolean

@@ -27,6 +27,7 @@ export function EmptyState({
         className
       )}
       role="status"
+      aria-live="polite"
       aria-label={title}
     >
       <Icon className="mb-4 h-12 w-12 text-muted-foreground" aria-hidden />

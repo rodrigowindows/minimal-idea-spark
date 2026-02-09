@@ -1,3 +1,7 @@
+/**
+ * Unified search: local index, semantic (embeddings) and text search.
+ * Debounced query, filters, history, suggestions; integrates with CommandPalette and SmartSearch.
+ */
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   semanticSearch,

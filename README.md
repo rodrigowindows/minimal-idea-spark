@@ -11,7 +11,18 @@ npm i
 npm run dev
 ```
 
-Open [http://localhost:8080](http://localhost:8080). Data is mock by default. To use Supabase, copy `.env.example` to `.env` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, then run the migrations in `supabase/migrations/`.
+Open [http://localhost:8080](http://localhost:8080). Data is mock by default.
+
+**Variáveis de ambiente:** copie `.env.example` para `.env` e preencha:
+
+| Variável | Obrigatório | Descrição |
+|----------|-------------|-----------|
+| `VITE_SUPABASE_URL` | Sim (para auth/dados) | URL do projeto Supabase |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Sim | Chave anon/public |
+| `VITE_OPENAI_API_KEY` | Para RAG/Smart Capture | Usado pelas Edge Functions |
+| `VITE_DEEPGRAM_API_KEY` | Para voz | Transcrição; sem ela, fallback no browser |
+
+Depois rode as migrations em `supabase/migrations/` se usar Supabase.
 
 ## Tests
 
@@ -81,6 +92,16 @@ Coverage and Playwright reports are uploaded as artifacts.
 - **Deep Work** – Full-screen focus + Pomodoro (Esc or X to exit)
 - **Supabase** – Migrations and Edge Functions (RAG, smart-capture) under `supabase/`
 
+## Estrutura de pastas (resumo)
+
+- `src/components/` – UI (layout, smart-capture, war-room, ui base)
+- `src/contexts/` – Estado global (App, Auth, Theme, Language, Realtime, Workspace)
+- `src/hooks/` – useLocalData, useSearch, useAudioTranscription, useRealtimeSync, etc.
+- `src/lib/` – Serviços (audio-transcription, search, rag, automation, pwa, export)
+- `src/pages/` – Rotas (Dashboard, Journal, Opportunities, Settings, …)
+- `supabase/functions/` – Edge Functions (rag-chat, generate-embedding, vector-search, transcribe-audio, …)
+- `docs/` – Documentação técnica e ADRs (ver `docs/README.md`)
+
 ## Project info
 
 **URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
@@ -143,7 +164,7 @@ This project is built with:
 
 ## How can I deploy this project?
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish. Antes do deploy, use o [Checklist de release](docs/RELEASE_CHECKLIST.md).
 
 ## Can I connect a custom domain to my Lovable project?
 

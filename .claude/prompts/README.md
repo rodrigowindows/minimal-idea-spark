@@ -66,6 +66,21 @@ Lista de prompts para implementar ou melhorar funcionalidades no **Minimal Idea 
 | 38 | `38-mobile-bottom-nav-fluxo.md` | Bottom nav com i18n, FAB e swipe no mobile |
 | 39 | `39-busca-global-command-palette.md` | Cmd+K com busca global e ações rápidas |
 
+## Organização, docs e qualidade (40–49)
+
+| # | Arquivo | Descrição |
+|---|---------|-----------|
+| 40 | `40-documentacao-tecnica-adr.md` | Documentação técnica, ARCHITECTURE e ADRs |
+| 41 | `41-deploy-cicd-ambientes.md` | Deploy, build, CI/CD e ambientes |
+| 42 | `42-design-system-tokens-componentes.md` | Design system: tokens, cores e componentes base |
+| 43 | `43-monitoramento-logs-error-tracking.md` | Monitoramento, logs e error tracking (Sentry opcional) |
+| 44 | `44-unificar-i18n-traducoes.md` | Unificar i18n (LanguageContext vs react-i18next) |
+| 45 | `45-estado-global-cache-persistencia.md` | Estado global, cache e persistência (contextos, React Query) |
+| 46 | `46-formularios-validacao-padrao.md` | Formulários e validação (padrão único, a11y) |
+| 47 | `47-listas-tabelas-virtualizacao.md` | Listas longas, tabelas e virtualização |
+| 48 | `48-modais-drawers-overlays-padrao.md` | Modais, drawers e overlays (padrão e a11y) |
+| 49 | `49-checklist-release-pre-deploy.md` | Checklist de release e pré-deploy |
+
 ## Como usar
 
 - Abra o `.md` do número desejado.

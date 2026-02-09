@@ -1,3 +1,7 @@
+/**
+ * Local data layer: opportunities, domains, dailyLogs, habits, goals, automations.
+ * Loads from localStorage with optional sync to Supabase; provides CRUD and snapshot/versioning hooks.
+ */
 import { useState, useCallback, useEffect, useRef } from 'react'
 import type { DailyLog, LifeDomain, Opportunity } from '@/types'
 import { useAuth } from '@/contexts/AuthContext'

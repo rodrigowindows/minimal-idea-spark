@@ -3,6 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Session, User } from '@supabase/supabase-js';
 import { useSessionTimeout } from '@/hooks/useSessionTimeout';
 
+/**
+ * Auth state from Supabase: session, user, loading. Sign out and session timeout.
+ * Wraps the app so routes can guard by user and Edge Functions get the token.
+ */
 interface AuthContextValue {
   session: Session | null;
   user: User | null;
