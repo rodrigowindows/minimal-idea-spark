@@ -100,7 +100,7 @@ function getStoredSections(): Record<string, boolean> {
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { deepWorkMode, toggleDeepWorkMode, setCommandPaletteOpen } = useAppContext()
-  const { language, t } = useTranslation()
+  const { language, t, toggleLanguage } = useTranslation()
   const [sectionsOpen, setSectionsOpen] = useState<Record<string, boolean>>(getStoredSections)
   const { recentPages } = useRecentPages(navItems.map((n) => ({ to: n.to, labelKey: n.labelKey })), t)
 

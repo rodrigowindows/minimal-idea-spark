@@ -1,143 +1,100 @@
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { LogIn, UserPlus, Loader2 } from 'lucide-react';
 
 export function Auth() {
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLogin, setIsLogin] = useState(true);
+  const navigate = useNavigate();
 
-  async function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) {
-      toast.error('Preencha email e senha');
-      return;
-    }
+    setIsLoading(true);
 
-    setLoading(true);
+    try {
+      if (isLogin) {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-    if (isLogin) {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-      if (error) {
-        toast.error(error.message);
+        if (error) throw error;
+        toast.success('Login successful!');
+        navigate('/');
       } else {
-        toast.success('Login realizado com sucesso!');
-      }
-    } else {
-      if (!fullName.trim()) {
-        toast.error('Preencha seu nome');
-        setLoading(false);
-        return;
-      }
-      const { error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          data: {
-            full_name: fullName.trim(),
-          },
-        },
-      });
-      if (error) {
-        toast.error(error.message);
-      } else {
-        toast.success('Conta criada! Verifique seu email para confirmar.');
-      }
-    }
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
 
-    setLoading(false);
-  }
+        if (error) throw error;
+        toast.success('Check your email for confirmation!');
+      }
+    } catch (error) {
+      toast.error(error.message || 'Authentication failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="flex min-h-screen items-center justify-center bg-muted">
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">
-            {isLogin ? 'Entrar no LifeOS' : 'Criar Conta'}
-          </CardTitle>
+        <CardHeader>
+          <CardTitle>{isLogin ? 'Login' : 'Create Account'}</CardTitle>
           <CardDescription>
-            {isLogin
-              ? 'Acesse sua conta para continuar'
-              : 'Crie sua conta para comecar'}
+            {isLogin ? 'Enter your credentials to access your account' : 'Create a new account to get started'}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
-              <div className="space-y-2">
-                <label htmlFor="fullName" className="text-sm font-medium">
-                  Nome completo
-                </label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="Seu nome"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  disabled={loading}
-                />
-              </div>
-            )}
-
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">
-                Email
-              </label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="seu@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={loading}
+                required
               />
             </div>
-
             <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium">
-                Senha
-              </label>
+              <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Minimo 6 caracteres"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
+                required
               />
             </div>
-
-            <Button type="submit" className="w-full gap-2" disabled={loading}>
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : isLogin ? (
-                <LogIn className="h-4 w-4" />
-              ) : (
-                <UserPlus className="h-4 w-4" />
-              )}
-              {isLogin ? 'Entrar' : 'Criar Conta'}
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Processing...' : isLogin ? 'Login' : 'Sign Up'}
             </Button>
           </form>
-
-          <div className="mt-4 text-center">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
-            >
-              {isLogin
-                ? 'Nao tem conta? Cadastre-se'
-                : 'Ja tem conta? Faca login'}
-            </button>
+          <div className="mt-4 text-center text-sm">
+            {isLogin ? (
+              <>
+                Don't have an account?{' '}
+                <Button variant="link" onClick={() => setIsLogin(false)} className="p-0 h-auto">
+                  Sign up
+                </Button>
+              </>
+            ) : (
+              <>
+                Already have an account?{' '}
+                <Button variant="link" onClick={() => setIsLogin(true)} className="p-0 h-auto">
+                  Login
+                </Button>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
