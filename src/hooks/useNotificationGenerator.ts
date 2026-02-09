@@ -29,7 +29,7 @@ export function useNotificationGenerator() {
       if (event.type === 'achievement' && event.achievement) {
         notifyAchievementUnlocked(
           event.achievement.name,
-          event.achievement.description || 'New achievement unlocked!'
+          `+${event.achievement.xp_reward} XP`
         )
         refresh()
       }

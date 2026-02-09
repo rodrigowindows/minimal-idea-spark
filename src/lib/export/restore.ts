@@ -77,6 +77,9 @@ export function restoreFromPayload(
 
 export function restoreFromJson(json: string, strategy: RestoreStrategy = 'merge'): RestoreResult {
   const validated = validateBackupFile(json)
-  if (!validated.ok) return { ok: false, keysRestored: [], keysSkipped: [], error: validated.error }
+  if (!validated.ok) {
+    const errorResult = validated as { ok: false; error: string }
+    return { ok: false, keysRestored: [], keysSkipped: [], error: errorResult.error }
+  }
   return restoreFromPayload(validated.payload, strategy)
 }

@@ -1,17 +1,18 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 
-export type Language = 'pt' | 'en';
+export type Language = 'pt-BR' | 'en' | 'es';
 
 interface LanguageContextType {
   language: Language;
+  setLanguage: (lang: Language) => void;
   toggleLanguage: () => void;
   t: (key: string) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-const translations = {
-  pt: {
+const translations: Record<Language, Record<string, string>> = {
+  'pt-BR': {
     'sidebar.dashboard': 'Painel',
     'sidebar.profile': 'Perfil',
     'dashboard.title': 'Painel Principal',
@@ -23,21 +24,35 @@ const translations = {
     'dashboard.title': 'Main Dashboard',
     'dashboard.theOneThing': 'The One Thing',
   },
+  es: {
+    'sidebar.dashboard': 'Panel',
+    'sidebar.profile': 'Perfil',
+    'dashboard.title': 'Panel Principal',
+    'dashboard.theOneThing': 'La Única Cosa',
+  },
 };
 
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
-  const [language, setLanguage] = useState<Language>('pt');
+  const [language, setLanguageState] = useState<Language>('pt-BR');
+
+  const setLanguage = (lang: Language) => {
+    setLanguageState(lang);
+  };
 
   const toggleLanguage = () => {
-    setLanguage((prev) => (prev === 'pt' ? 'en' : 'pt'));
+    setLanguageState((prev) => {
+      if (prev === 'pt-BR') return 'en';
+      if (prev === 'en') return 'es';
+      return 'pt-BR';
+    });
   };
 
   const t = (key: string) => {
-    return translations[language][key] || key;
+    return translations[language]?.[key] || key;
   };
 
   return (
-    <LanguageContext.Provider value={{ language, toggleLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, toggleLanguage, t }}>
       {children}
     </LanguageContext.Provider>
   );

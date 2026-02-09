@@ -39,7 +39,7 @@ export function TagFilter({ selectedTagId, onSelectTag, className }: TagFilterPr
           )}
           style={
             selectedTagId === tag.id
-              ? { backgroundColor: tag.color, color: '#fff', ringColor: tag.color }
+              ? { backgroundColor: tag.color, color: '#fff', '--tw-ring-color': tag.color } as React.CSSProperties
               : { backgroundColor: `${tag.color}20`, color: tag.color }
           }
         >
