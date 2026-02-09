@@ -13,6 +13,7 @@ import { BookOpen, Plus, Calendar, Sparkles, Send, Trash2, Zap } from 'lucide-re
 import { Badge } from '@/components/ui/badge'
 import { VoiceInput } from '@/components/smart-capture/VoiceInput'
 import { AudioToText } from '@/components/AudioToText'
+import { VirtualList } from '@/components/VirtualList'
 import { format, parseISO } from 'date-fns'
 import { getDateLocale } from '@/lib/date-locale'
 import { toast } from 'sonner'
@@ -267,6 +268,46 @@ export function Journal() {
               </p>
             </CardContent>
           </Card>
+        ) : sortedLogs.length > 30 ? (
+          <VirtualList
+            items={sortedLogs}
+            itemHeight={160}
+            className="h-[calc(100vh-200px)]"
+            getItemKey={(log) => log.id}
+            renderItem={(log) => {
+              const moodEmoji = getMoodEmoji(log.mood)
+              const formattedDate = format(parseISO(log.log_date), 'EEEE, MMMM d, yyyy', { locale: getDateLocale() })
+              return (
+                <div className="pb-4">
+                  <Card className="group rounded-xl">
+                    <CardContent className="py-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Calendar className="h-4 w-4" />
+                          <span>{formattedDate}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {moodEmoji && <span className="text-xl" title={log.mood ?? ''}>{moodEmoji}</span>}
+                          {log.energy_level && (
+                            <div className="flex items-center gap-1">
+                              <div className="h-2 w-16 overflow-hidden rounded-full bg-muted">
+                                <div className="h-full rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500" style={{ width: `${log.energy_level * 10}%` }} />
+                              </div>
+                              <span className="text-xs text-muted-foreground">{log.energy_level}/10</span>
+                            </div>
+                          )}
+                          <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100" onClick={() => handleDelete(log.id)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                      <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">{log.content}</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )
+            }}
+          />
         ) : (
           <div className="space-y-4">
             {sortedLogs.map((log) => {

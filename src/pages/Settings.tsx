@@ -37,6 +37,7 @@ import {
   Tag,
   Key,
   Webhook,
+  Mail,
 } from 'lucide-react'
 import { useSyncStatus } from '@/hooks/useSyncStatus'
 import { removeConflict, enqueue } from '@/lib/pwa/sync-queue'
@@ -49,6 +50,7 @@ import { ExportModal } from '@/components/ExportImport/ExportModal'
 import { ImportModal } from '@/components/ExportImport/ImportModal'
 import { TagBadge } from '@/components/tags/TagBadge'
 import { getAllTags, createTag, deleteTag } from '@/lib/tags/tag-service'
+import { getDigestFrequency, setDigestFrequency, type DigestFrequency } from '@/lib/email/digest'
 import { listApiKeys, createApiKey, revokeApiKey } from '@/lib/api/keys'
 import { listWebhooks, addWebhook, removeWebhook } from '@/lib/api/webhooks'
 import { Link } from 'react-router-dom'
@@ -83,6 +85,7 @@ export function Settings() {
   const [remindersEnabled, setRemindersEnabled] = useState(() => {
     try { return localStorage.getItem('lifeos_reminders_enabled') !== 'false' } catch { return true }
   })
+  const [digestFreq, setDigestFreq] = useState<DigestFrequency>(() => getDigestFrequency())
   const [apiKeys, setApiKeys] = useState(() => listApiKeys())
   const [webhooks, setWebhooks] = useState(() => listWebhooks())
   const [newWebhookUrl, setNewWebhookUrl] = useState('')
@@ -287,6 +290,32 @@ export function Settings() {
                   toast.success(t('common.saved'))
                 }}
               />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Email digest */}
+        <Card className="rounded-xl">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Mail className="h-5 w-5 text-primary" />
+              {t('settings.emailDigest')}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">{t('settings.emailDigestDescription')}</p>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-3">
+              <Label htmlFor="digest-freq" className="text-sm font-medium">{t('settings.digestFrequency')}</Label>
+              <Select value={digestFreq} onValueChange={(v: DigestFrequency) => { setDigestFreq(v); setDigestFrequency(v); toast.success(t('common.saved')) }}>
+                <SelectTrigger id="digest-freq" className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="off">{t('settings.digestOff')}</SelectItem>
+                  <SelectItem value="daily">{t('settings.digestDaily')}</SelectItem>
+                  <SelectItem value="weekly">{t('settings.digestWeekly')}</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
