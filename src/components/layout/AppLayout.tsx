@@ -124,14 +124,17 @@ export function AppLayout() {
             deepWorkMode && 'bg-background/95'
           )}
         >
-        {/* Presence indicator bar for desktop */}
-        {!isMobile && !deepWorkMode && presences.filter(p => p.user_id !== currentUserId).length > 0 && (
-          <div className="sticky top-0 z-30 flex items-center justify-end px-4 py-2 bg-background/80 backdrop-blur-sm border-b border-border/30">
-            <PresenceIndicator
-              presences={presences}
-              currentUserId={currentUserId}
-              maxDisplay={5}
-            />
+        {/* Sync bar + Presence indicator bar for desktop */}
+        {!isMobile && !deepWorkMode && (
+          <div className="sticky top-0 z-30 flex items-center justify-end gap-2 px-4 py-2 bg-background/80 backdrop-blur-sm border-b border-border/30">
+            <SyncStatusIndicator showBar className="mr-auto" />
+            {presences.filter(p => p.user_id !== currentUserId).length > 0 && (
+              <PresenceIndicator
+                presences={presences}
+                currentUserId={currentUserId}
+                maxDisplay={5}
+              />
+            )}
           </div>
         )}
 

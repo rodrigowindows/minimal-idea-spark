@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -24,6 +24,14 @@ import {
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale/pt-BR'
 import type { CalendarEvent } from '@/types'
+import { useShortcutContext } from '@/contexts/ShortcutContext'
+import type { ShortcutDefinition } from '@/contexts/ShortcutContext'
+
+const CALENDAR_SHORTCUTS: ShortcutDefinition[] = [
+  { id: 'cal-prev', keys: ['ArrowLeft'], description: 'Periodo anterior', category: 'page' },
+  { id: 'cal-next', keys: ['ArrowRight'], description: 'Proximo periodo', category: 'page' },
+  { id: 'cal-today', keys: ['T'], description: 'Ir para Hoje', category: 'page' },
+]
 
 interface CalendarViewProps {
   events: CalendarEvent[]
@@ -49,12 +57,41 @@ export function CalendarView({ events, onDateSelect, onEventClick, onNewEvent, g
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<ViewMode>('month')
 
-  const navigate = (dir: 'prev' | 'next') => {
+  const navigateCal = useCallback((dir: 'prev' | 'next') => {
     const fn = dir === 'next'
       ? (view === 'month' ? addMonths : view === 'week' ? addWeeks : addDays)
       : (view === 'month' ? subMonths : view === 'week' ? subWeeks : subDays)
     setCurrentDate(prev => fn(prev, 1))
-  }
+  }, [view])
+
+  // Register calendar-specific shortcuts
+  const { register } = useShortcutContext()
+  useEffect(() => {
+    const unregisters = CALENDAR_SHORTCUTS.map(def => register(def, () => {}))
+    return () => unregisters.forEach(u => u())
+  }, [register])
+
+  // Keyboard navigation for calendar
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      if (e.ctrlKey || e.metaKey || e.altKey) return
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        navigateCal('prev')
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        navigateCal('next')
+      } else if (e.key.toLowerCase() === 't') {
+        e.preventDefault()
+        setCurrentDate(new Date())
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [navigateCal])
 
   const getEventsForDay = (date: Date) =>
     events.filter(e => isSameDay(parseISO(e.start), date))
@@ -100,13 +137,13 @@ export function CalendarView({ events, onDateSelect, onEventClick, onNewEvent, g
               ))}
             </div>
             <div className="flex items-center gap-1">
-              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigate('prev')} aria-label="Previous period">
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigateCal('prev')} aria-label="Previous period">
                 <ChevronLeft className="h-4 w-4" aria-hidden="true" />
               </Button>
               <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setCurrentDate(new Date())}>
                 Hoje
               </Button>
-              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigate('next')} aria-label="Next period">
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigateCal('next')} aria-label="Next period">
                 <ChevronRight className="h-4 w-4" aria-hidden="true" />
               </Button>
             </div>

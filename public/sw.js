@@ -1,5 +1,5 @@
 /* Enhanced Service Worker – Canvas PWA */
-const CACHE_VERSION = 'canvas-v3';
+const CACHE_VERSION = 'canvas-v5';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const API_CACHE = `${CACHE_VERSION}-api`;
@@ -11,9 +11,23 @@ const STATIC_ASSETS = [
   '/favicon.ico',
   '/pwa-192x192.png',
   '/pwa-512x512.png',
+  '/offline.html',
 ];
 
-const MAX_DYNAMIC_CACHE = 80;
+/** Critical SPA routes to cache on first visit for offline use */
+const CRITICAL_ROUTES = [
+  '/',
+  '/opportunities',
+  '/journal',
+  '/settings',
+  '/analytics',
+  '/habits',
+  '/goals',
+  '/calendar',
+  '/consultant',
+];
+
+const MAX_DYNAMIC_CACHE = 100;
 const API_CACHE_MAX_AGE = 1000 * 60 * 30; // 30 min
 
 /* ─── Install ─── */
@@ -67,7 +81,17 @@ self.addEventListener('fetch', (event) => {
           caches.open(DYNAMIC_CACHE).then((c) => c.put(request, clone));
           return response;
         })
-        .catch(() => caches.match('/index.html'))
+        .catch(async () => {
+          // Try cached version of this specific route
+          const cached = await caches.match(request);
+          if (cached) return cached;
+          // Fallback to index.html for SPA routing
+          const indexCached = await caches.match('/index.html');
+          if (indexCached) return indexCached;
+          // Last resort: offline page
+          const offlinePage = await caches.match('/offline.html');
+          return offlinePage || new Response('Offline', { status: 503, statusText: 'Offline' });
+        })
     );
     return;
   }
@@ -125,6 +149,23 @@ self.addEventListener('notificationclick', (event) => {
 self.addEventListener('periodicsync', (event) => {
   if (event.tag === 'sync-data') {
     event.waitUntil(syncOfflineActions());
+  }
+});
+
+/* ─── Message handler for cache warming and management ─── */
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'CACHE_CRITICAL_ROUTES') {
+    event.waitUntil(cacheCriticalRoutes());
+  }
+  if (event.data?.type === 'FORCE_CLEAR_CACHE') {
+    event.waitUntil(
+      caches.keys().then((keys) =>
+        Promise.all(keys.map((k) => caches.delete(k)))
+      ).then(() => {
+        // Re-cache static assets after clearing
+        return caches.open(STATIC_CACHE).then((cache) => cache.addAll(STATIC_ASSETS));
+      })
+    );
   }
 });
 
@@ -196,5 +237,19 @@ async function syncOfflineActions() {
   const clients = await self.clients.matchAll();
   for (const client of clients) {
     client.postMessage({ type: 'SYNC_OFFLINE_ACTIONS' });
+  }
+}
+
+async function cacheCriticalRoutes() {
+  const cache = await caches.open(DYNAMIC_CACHE);
+  for (const route of CRITICAL_ROUTES) {
+    try {
+      const response = await fetch(route, { credentials: 'same-origin' });
+      if (response.ok) {
+        await cache.put(route, response);
+      }
+    } catch {
+      // Skip routes that fail - they'll be cached on first visit
+    }
   }
 }

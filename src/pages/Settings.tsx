@@ -62,6 +62,7 @@ import { getDigestFrequency, setDigestFrequency, type DigestFrequency } from '@/
 import { listApiKeys, createApiKey, revokeApiKey } from '@/lib/api/keys'
 import { listWebhooks, addWebhook, removeWebhook } from '@/lib/api/webhooks'
 import { Link } from 'react-router-dom'
+import { ShortcutSettings } from '@/components/settings/ShortcutSettings'
 import { useOnboarding } from '@/hooks/useOnboarding'
 import { loadDemoData, unloadDemoData } from '@/lib/demo-data'
 import {
@@ -256,6 +257,9 @@ export function Settings() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Keyboard Shortcuts */}
+        <ShortcutSettings />
 
         {/* Security: 2FA + Sessions */}
         <Card className="rounded-xl">
@@ -488,6 +492,25 @@ export function Settings() {
               }}>
                 {t('settings.clearIdMap') || 'Limpar mapeamento de IDs'}
               </Button>
+              <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground" onClick={async () => {
+                if (!window.confirm('Limpar todo o cache offline e recarregar? Dados não sincronizados podem ser perdidos.')) return
+                try {
+                  const { clearAllStores } = await import('@/lib/offline/offline-db')
+                  await clearAllStores()
+                  if ('caches' in window) {
+                    const keys = await caches.keys()
+                    await Promise.all(keys.map((k) => caches.delete(k)))
+                  }
+                  if ('serviceWorker' in navigator) {
+                    const regs = await navigator.serviceWorker.getRegistrations()
+                    await Promise.all(regs.map((r) => r.unregister()))
+                  }
+                } catch {}
+                window.location.reload()
+              }}>
+                <RotateCcw className="h-4 w-4" />
+                Forçar atualização (limpar cache)
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -512,21 +535,32 @@ export function Settings() {
                     <span className="font-medium">{t('settings.conflict')}: {c.type.replace(/_/g, ' ')}</span>
                     <span className="text-muted-foreground ml-1">• {c.localId}</span>
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    {c.reason === 'newer_on_server'
+                      ? 'O servidor tem uma versão mais recente deste item.'
+                      : 'O servidor rejeitou esta alteração.'}
+                  </p>
+                  {c.serverData && (
+                    <details className="text-xs text-muted-foreground">
+                      <summary className="cursor-pointer hover:text-foreground">Ver dados do servidor</summary>
+                      <pre className="mt-1 max-h-24 overflow-auto rounded bg-muted p-1.5 text-[10px]">
+                        {JSON.stringify(c.serverData, null, 2)}
+                      </pre>
+                    </details>
+                  )}
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => {
+                    <Button size="sm" variant="default" onClick={() => {
                       enqueue(c.type, c.payload, c.localId)
                       removeConflict(c.queueId)
-                      toast.success(t('settings.syncDone'))
-                      setShowQueueDialog(false)
+                      toast.success('Mantendo versão local. Re-enviando...')
                     }}>
-                      {t('common.save')}
+                      Manter meu
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => {
+                    <Button size="sm" variant="outline" onClick={() => {
                       removeConflict(c.queueId)
-                      toast.success(t('settings.syncDone'))
-                      setShowQueueDialog(false)
+                      toast.success('Usando versão do servidor.')
                     }}>
-                      {t('common.cancel')}
+                      Usar do servidor
                     </Button>
                   </div>
                 </div>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Canvas - Offline</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 1.5rem;
+    }
+    .container {
+      text-align: center;
+      max-width: 400px;
+    }
+    .icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.7;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    p {
+      color: #94a3b8;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+    .info {
+      background: #1e293b;
+      border-radius: 0.75rem;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      text-align: left;
+      font-size: 0.875rem;
+      color: #94a3b8;
+    }
+    .info li {
+      margin: 0.25rem 0;
+      list-style: none;
+    }
+    .info li::before {
+      content: '\2713 ';
+      color: #22c55e;
+    }
+    button {
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button:hover { background: #4f46e5; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">&#9729;</div>
+    <h1>Voce esta offline</h1>
+    <p>Sem conexao com a internet. Seus dados locais estao salvos e serao sincronizados quando voce voltar online.</p>
+    <div class="info">
+      <ul>
+        <li>Dashboard disponivel com dados locais</li>
+        <li>Journal e Oportunidades funcionam offline</li>
+        <li>Alteracoes serao enviadas ao voltar online</li>
+      </ul>
+    </div>
+    <button onclick="window.location.reload()">Tentar novamente</button>
+  </div>
+</body>
+</html>

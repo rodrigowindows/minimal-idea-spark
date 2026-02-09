@@ -20,6 +20,8 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { WarRoomLayoutProvider } from "@/contexts/WarRoomLayoutContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { RealtimeProvider } from "@/contexts/RealtimeContext";
+import { ShortcutProvider } from "@/contexts/ShortcutContext";
+import { NetworkStatusProvider } from "@/contexts/NetworkStatusContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -28,6 +30,7 @@ import { registerFlushSyncQueue } from "@/lib/pwa/offline-manager";
 import { processQueue } from "@/lib/pwa/sync-queue";
 import { createSyncProcessor } from "@/lib/pwa/sync-processor";
 import { supabase } from "@/integrations/supabase/client";
+import { refreshCacheFromServer } from "@/lib/offline/sync-manager";
 
 const Dashboard = lazy(() => import("@/pages/Dashboard").then((m) => ({ default: m.Dashboard })));
 const Consultant = lazy(() => import("@/pages/Consultant").then((m) => ({ default: m.Consultant })));
@@ -82,6 +85,14 @@ function AppContent() {
       const processor = createSyncProcessor(supabase);
       await processQueue(processor);
     });
+    // Warm cache for critical SPA routes so they work offline
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then((reg) => {
+        reg.active?.postMessage({ type: 'CACHE_CRITICAL_ROUTES' });
+      });
+    }
+    // Populate IndexedDB offline cache on initial load (best-effort)
+    refreshCacheFromServer().catch(() => {});
   }, []);
 
   const handleStartTour = () => {
@@ -161,17 +172,21 @@ function AuthGate() {
   return (
     <ErrorBoundary>
       <ThemeProvider>
+        <NetworkStatusProvider>
         <WarRoomLayoutProvider>
         <LanguageProvider>
         <AppProvider>
+          <ShortcutProvider>
           <WorkspaceProvider>
             <RealtimeProvider>
               <AppContent />
             </RealtimeProvider>
           </WorkspaceProvider>
+          </ShortcutProvider>
         </AppProvider>
       </LanguageProvider>
       </WarRoomLayoutProvider>
+        </NetworkStatusProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );

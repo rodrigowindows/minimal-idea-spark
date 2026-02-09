@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Sparkles, Rocket, Target, BookOpen, MessageSquare } from 'lucide-react'
+import { Sparkles, Rocket, Target, BookOpen, MessageSquare, Keyboard } from 'lucide-react'
 
 const WELCOME_DISMISSED_KEY = 'lifeos_welcome_dismissed'
 
@@ -68,9 +68,12 @@ export function WelcomeModal({ onStartTour }: WelcomeModalProps) {
             </div>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground">
-          {t('onboarding.welcome.shortcutHint')}
-        </p>
+        <div className="flex items-center gap-2 rounded-lg bg-muted/50 border border-border/30 px-3 py-2">
+          <Keyboard className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <p className="text-xs text-muted-foreground">
+            {t('onboarding.welcome.shortcutHint')}
+          </p>
+        </div>
         <DialogFooter className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <label className="flex items-center gap-2 text-sm text-muted-foreground">
             <Checkbox

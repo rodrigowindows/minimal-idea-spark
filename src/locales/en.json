@@ -103,7 +103,7 @@
       "featureJournal": "Journal — Daily reflections",
       "skipTour": "Skip Tour",
       "startTour": "Start Tour",
-      "shortcutHint": "Tip: Press Ctrl+K anytime to open the command palette."
+      "shortcutHint": "Tip: Press ? to see all shortcuts or Ctrl+K for the command palette."
     },
     "tour": {
       "welcome": "Welcome to Canvas",

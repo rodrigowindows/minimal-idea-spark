@@ -153,17 +153,15 @@ export function useLocalData() {
     }
     setOpportunities(prev => [newOpp, ...prev])
     autoSnapshot('opportunity', newOpp.id, JSON.stringify(newOpp, null, 2), `Created: ${newOpp.title}`)
-    if (!navigator.onLine) {
-      enqueue('create_opportunity', {
-        domain_id: newOpp.domain_id,
-        title: newOpp.title,
-        description: newOpp.description ?? null,
-        type: newOpp.type,
-        status: newOpp.status,
-        priority: newOpp.priority,
-        strategic_value: newOpp.strategic_value ?? null,
-      }, newOpp.id)
-    }
+    enqueue('create_opportunity', {
+      domain_id: newOpp.domain_id,
+      title: newOpp.title,
+      description: newOpp.description ?? null,
+      type: newOpp.type,
+      status: newOpp.status,
+      priority: newOpp.priority,
+      strategic_value: newOpp.strategic_value ?? null,
+    }, newOpp.id)
     return newOpp
   }, [userId, autoSnapshot])
 
@@ -174,22 +172,19 @@ export function useLocalData() {
       if (opp) autoSnapshot('opportunity', id, JSON.stringify(opp, null, 2), `Updated: ${opp.title}`)
       return updated
     })
-    if (!navigator.onLine) {
-      enqueue('update_opportunity', { id, ...data }, id)
-    }
+    enqueue('update_opportunity', { id, ...data }, id)
   }, [autoSnapshot])
 
   const deleteOpportunity = useCallback((id: string) => {
     setOpportunities(prev => prev.filter(opp => opp.id !== id))
-    if (!navigator.onLine) {
-      enqueue('delete_opportunity', { id }, id)
-    }
+    enqueue('delete_opportunity', { id }, id)
   }, [])
 
   const moveOpportunityStatus = useCallback((id: string, status: Opportunity['status']) => {
     setOpportunities(prev => prev.map(opp =>
       opp.id === id ? { ...opp, status } : opp
     ))
+    enqueue('update_opportunity', { id, status }, id)
   }, [])
 
   // ---- Daily Log CRUD ----
@@ -202,19 +197,18 @@ export function useLocalData() {
     }
     setDailyLogs(prev => [newLog, ...prev])
     autoSnapshot('journal', newLog.id, JSON.stringify(newLog, null, 2), `Journal: ${data.log_date}`)
-    if (!navigator.onLine) {
-      enqueue('create_daily_log', {
-        content: data.content,
-        mood: data.mood ?? null,
-        energy_level: data.energy_level ?? 5,
-        log_date: data.log_date,
-      }, newLog.id)
-    }
+    enqueue('create_daily_log', {
+      content: data.content,
+      mood: data.mood ?? null,
+      energy_level: data.energy_level ?? 5,
+      log_date: data.log_date,
+    }, newLog.id)
     return newLog
   }, [userId, autoSnapshot])
 
   const deleteDailyLog = useCallback((id: string) => {
     setDailyLogs(prev => prev.filter(log => log.id !== id))
+    enqueue('delete_daily_log', { id }, id)
   }, [])
 
   // ---- Domain CRUD ----

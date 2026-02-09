@@ -181,7 +181,8 @@ nav {
 :focus-visible {
   outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
-  border-radius: 2px;
+  border-radius: var(--radius);
+  transition: outline-offset 0.1s ease;
 }
 
 /* Enhanced focus for interactive elements */

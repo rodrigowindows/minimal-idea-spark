@@ -103,7 +103,7 @@
       "featureJournal": "Diario — Reflexiones diarias",
       "skipTour": "Saltar Tour",
       "startTour": "Iniciar Tour",
-      "shortcutHint": "Consejo: Presiona Ctrl+K en cualquier momento para abrir la paleta de comandos."
+      "shortcutHint": "Consejo: Presiona ? para ver todos los atajos o Ctrl+K para la paleta de comandos."
     },
     "tour": {
       "welcome": "Bienvenido a Canvas",
