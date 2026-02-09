@@ -128,22 +128,30 @@ export function searchLocal(query: string, filters?: SearchFilters): SearchResul
   return localFallbackSearch(query, filters);
 }
 
+/** When true, skip remote search_history (table missing or 404). */
+let searchHistoryRemoteDisabled = false;
+
+function markSearchHistoryRemoteDisabled() {
+  searchHistoryRemoteDisabled = true;
+}
+
 export async function saveSearchQuery(query: string, resultsCount: number) {
-  // Save to localStorage history
   saveSearchToLocalHistory(query);
 
+  if (searchHistoryRemoteDisabled) return;
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    await (supabase as any).from('search_history').insert({
+    const { error } = await (supabase as any).from('search_history').insert({
       user_id: user.id,
       query,
       results_count: resultsCount,
       created_at: new Date().toISOString(),
     });
+    if (error && (error.code === 'PGRST116' || error.message?.includes('404') || (error as any).status === 404)) markSearchHistoryRemoteDisabled();
   } catch {
-    // Silently fail for remote save
+    markSearchHistoryRemoteDisabled();
   }
 }
 
@@ -168,41 +176,44 @@ function getLocalSearchHistory(): string[] {
 }
 
 export async function getSearchHistory(limit = 10): Promise<string[]> {
-  // Try remote first, fallback to local
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data } = await (supabase as any)
-        .from('search_history')
-        .select('query')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(limit);
+  if (!searchHistoryRemoteDisabled) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data, error } = await (supabase as any)
+          .from('search_history')
+          .select('query')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(limit);
 
-      if (data && data.length > 0) {
-        return data.map((h: any) => h.query);
+        if (error && (error.code === 'PGRST116' || error.message?.includes('404') || (error as any).status === 404)) markSearchHistoryRemoteDisabled();
+        else if (data && data.length > 0) return data.map((h: any) => h.query);
       }
+    } catch {
+      markSearchHistoryRemoteDisabled();
     }
-  } catch { /* fallback to local */ }
-
+  }
   return getLocalSearchHistory().slice(0, limit);
 }
 
 export async function getSuggestedSearches(query: string): Promise<string[]> {
   if (query.length < 2) return [];
 
-  // Try remote suggestions
-  try {
-    const { data } = await (supabase as any)
-      .from('search_history')
-      .select('query')
-      .ilike('query', `${query}%`)
-      .limit(5);
+  if (!searchHistoryRemoteDisabled) {
+    try {
+      const { data, error } = await (supabase as any)
+        .from('search_history')
+        .select('query')
+        .ilike('query', `${query}%`)
+        .limit(5);
 
-    if (data && data.length > 0) {
-      return data.map((h: any) => h.query);
+      if (error && (error.code === 'PGRST116' || error.message?.includes('404') || (error as any).status === 404)) markSearchHistoryRemoteDisabled();
+      else if (data && data.length > 0) return data.map((h: any) => h.query);
+    } catch {
+      markSearchHistoryRemoteDisabled();
     }
-  } catch { /* fallback to local */ }
+  }
 
   // Local suggestions from index
   const index = loadSearchIndex();

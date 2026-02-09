@@ -20,8 +20,8 @@ import {
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useWarRoomLayout, WIDGET_IDS, type WidgetId } from '@/contexts/WarRoomLayoutContext'
+import { useTranslation } from '@/contexts/LanguageContext'
 import { GripVertical } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
 
 const WIDGET_LABELS: Record<WidgetId, string> = {
   'smart-capture': 'Smart Capture',
