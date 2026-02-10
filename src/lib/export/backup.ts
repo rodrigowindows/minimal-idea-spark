@@ -167,7 +167,7 @@ export function exportOpportunitiesToCsv(
 ): string {
   const headers = ['title', 'status', 'type', 'priority', 'strategic_value', 'domain_id', 'description', 'due_date', 'created_at']
   const rows = opportunities.map((o) =>
-    headers.map((h) => String((o as Record<string, unknown>)[h] ?? ''))
+    headers.map((h) => String((o as unknown as Record<string, unknown>)[h] ?? ''))
   )
   return arrayToCsv(headers, rows)
 }
@@ -185,7 +185,7 @@ export function exportJournalToCsv(
 ): string {
   const headers = ['content', 'mood', 'energy_level', 'log_date', 'created_at']
   const rows = entries.map((e) =>
-    headers.map((h) => String((e as Record<string, unknown>)[h] ?? ''))
+    headers.map((h) => String((e as unknown as Record<string, unknown>)[h] ?? ''))
   )
   return arrayToCsv(headers, rows)
 }

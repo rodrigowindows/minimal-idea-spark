@@ -43,16 +43,16 @@ export async function refreshCacheFromServer(stores?: StoreName[]): Promise<void
 
   for (const store of targets) {
     try {
-      const table = store === 'daily_logs' ? 'daily_logs' : store;
+      const table: string = store === 'daily_logs' ? 'daily_logs' : store;
       const { data, error } = await supabase
-        .from(table)
+        .from(table as any)
         .select('*')
         .eq('user_id', userId)
         .order('updated_at', { ascending: false })
         .limit(500);
 
       if (!error && data) {
-        await putMany(store, data);
+        await putMany(store, data as any[]);
         setLastSyncTime(store);
       }
     } catch {
