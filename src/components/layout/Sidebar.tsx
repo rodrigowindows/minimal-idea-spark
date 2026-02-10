@@ -15,6 +15,25 @@ import {
   ListChecks,
   BarChart3,
   X,
+  MessageSquare,
+  Lightbulb,
+  BookOpen,
+  Target,
+  Calendar,
+  CheckSquare,
+  TrendingUp,
+  Wand2,
+  Zap,
+  FileText,
+  Image,
+  History,
+  Bell,
+  HelpCircle,
+  Upload,
+  FileBarChart,
+  Puzzle,
+  Users,
+  Moon,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -45,7 +64,7 @@ interface SidebarProps {
   onToggle: () => void
 }
 
-type NavSection = 'principal' | 'config'
+type NavSection = 'principal' | 'tools' | 'nightworker' | 'config'
 
 interface NavItem {
   to: string
@@ -63,23 +82,53 @@ const FLAG_MAP: Record<string, string> = {
 }
 
 const NAV_ITEMS: NavItem[] = [
+  // Main features
   { to: '/', icon: LayoutDashboard, labelKey: 'nav.dashboard', section: 'principal', shortcut: 'Alt+1' },
-  { to: '/submit', icon: Send, labelKey: 'nav.submit', section: 'principal', shortcut: 'Alt+2' },
-  { to: '/prompts', icon: ListChecks, labelKey: 'nav.prompts', section: 'principal', shortcut: 'Alt+3', hasSubmenu: true } as NavItem & { hasSubmenu: boolean },
-  { to: '/logs', icon: Terminal, labelKey: 'nav.logs', section: 'principal', shortcut: 'Alt+4' },
+  { to: '/consultant', icon: MessageSquare, labelKey: 'nav.consultant', section: 'principal', shortcut: 'Alt+2' },
+  { to: '/opportunities', icon: Lightbulb, labelKey: 'nav.opportunities', section: 'principal' },
+  { to: '/journal', icon: BookOpen, labelKey: 'nav.journal', section: 'principal', shortcut: 'Alt+3' },
+  { to: '/goals', icon: Target, labelKey: 'nav.goals', section: 'principal' },
+  { to: '/habits', icon: CheckSquare, labelKey: 'nav.habits', section: 'principal' },
+  { to: '/calendar', icon: Calendar, labelKey: 'nav.calendar', section: 'principal' },
+  { to: '/analytics', icon: BarChart3, labelKey: 'nav.analytics', section: 'principal' },
+  { to: '/priorities', icon: Star, labelKey: 'nav.priorities', section: 'principal' },
+
+  // Productivity tools
+  { to: '/weekly-review', icon: TrendingUp, labelKey: 'nav.weeklyReview', section: 'tools' },
+  { to: '/content-generator', icon: Wand2, labelKey: 'nav.contentGenerator', section: 'tools' },
+  { to: '/automation', icon: Zap, labelKey: 'nav.automation', section: 'tools' },
+  { to: '/templates', icon: FileText, labelKey: 'nav.templates', section: 'tools' },
+  { to: '/images', icon: Image, labelKey: 'nav.images', section: 'tools' },
+
+  // Night Worker
+  { to: '/nw', icon: Moon, labelKey: 'nav.nightWorker', section: 'nightworker' },
+  { to: '/nw/submit', icon: Send, labelKey: 'nav.nwSubmit', section: 'nightworker' },
+  { to: '/nw/prompts', icon: ListChecks, labelKey: 'nav.nwPrompts', section: 'nightworker' },
+  { to: '/nw/logs', icon: Terminal, labelKey: 'nav.nwLogs', section: 'nightworker' },
+
+  // Config & utilities
+  { to: '/version-history', icon: History, labelKey: 'nav.versionHistory', section: 'config' },
+  { to: '/notifications', icon: Bell, labelKey: 'nav.notifications', section: 'config' },
   { to: '/settings', icon: Settings2, labelKey: 'nav.settings', section: 'config', shortcut: 'Alt+9' },
+  { to: '/help', icon: HelpCircle, labelKey: 'nav.help', section: 'config' },
+  { to: '/import', icon: Upload, labelKey: 'nav.import', section: 'config' },
+  { to: '/reports', icon: FileBarChart, labelKey: 'nav.reports', section: 'config' },
+  { to: '/integrations', icon: Puzzle, labelKey: 'nav.integrations', section: 'config' },
+  { to: '/workspace', icon: Users, labelKey: 'nav.workspace', section: 'config' },
 ]
 
 type SectionKey = NavSection | 'recent' | 'favorites'
 
 const SECTION_LABELS: Record<SectionKey, string> = {
   principal: 'nav.sectionPrincipal',
+  tools: 'nav.sectionTools',
+  nightworker: 'nav.sectionNightWorker',
   config: 'nav.sectionConfig',
   recent: 'nav.sectionRecent',
   favorites: 'nav.sectionFavorites',
 }
 
-const SECTION_ORDER: SectionKey[] = ['favorites', 'recent', 'principal', 'config']
+const SECTION_ORDER: SectionKey[] = ['favorites', 'recent', 'principal', 'tools', 'nightworker', 'config']
 
 const STORAGE_KEY_BASE = 'lifeos_sidebar_sections'
 const FAVORITES_KEY_BASE = 'lifeos_sidebar_favorites'
@@ -344,6 +393,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const sections = useMemo(() => {
     const grouped: Record<NavSection, NavItem[]> = {
       principal: [],
+      tools: [],
+      nightworker: [],
       config: [],
     }
     navItemsWithBadges.forEach((item) => {
