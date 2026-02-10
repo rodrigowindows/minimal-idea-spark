@@ -10,12 +10,13 @@ import { useNightWorker } from '@/contexts/NightWorkerContext'
 import { toast } from 'sonner'
 import { ArrowLeft, Copy, ExternalLink, Loader2, RefreshCw, Send } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 export default function NWPromptDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { isConnected } = useNightWorker()
-  const { data, isLoading, refetch } = usePromptStatusQuery(id)
+  const { data, isLoading, isError, error, refetch, isFetching } = usePromptStatusQuery(id)
   const resend = useCreatePromptMutation()
 
   useEffect(() => {
@@ -52,6 +53,24 @@ export default function NWPromptDetail() {
 
   return (
     <div className="px-4 pb-10 md:px-8">
+      {!isConnected && (
+        <Alert className="mb-4 border-amber-500/40 bg-amber-500/10 text-amber-100">
+          <AlertTitle>Configure a conexão</AlertTitle>
+          <AlertDescription>
+            Defina a URL/token em <button className="underline" onClick={() => navigate('/connect')}>/connect</button> para ver os detalhes.
+          </AlertDescription>
+        </Alert>
+      )}
+      {isError && (
+        <Alert className="mb-4 border-red-500/40 bg-red-500/10 text-red-100">
+          <AlertTitle>Erro ao carregar prompt</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <div>{error instanceof Error ? error.message : 'Não foi possível consultar o prompt.'}</div>
+            <Button size="sm" variant="outline" onClick={() => refetch()}>Tentar novamente</Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate('/prompts')}>
@@ -70,7 +89,7 @@ export default function NWPromptDetail() {
           </div>
         </div>
         <Button variant="outline" size="icon" onClick={() => refetch()}>
-          <RefreshCw className="h-4 w-4" />
+          <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
         </Button>
       </div>
 

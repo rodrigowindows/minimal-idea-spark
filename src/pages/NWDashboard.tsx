@@ -13,10 +13,11 @@ import { useNightWorker } from '@/contexts/NightWorkerContext'
 import { isToday, parseISO } from 'date-fns'
 import { AlertCircle, CheckCircle2, Clock3, Cpu, Settings2 } from 'lucide-react'
 import type { HealthResponse, PromptItem } from '@/types/night-worker'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 export default function NWDashboard() {
-  const { data: health } = useHealthQuery()
-  const { data: prompts, isLoading } = usePromptsQuery(10000)
+  const healthQuery = useHealthQuery()
+  const promptsQuery = usePromptsQuery(10000)
   const { config, isConnected } = useNightWorker()
   const navigate = useNavigate()
 
@@ -25,20 +26,20 @@ export default function NWDashboard() {
   }, [isConnected, navigate])
 
   const stats = useMemo(() => {
-    const pending = prompts?.filter((p) => p.status === 'pending').length ?? 0
-    const failures = prompts?.filter((p) => p.status === 'failed').length ?? 0
+    const pending = promptsQuery.data?.filter((p) => p.status === 'pending').length ?? 0
+    const failures = promptsQuery.data?.filter((p) => p.status === 'failed').length ?? 0
     const processedToday =
-      prompts?.filter((p) => {
+      promptsQuery.data?.filter((p) => {
         const dt = p.updated_at || p.created_at
         return p.status === 'done' && dt && isToday(parseDate(dt))
       }).length ?? 0
-    const activeWorkers = health?.workers?.filter((w) => w.active).length
+    const activeWorkers = healthQuery.data?.workers?.filter((w) => w.active).length
       ?? ['claude', 'codex'].filter((w) => config.workers[w as 'claude' | 'codex'].active).length
     return { pending, failures, processedToday, activeWorkers }
-  }, [config.workers, health?.workers, prompts])
+  }, [config.workers, healthQuery.data?.workers, promptsQuery.data])
 
   const lastPrompts = useMemo(() => {
-    return (prompts || [])
+    return (promptsQuery.data || [])
       .slice()
       .sort((a, b) => {
         const aDate = parseDate(a.updated_at || a.created_at || '')
@@ -46,15 +47,42 @@ export default function NWDashboard() {
         return bDate.getTime() - aDate.getTime()
       })
       .slice(0, 10)
-  }, [prompts])
+  }, [promptsQuery.data])
 
-  const timeline = useMemo(() => buildTimeline(lastPrompts, health), [health, lastPrompts])
+  const timeline = useMemo(() => buildTimeline(lastPrompts, healthQuery.data), [healthQuery.data, lastPrompts])
 
-  const codexHealth = health?.workers?.find((w) => w.provider?.includes('codex'))
-  const claudeHealth = health?.workers?.find((w) => w.provider?.includes('claude'))
+  const codexHealth = healthQuery.data?.workers?.find((w) => w.provider?.includes('codex'))
+  const claudeHealth = healthQuery.data?.workers?.find((w) => w.provider?.includes('claude'))
 
   return (
     <div className="space-y-6 px-4 pb-12 md:px-8">
+      {!isConnected && (
+        <Alert className="border-amber-500/40 bg-amber-500/10 text-amber-100">
+          <AlertTitle>Configure a conexão</AlertTitle>
+          <AlertDescription>
+            Defina a URL e token em <button className="underline" onClick={() => navigate('/connect')}>/connect</button> para carregar métricas.
+          </AlertDescription>
+        </Alert>
+      )}
+      {promptsQuery.isError && (
+        <Alert className="border-red-500/40 bg-red-500/10 text-red-100">
+          <AlertTitle>Erro ao buscar prompts</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <div>{promptsQuery.error instanceof Error ? promptsQuery.error.message : 'Falha ao contatar a API de prompts.'}</div>
+            <Button size="sm" variant="outline" onClick={() => promptsQuery.refetch()}>Tentar novamente</Button>
+          </AlertDescription>
+        </Alert>
+      )}
+      {healthQuery.isError && (
+        <Alert className="border-red-500/40 bg-red-500/10 text-red-100">
+          <AlertTitle>Erro ao consultar /health</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <div>{healthQuery.error instanceof Error ? healthQuery.error.message : 'Não foi possível obter o status dos workers.'}</div>
+            <Button size="sm" variant="outline" onClick={() => healthQuery.refetch()}>Recarregar</Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.1em] text-blue-200">Night Worker</p>
@@ -65,13 +93,13 @@ export default function NWDashboard() {
           <Badge
             variant="outline"
             className={`flex items-center gap-2 rounded-full px-3 py-1.5 ${
-              health?.status === 'ok'
+              healthQuery.data?.status === 'ok'
                 ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-200'
                 : 'border-red-500/50 bg-red-500/10 text-red-200'
             }`}
           >
             <span className="h-2 w-2 rounded-full bg-current shadow-[0_0_0_4px_rgba(34,197,94,0.25)]" />
-            {health?.status === 'ok' ? 'Conectado' : 'Verificar conexão'}
+            {healthQuery.data?.status === 'ok' ? 'Conectado' : 'Verificar conexão'}
           </Badge>
           <Button variant="outline" size="icon" onClick={() => navigate('/settings')}>
             <Settings2 className="h-5 w-5" />
