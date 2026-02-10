@@ -13,13 +13,14 @@ import { useNightWorker } from '@/contexts/NightWorkerContext'
 import type { PromptItem } from '@/types/night-worker'
 import { Calendar, Filter, RefreshCw, Search, Send } from 'lucide-react'
 import { toast } from 'sonner'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 const PAGE_SIZE = 20
 
 export default function NWPrompts() {
   const navigate = useNavigate()
   const { isConnected, apiFetch, config } = useNightWorker()
-  const { data, isLoading, refetch } = usePromptsQuery(15000)
+  const { data, isLoading, isError, error, refetch, isFetching } = usePromptsQuery(15000)
   const resendMutation = useCreatePromptMutation()
 
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'done' | 'failed'>('all')
@@ -86,6 +87,27 @@ export default function NWPrompts() {
 
   return (
     <div className="px-4 pb-10 md:px-8">
+      {!isConnected && (
+        <Alert className="mb-4 border-amber-500/40 bg-amber-500/10 text-amber-100">
+          <AlertTitle>Configure a conexão</AlertTitle>
+          <AlertDescription>
+            Defina a URL e o token em <button className="underline" onClick={() => navigate('/nw/connect')}>/nw/connect</button> para listar prompts.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {isError && (
+        <Alert className="mb-4 border-red-500/40 bg-red-500/10 text-red-100">
+          <AlertTitle>Erro ao carregar</AlertTitle>
+          <AlertDescription>
+            {error instanceof Error ? error.message : 'Não foi possível contatar a API. Verifique a URL/token.'}
+            <div className="mt-2">
+              <Button size="sm" variant="outline" onClick={() => refetch()}>Tentar novamente</Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.1em] text-blue-200">Fila de prompts</p>
@@ -176,7 +198,7 @@ export default function NWPrompts() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading && Array.from({ length: 5 }).map((_, i) => (
+                {(isLoading || isFetching) && Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i} className="border-border/60">
                     <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-28" /></TableCell>
