@@ -1,4 +1,4 @@
-﻿import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback } from 'react'
 import {
   Bell,
   BookOpen,
@@ -6,7 +6,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  Clock,
   Crosshair,
   Focus,
   Globe,
@@ -30,6 +29,7 @@ import {
   Plug,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { useAppContext } from '@/contexts/AppContext'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -37,7 +37,6 @@ import { XPProgressBar } from '@/components/gamification/XPProgressBar'
 import { WorkspaceSwitcher } from '@/components/WorkspaceSwitcher'
 import { NotificationCenter } from '@/components/NotificationCenter'
 import { SyncStatusIndicator } from '@/components/SyncStatusIndicator'
-import { useRecentPages } from '@/hooks/useRecentPages'
 import {
   Tooltip,
   TooltipContent,
@@ -51,55 +50,9 @@ interface SidebarProps {
 }
 
 const FLAG_MAP: Record<string, string> = {
-  'pt-BR': 'PT-BR',
-  en: 'EN',
-  es: 'ES',
-}
-
-const TRANSLATION_FALLBACKS: Record<string, string> = {
-  'common.switchLanguage': 'Trocar idioma',
-  'nav.dashboard': 'Painel',
-  'nav.consultant': 'Consultor',
-  'nav.opportunities': 'Oportunidades',
-  'nav.journal': 'Diario',
-  'nav.habits': 'Habitos',
-  'nav.goals': 'Metas',
-  'nav.calendar': 'Calendario',
-  'nav.priorities': 'Prioridades',
-  'nav.analytics': 'Analiticos',
-  'nav.weeklyReview': 'Revisao Semanal',
-  'nav.notifications': 'Notificacoes',
-  'nav.contentGenerator': 'Gerador de Conteudo',
-  'nav.automation': 'Automacao',
-  'nav.templates': 'Templates',
-  'nav.images': 'Imagens',
-  'nav.versionHistory': 'Historico',
-  'nav.workspace': 'Espaco de Trabalho',
-  'nav.import': 'Importar',
-  'nav.reports': 'Relatorios',
-  'nav.integrations': 'Integracoes',
-  'nav.help': 'Ajuda',
-  'nav.settings': 'Configuracoes',
-  'nav.sectionPrincipal': 'Principal',
-  'nav.sectionProdutividade': 'Produtividade',
-  'nav.sectionFerramentas': 'Ferramentas',
-  'nav.sectionConfig': 'Configuracao',
-  'nav.sectionRecent': 'Recentes',
-  'nav.deepWork': 'Foco Profundo',
-  'nav.expand': 'Expandir',
-  'nav.collapse': 'Recolher',
-}
-
-const SHORTCUT_MAP: Record<string, string> = {
-  '/': 'Alt+1',
-  '/consultant': 'Alt+2',
-  '/opportunities': 'Alt+3',
-  '/journal': 'Alt+4',
-  '/habits': 'Alt+5',
-  '/goals': 'Alt+6',
-  '/calendar': 'Alt+7',
-  '/priorities': 'Alt+8',
-  '/settings': 'Alt+0',
+  'pt-BR': '🇧🇷 PT',
+  en: '🇺🇸 EN',
+  es: '🇪🇸 ES',
 }
 
 const navItems: { to: string; icon: typeof LayoutDashboard; labelKey: string }[] = [
@@ -149,30 +102,9 @@ function getStoredSections(): Record<string, boolean> {
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { deepWorkMode, toggleDeepWorkMode } = useAppContext()
-  const { language, toggleLanguage, t } = useLanguage()
+  const { t } = useTranslation()
+  const { language, toggleLanguage } = useLanguage()
   const [sectionsOpen, setSectionsOpen] = useState<Record<string, boolean>>(getStoredSections)
-
-  const tr = useCallback((key: string): string => {
-    const translated = t(key)
-    if (translated && translated !== key) return translated
-    return TRANSLATION_FALLBACKS[key] ?? key
-  }, [t])
-
-  const { recentPages } = useRecentPages(navItems, tr)
-
-  const recentNavItems = useMemo(() => {
-    // Skip current page (first item) and return up to 4 recent pages
-    return recentPages
-      .slice(1, 5)
-      .map((rp) => navItems.find((n) => n.to === rp.path))
-      .filter(Boolean) as typeof navItems
-  }, [recentPages])
-
-  const tooltipLabel = useCallback((item: { to: string; labelKey: string }) => {
-    const label = tr(item.labelKey)
-    const shortcut = SHORTCUT_MAP[item.to]
-    return shortcut ? `${label} (${shortcut})` : label
-  }, [tr])
 
   const toggleSection = useCallback((key: string) => {
     setSectionsOpen((prev) => {
@@ -192,7 +124,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     <aside
       id="main-nav"
       aria-label={collapsed ? 'Canvas - Navigation (collapsed)' : 'Canvas - Navigation'}
-      className="flex h-full min-h-screen w-full flex-shrink-0 flex-col bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out"
+      className={cn(
+        'flex h-full min-h-screen flex-shrink-0 flex-col bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out',
+        collapsed ? 'w-[var(--sidebar-width-collapsed)]' : 'w-[var(--sidebar-width-expanded)]'
+      )}
     >
       <div className="flex h-16 items-center justify-between border-b border-border/50 px-4">
         <div className="flex items-center gap-2">
@@ -211,12 +146,12 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-muted-foreground',
               collapsed && 'px-1'
             )}
-            title={tr('common.switchLanguage')}
-            aria-label={tr('common.switchLanguage')}
+            title={t('common.switchLanguage')}
+            aria-label={t('common.switchLanguage')}
           >
             <Globe className="h-4 w-4 shrink-0" />
             {!collapsed && (
-              <span className="uppercase font-bold">{FLAG_MAP[language] || 'PT-BR'}</span>
+              <span className="uppercase font-bold">{FLAG_MAP[language] || '🇧🇷 PT'}</span>
             )}
           </button>
         </div>
@@ -231,85 +166,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto p-2" aria-label="Main navigation">
-        {/* Recent Pages Section */}
-        {recentNavItems.length > 0 && (
-          <div className="space-y-0.5" role="group" aria-label={tr('nav.sectionRecent')}>
-            {!collapsed ? (
-              <>
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                  onClick={() => toggleSection('nav.sectionRecent')}
-                  aria-expanded={isSectionOpen('nav.sectionRecent')}
-                  aria-controls="nav-section-nav-sectionRecent"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <Clock className="h-3 w-3" aria-hidden="true" />
-                    {tr('nav.sectionRecent')}
-                  </span>
-                  <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', !isSectionOpen('nav.sectionRecent') && '-rotate-90')} aria-hidden="true" />
-                </button>
-                {isSectionOpen('nav.sectionRecent') && (
-                  <ul id="nav-section-nav-sectionRecent" role="list" className="space-y-0.5">
-                    {recentNavItems.map((item) => (
-                      <li key={`recent-${item.to}`}>
-                        <NavLink
-                          to={item.to}
-                          end={item.to === '/'}
-                          className={({ isActive }) =>
-                            cn(
-                              'flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors',
-                              'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                              isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-muted-foreground'
-                            )
-                          }
-                        >
-                          <item.icon className="h-4 w-4 shrink-0 opacity-70" aria-hidden="true" />
-                          <span className="truncate">{tr(item.labelKey)}</span>
-                        </NavLink>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </>
-            ) : (
-              <TooltipProvider delayDuration={0}>
-                <div className="mb-1 flex justify-center py-1">
-                  <Clock className="h-3.5 w-3.5 text-muted-foreground/50" aria-hidden="true" />
-                </div>
-                {recentNavItems.map((item) => (
-                  <Tooltip key={`recent-${item.to}`}>
-                    <TooltipTrigger asChild>
-                      <NavLink
-                        to={item.to}
-                        end={item.to === '/'}
-                        aria-label={tooltipLabel(item)}
-                        className={({ isActive }) =>
-                          cn(
-                            'flex justify-center rounded-xl px-2 py-2 text-sm transition-colors',
-                            'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                            isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-muted-foreground/70'
-                          )
-                        }
-                      >
-                        <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                      </NavLink>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">{tooltipLabel(item)}</TooltipContent>
-                  </Tooltip>
-                ))}
-              </TooltipProvider>
-            )}
-            {!collapsed && <div className="mx-2 border-b border-border/30" />}
-          </div>
-        )}
-
-        {/* Main Sections */}
         {SIDEBAR_SECTIONS.map((section) => {
           const open = isSectionOpen(section.sectionKey)
           const items = navItems.filter((item) => section.paths.includes(item.to))
           return (
-            <div key={section.sectionKey} className="space-y-0.5" role="group" aria-label={tr(section.sectionKey)}>
+            <div key={section.sectionKey} className="space-y-0.5" role="group" aria-label={t(section.sectionKey)}>
               {!collapsed ? (
                 <>
                   <button
@@ -319,7 +180,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                     aria-expanded={open}
                     aria-controls={`nav-section-${section.sectionKey.replace(/\./g, '-')}`}
                   >
-                    <span>{tr(section.sectionKey)}</span>
+                    <span>{t(section.sectionKey)}</span>
                     <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', !open && '-rotate-90')} aria-hidden="true" />
                   </button>
                   {open && (
@@ -339,10 +200,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                             }
                           >
                             <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
-                            <span>{tr(item.labelKey)}</span>
-                            {SHORTCUT_MAP[item.to] && (
-                              <kbd className="ml-auto text-[10px] text-muted-foreground/50 font-mono">{SHORTCUT_MAP[item.to]}</kbd>
-                            )}
+                            <span>{t(item.labelKey)}</span>
                           </NavLink>
                         </li>
                       ))}
@@ -357,7 +215,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                         <NavLink
                           to={item.to}
                           end={item.to === '/'}
-                          aria-label={tooltipLabel(item)}
+                          aria-label={t(item.labelKey)}
                           className={({ isActive }) =>
                             cn(
                               'flex justify-center rounded-xl px-2 py-2.5 text-sm transition-colors',
@@ -369,7 +227,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                           <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
                         </NavLink>
                       </TooltipTrigger>
-                      <TooltipContent side="right">{tooltipLabel(item)}</TooltipContent>
+                      <TooltipContent side="right">{t(item.labelKey)}</TooltipContent>
                     </Tooltip>
                   ))}
                 </TooltipProvider>
@@ -382,7 +240,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <div className="space-y-1 border-t border-border/50 p-2">
         <button
           onClick={toggleDeepWorkMode}
-          aria-label={tr('nav.deepWork')}
+          aria-label={t('nav.deepWork')}
           aria-pressed={deepWorkMode}
           className={cn(
             'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
@@ -394,12 +252,12 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           )}
         >
           <Focus className="h-5 w-5 shrink-0" aria-hidden="true" />
-          {!collapsed && <span>{tr('nav.deepWork')}</span>}
+          {!collapsed && <span>{t('nav.deepWork')}</span>}
         </button>
 
         <button
           onClick={onToggle}
-          aria-label={collapsed ? tr('nav.expand') : tr('nav.collapse')}
+          aria-label={collapsed ? t('nav.expand') : t('nav.collapse')}
           aria-expanded={!collapsed}
           className={cn(
             'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors',
@@ -412,7 +270,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           ) : (
             <>
               <ChevronLeft className="h-5 w-5 shrink-0" aria-hidden="true" />
-              <span>{tr('nav.collapse')}</span>
+              <span>{t('nav.collapse')}</span>
             </>
           )}
         </button>

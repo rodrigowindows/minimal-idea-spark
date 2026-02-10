@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { Mic, Loader2, Square } from 'lucide-react'
+import { Bug, Copy, Loader2, Mic, Play, Square, Trash2, Wrench } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import {
@@ -9,6 +10,19 @@ import {
   isBrowserRecognitionSupported,
 } from '@/lib/audio-transcription'
 import type { SupportedLanguage } from '@/lib/audio-transcription'
+import {
+  addAudioDebugLog,
+  clearAudioDebugLogs,
+  formatAudioDebugLogLine,
+  getAudioDebugLogs,
+  subscribeAudioDebugLogs,
+  type AudioDebugLogEntry,
+} from '@/lib/audio-debug'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 
 interface BrowserRecognitionResult {
   isFinal: boolean
@@ -42,13 +56,21 @@ interface VoiceInputProps {
   onTranscript: (text: string) => void
   disabled?: boolean
   language?: SupportedLanguage
+  showDebugControls?: boolean
 }
 
 const LANG_MAP: Record<string, string> = { 'pt-BR': 'pt-BR', en: 'en-US', es: 'es-ES' }
+const DEBUG_LOG_LIMIT = 180
 
-export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: VoiceInputProps) {
+export function VoiceInput({
+  onTranscript,
+  disabled,
+  language = 'pt-BR',
+  showDebugControls = true,
+}: VoiceInputProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [isTranscribing, setIsTranscribing] = useState(false)
+  const [debugLogs, setDebugLogs] = useState<AudioDebugLogEntry[]>(() => getAudioDebugLogs(DEBUG_LOG_LIMIT))
   const isRecordingRef = useRef(false)
   const isTranscribingRef = useRef(false)
   const languageRef = useRef<SupportedLanguage>(language)
@@ -75,16 +97,24 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
     languageRef.current = language
   }, [language])
 
+  useEffect(() => {
+    if (!showDebugControls) return
+    return subscribeAudioDebugLogs((logs) => {
+      setDebugLogs(logs.slice(0, DEBUG_LOG_LIMIT))
+    })
+  }, [showDebugControls])
+
   const log = useCallback((event: string, data?: Record<string, unknown>) => {
-    console.info('[VoiceInput]', {
-      event,
+    const payload = {
       session: activeSessionRef.current,
       engine: activeEngineRef.current,
       language: languageRef.current,
       isRecording: isRecordingRef.current,
       isTranscribing: isTranscribingRef.current,
       ...(data ?? {}),
-    })
+    }
+    addAudioDebugLog('voice-input', event, payload)
+    console.info('[VoiceInput]', { event, ...payload })
   }, [])
 
   const stopAndReleaseStream = useCallback(() => {
@@ -95,7 +125,9 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
       try {
         track.stop()
       } catch (err) {
-        console.warn('[VoiceInput] failed-to-stop-track', err)
+        const message = err instanceof Error ? err.message : String(err)
+        addAudioDebugLog('voice-input', 'stream-release-track-failed', { message })
+        console.warn('[VoiceInput] stream-release-track-failed', message)
       }
     })
     mediaStreamRef.current = null
@@ -165,7 +197,9 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
         }
 
         mediaRecorder.onerror = (event: Event & { error?: DOMException }) => {
-          console.error('[VoiceInput] backend-recorder-error', event?.error ?? event)
+          const message = event?.error?.message ?? 'unknown-media-recorder-error'
+          addAudioDebugLog('voice-input', 'backend-recorder-error', { message })
+          console.error('[VoiceInput] backend-recorder-error', message)
           toast.error('Falha no gravador de audio.')
           setIsRecording(false)
           setIsTranscribing(false)
@@ -207,8 +241,10 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
               toast.info('Nenhuma fala detectada. Tente falar mais perto do microfone.')
             }
           } catch (e) {
-            console.error('[VoiceInput] transcription-error', e)
-            if (userInitiated) toast.error(e instanceof Error ? e.message.slice(0, 80) : 'Falha na transcricao.')
+            const message = e instanceof Error ? e.message : String(e)
+            addAudioDebugLog('voice-input', 'transcription-error', { message })
+            console.error('[VoiceInput] transcription-error', message)
+            if (userInitiated) toast.error(message.slice(0, 80))
           } finally {
             log('transcription-finish')
             setIsTranscribing(false)
@@ -223,7 +259,9 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
         setIsRecording(true)
         log('backend-recording-started', { state: mediaRecorder.state })
       } catch (err) {
-        console.error('[VoiceInput] start-backend-error', err)
+        const message = err instanceof Error ? err.message : String(err)
+        addAudioDebugLog('voice-input', 'start-backend-error', { message })
+        console.error('[VoiceInput] start-backend-error', message)
         userInitiatedRecordingRef.current = false
         toast.error('Nao foi possivel acessar o microfone. Verifique as permissoes.')
         stopAndReleaseStream()
@@ -278,7 +316,9 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
               recognition.start()
               log('browser-auto-restart')
             } catch (err) {
-              console.warn('[VoiceInput] browser-restart-failed', err)
+              const message = err instanceof Error ? err.message : String(err)
+              addAudioDebugLog('voice-input', 'browser-auto-restart-failed', { message })
+              console.warn('[VoiceInput] browser-auto-restart-failed', message)
             }
           } else {
             const userInitiated = userInitiatedRecordingRef.current
@@ -321,7 +361,9 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
         setIsRecording(true)
         log('browser-recording-started')
       } catch (err) {
-        console.error('[VoiceInput] start-browser-error', err)
+        const message = err instanceof Error ? err.message : String(err)
+        addAudioDebugLog('voice-input', 'start-browser-error', { message })
+        console.error('[VoiceInput] start-browser-error', message)
         userInitiatedRecordingRef.current = false
         toast.error('Reconhecimento de voz nao disponivel.')
         resetSession()
@@ -345,7 +387,9 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
         mediaRecorderRef.current.stop()
         log('stop-backend-called', { state: mediaRecorderRef.current.state })
       } catch (err) {
-        console.error('[VoiceInput] stop-backend-error', err)
+        const message = err instanceof Error ? err.message : String(err)
+        addAudioDebugLog('voice-input', 'stop-backend-error', { message })
+        console.error('[VoiceInput] stop-backend-error', message)
         setIsTranscribing(false)
         stopAndReleaseStream()
         resetSession()
@@ -361,7 +405,9 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
         recognitionRef.current.stop()
         log('stop-browser-called')
       } catch (err) {
-        console.error('[VoiceInput] stop-browser-error', err)
+        const message = err instanceof Error ? err.message : String(err)
+        addAudioDebugLog('voice-input', 'stop-browser-error', { message })
+        console.error('[VoiceInput] stop-browser-error', message)
         setIsTranscribing(false)
         resetSession()
       }
@@ -381,21 +427,23 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
       try {
         if (recognitionRef.current) recognitionRef.current.stop()
       } catch (err) {
-        console.warn('[VoiceInput] cleanup-stop-recognition-failed', err)
+        const message = err instanceof Error ? err.message : String(err)
+        addAudioDebugLog('voice-input', 'cleanup-stop-recognition-failed', { message })
+        console.warn('[VoiceInput] cleanup-stop-recognition-failed', message)
       }
       try {
         if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
           mediaRecorderRef.current.stop()
         }
       } catch (err) {
-        console.warn('[VoiceInput] cleanup-stop-recorder-failed', err)
+        const message = err instanceof Error ? err.message : String(err)
+        addAudioDebugLog('voice-input', 'cleanup-stop-recorder-failed', { message })
+        console.warn('[VoiceInput] cleanup-stop-recorder-failed', message)
       }
       stopAndReleaseStream()
       resetSession()
     }
   }, [log, resetSession, stopAndReleaseStream])
-
-  const busy = isRecording || isTranscribing
 
   const handleClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault()
@@ -414,40 +462,196 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
     void startRecording()
   }, [disabled, isRecording, isTranscribing, log, startRecording, stopRecording])
 
-  return (
-    <div className="relative flex items-center justify-center h-9 w-9 shrink-0">
-      {isRecording && (
-        <span className="absolute inset-[-4px] rounded-full border-2 border-red-500 animate-pulse" />
-      )}
-      {isRecording && (
-        <span className="absolute inset-[-6px] rounded-full border border-red-400/50 animate-ping" />
-      )}
+  const testMicrophone = useCallback(async () => {
+    log('test-mic-start')
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1,
+        },
+      })
+      const track = stream.getAudioTracks()[0]
+      const settings = track?.getSettings?.()
+      const label = track?.label || 'microfone-sem-label'
+      addAudioDebugLog('voice-input', 'test-mic-success', {
+        label,
+        settings: settings as unknown as Record<string, unknown>,
+      })
+      console.info('[VoiceInput] test-mic-success', { label, settings })
+      stream.getTracks().forEach((t) => t.stop())
+      toast.success('Microfone acessado com sucesso.')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      addAudioDebugLog('voice-input', 'test-mic-failed', { message })
+      console.error('[VoiceInput] test-mic-failed', message)
+      toast.error('Falha no teste do microfone.')
+    }
+  }, [log])
 
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        disabled={disabled || isTranscribing}
-        className={cn(
-          'relative z-10 h-9 w-9 shrink-0 touch-manipulation rounded-full',
-          isRecording && 'text-white bg-red-500 hover:bg-red-500/90',
-          isTranscribing && 'text-amber-500'
+  const copyLogs = useCallback(async () => {
+    const lines = getAudioDebugLogs(250).map(formatAudioDebugLogLine).join('\n')
+    if (!lines) {
+      toast.info('Sem logs de audio para copiar.')
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(lines)
+      addAudioDebugLog('voice-input', 'debug-copy-logs', { lines: lines.split('\n').length })
+      toast.success('Logs copiados para a area de transferencia.')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      addAudioDebugLog('voice-input', 'debug-copy-logs-failed', { message })
+      toast.error('Nao foi possivel copiar os logs.')
+    }
+  }, [])
+
+  const clearLogs = useCallback(() => {
+    clearAudioDebugLogs()
+    addAudioDebugLog('voice-input', 'debug-clear-logs')
+    toast.success('Logs de audio limpos.')
+  }, [])
+
+  return (
+    <div className="relative flex items-center gap-1 shrink-0">
+      <div className="relative flex h-9 w-9 items-center justify-center shrink-0">
+        {isRecording && (
+          <span className="absolute inset-[-4px] rounded-full border-2 border-red-500 animate-pulse" />
         )}
-        title={isTranscribing ? 'Transcrevendo audio...' : isRecording ? 'Parar gravacao' : 'Iniciar gravacao'}
-        aria-label={isTranscribing ? 'Transcrevendo audio...' : isRecording ? 'Parar gravacao' : 'Iniciar gravacao'}
-        onClick={handleClick}
-      >
-        {isTranscribing ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : isRecording ? (
-          <Square className="h-4 w-4 fill-current" />
-        ) : (
-          <Mic className="h-4 w-4" />
+        {isRecording && (
+          <span className="absolute inset-[-6px] rounded-full border border-red-400/50 animate-ping" />
         )}
-        <span className="sr-only">
-          {isTranscribing ? 'Transcribing...' : isRecording ? 'Stop recording' : 'Start recording'}
-        </span>
-      </Button>
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          disabled={disabled || isTranscribing}
+          className={cn(
+            'relative z-10 h-9 w-9 touch-manipulation rounded-full',
+            isRecording && 'text-white bg-red-500 hover:bg-red-500/90',
+            isTranscribing && 'text-amber-500'
+          )}
+          title={isTranscribing ? 'Transcrevendo audio...' : isRecording ? 'Parar gravacao' : 'Iniciar gravacao'}
+          aria-label={isTranscribing ? 'Transcrevendo audio...' : isRecording ? 'Parar gravacao' : 'Iniciar gravacao'}
+          onClick={handleClick}
+        >
+          {isTranscribing ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : isRecording ? (
+            <Square className="h-4 w-4 fill-current" />
+          ) : (
+            <Mic className="h-4 w-4" />
+          )}
+          <span className="sr-only">
+            {isTranscribing ? 'Transcribing...' : isRecording ? 'Stop recording' : 'Start recording'}
+          </span>
+        </Button>
+      </div>
+
+      {showDebugControls && (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              title="Abrir diagnostico de audio"
+              aria-label="Abrir diagnostico de audio"
+            >
+              <Bug className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[360px] p-3" align="end">
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-1.5">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => void startRecording()}
+                  disabled={Boolean(disabled) || isRecording || isTranscribing}
+                  className="justify-start"
+                >
+                  <Play className="mr-1 h-3.5 w-3.5" />
+                  Iniciar
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={stopRecording}
+                  disabled={!isRecording}
+                  className="justify-start"
+                >
+                  <Square className="mr-1 h-3.5 w-3.5" />
+                  Parar
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => void testMicrophone()}
+                  disabled={isRecording || isTranscribing}
+                  className="justify-start"
+                >
+                  <Wrench className="mr-1 h-3.5 w-3.5" />
+                  Testar Mic
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => void copyLogs()}
+                  className="justify-start"
+                >
+                  <Copy className="mr-1 h-3.5 w-3.5" />
+                  Copiar Logs
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  onClick={clearLogs}
+                  className="col-span-2 justify-start"
+                >
+                  <Trash2 className="mr-1 h-3.5 w-3.5" />
+                  Limpar Logs
+                </Button>
+              </div>
+
+              <p className="text-[11px] text-muted-foreground">
+                Log detalhado de audio (captura, reconhecimento, transcricao e erros).
+              </p>
+
+              <ScrollArea className="h-44 rounded-md border p-2">
+                {debugLogs.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Sem logs de audio.</p>
+                ) : (
+                  <div className="space-y-1">
+                    {debugLogs.map((entry) => (
+                      <div key={entry.id} className="rounded-sm bg-muted/40 px-2 py-1">
+                        <p className="font-mono text-[10px] text-muted-foreground">{entry.at}</p>
+                        <p className="font-mono text-[11px]">
+                          [{entry.source}] {entry.event}
+                        </p>
+                        {entry.data && (
+                          <p className="font-mono text-[10px] text-muted-foreground break-all">
+                            {JSON.stringify(entry.data)}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </div>
+          </PopoverContent>
+        </Popover>
+      )}
     </div>
   )
 }

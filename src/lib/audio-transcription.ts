@@ -1,3 +1,5 @@
+import { addAudioDebugLog } from '@/lib/audio-debug';
+
 export type SupportedLanguage = 'pt-BR' | 'en' | 'es';
 
 export const SUPPORTED_LANGUAGES: { code: SupportedLanguage; label: string; whisperCode: string }[] = [
@@ -23,6 +25,10 @@ const DEEPGRAM_API = 'https://api.deepgram.com/v1/listen';
 function getDeepgramApiKey(): string {
   const key = import.meta.env.VITE_DEEPGRAM_API_KEY;
   if (!key || key === 'undefined' || key === 'your-deepgram-api-key') {
+    addAudioDebugLog('audio-transcription', 'missing-api-key', {
+      envPresent: Boolean(key),
+      keyValue: key ?? null,
+    });
     throw new Error(
       'Transcription not configured. Set VITE_DEEPGRAM_API_KEY in .env (get a key at https://deepgram.com).'
     );
@@ -33,7 +39,9 @@ function getDeepgramApiKey(): string {
 /** True if backend transcription (Deepgram) is configured. */
 export function isTranscriptionConfigured(): boolean {
   const key = import.meta.env.VITE_DEEPGRAM_API_KEY;
-  return Boolean(key && key !== 'undefined' && key !== 'your-deepgram-api-key');
+  const configured = Boolean(key && key !== 'undefined' && key !== 'your-deepgram-api-key');
+  addAudioDebugLog('audio-transcription', 'config-check', { configured });
+  return configured;
 }
 
 /** Browser SpeechRecognition (Chrome, Edge, Safari). Not in Firefox. */
@@ -73,7 +81,9 @@ const SpeechRecognitionCtor =
 
 /** Whether the browser supports live speech recognition (no backend). */
 export function isBrowserRecognitionSupported(): boolean {
-  return Boolean(SpeechRecognitionCtor);
+  const supported = Boolean(SpeechRecognitionCtor);
+  addAudioDebugLog('audio-transcription', 'browser-support-check', { supported });
+  return supported;
 }
 
 const langToBrowserCode: Record<SupportedLanguage, string> = {
@@ -126,6 +136,7 @@ export function createBrowserRecognizer(
     if (e.error !== 'aborted') {
       console.warn('Speech recognition error:', e.error);
     }
+    addAudioDebugLog('audio-transcription', 'browser-recognizer-error', { error: e.error });
     onEnd();
   };
 
@@ -169,6 +180,13 @@ export async function transcribeAudio(
   const url = `${DEEPGRAM_API}?${params.toString()}`;
 
   const contentType = audioBlob.type || 'audio/webm';
+  addAudioDebugLog('audio-transcription', 'request-start', {
+    url,
+    language,
+    model,
+    contentType,
+    blobSize: audioBlob.size,
+  });
   console.info('[audio-transcription] request-start', {
     url,
     language,
@@ -188,6 +206,10 @@ export async function transcribeAudio(
     status: response.status,
     ok: response.ok,
   });
+  addAudioDebugLog('audio-transcription', 'response', {
+    status: response.status,
+    ok: response.ok,
+  });
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => 'Unknown error');
@@ -204,6 +226,11 @@ export async function transcribeAudio(
       message,
       errorText: errorText?.slice(0, 300),
     });
+    addAudioDebugLog('audio-transcription', 'request-failed', {
+      status: response.status,
+      message,
+      errorText: errorText?.slice(0, 300),
+    });
     throw new Error(message);
   }
 
@@ -212,6 +239,11 @@ export async function transcribeAudio(
     result?.results?.channels?.[0]?.alternatives?.[0]?.transcript ?? '';
   const duration = result?.metadata?.duration;
   console.info('[audio-transcription] request-success', {
+    transcriptLength: typeof transcript === 'string' ? transcript.length : String(transcript).length,
+    duration,
+    language: langConfig.code,
+  });
+  addAudioDebugLog('audio-transcription', 'request-success', {
     transcriptLength: typeof transcript === 'string' ? transcript.length : String(transcript).length,
     duration,
     language: langConfig.code,
