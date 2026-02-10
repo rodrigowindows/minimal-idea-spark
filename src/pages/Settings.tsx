@@ -37,7 +37,6 @@ import {
   Shield,
   Tag,
   Key,
-  Webhook,
   Mail,
   RotateCcw,
   Play,
@@ -59,8 +58,8 @@ import { getLastBackupDate, isBackupDue, getBackupSchedule, type BackupFrequency
 import { TagBadge } from '@/components/tags/TagBadge'
 import { getAllTags, createTag, deleteTag } from '@/lib/tags/tag-service'
 import { getDigestFrequency, setDigestFrequency, type DigestFrequency } from '@/lib/email/digest'
-import { listApiKeys, createApiKey, revokeApiKey } from '@/lib/api/keys'
-import { listWebhooks, addWebhook, removeWebhook } from '@/lib/api/webhooks'
+import { listApiKeys } from '@/lib/api/keys'
+import { listWebhooks } from '@/lib/api/webhooks'
 import { Link } from 'react-router-dom'
 import { ShortcutSettings } from '@/components/settings/ShortcutSettings'
 import { getCurrentMonthCount, getAIPreferences, setAIPreferences, type AIPreferences } from '@/lib/ai/usage-tracker'
@@ -99,9 +98,8 @@ export function Settings() {
     try { return localStorage.getItem('lifeos_reminders_enabled') !== 'false' } catch { return true }
   })
   const [digestFreq, setDigestFreq] = useState<DigestFrequency>(() => getDigestFrequency())
-  const [apiKeys, setApiKeys] = useState(() => listApiKeys())
-  const [webhooks, setWebhooks] = useState(() => listWebhooks())
-  const [newWebhookUrl, setNewWebhookUrl] = useState('')
+  const [apiKeys] = useState(() => listApiKeys())
+  const [webhooks] = useState(() => listWebhooks())
   const [tags, setTags] = useState(() => getAllTags())
   const { demoMode, resetTour, toggleDemoMode } = useOnboarding()
   const [aiPrefs, setAiPrefs] = useState<AIPreferences>(() => getAIPreferences())
@@ -374,63 +372,17 @@ export function Settings() {
             <p className="text-sm text-muted-foreground">{t('settings.integrationsDescription')}</p>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <p className="text-sm font-medium mb-2">{t('settings.apiKeys')}</p>
-              {apiKeys.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t('settings.noApiKeys')}</p>
-              ) : (
-                <ul className="space-y-2">
-                  {apiKeys.map((k) => (
-                    <li key={k.id} className="flex items-center justify-between rounded-lg border p-2 text-sm">
-                      <span className="font-mono text-muted-foreground">{k.prefix}</span>
-                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => {
-                        revokeApiKey(k.id)
-                        setApiKeys(listApiKeys())
-                        toast.success(t('settings.apiKeyRevoked'))
-                      }}>{t('settings.revoke')}</Button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <Button variant="outline" size="sm" className="mt-2 gap-1" onClick={() => {
-                const name = window.prompt(t('settings.apiKeyNamePrompt') || 'Key name')
-                if (!name?.trim()) return
-                const { key, record } = createApiKey(name.trim())
-                setApiKeys(listApiKeys())
-                toast.success(t('settings.apiKeyCreated'))
-                navigator.clipboard.writeText(key).catch(() => {})
-              }}>
-                <Plus className="h-4 w-4" /> {t('settings.createApiKey')}
-              </Button>
-            </div>
-            <div>
-              <p className="text-sm font-medium mb-2 flex items-center gap-1"><Webhook className="h-4 w-4" /> {t('settings.webhooks')}</p>
-              <div className="flex gap-2 mb-2">
-                <Input placeholder="https://api.example.com/webhook" value={newWebhookUrl} onChange={(e) => setNewWebhookUrl(e.target.value)} className="flex-1" />
-                <Button size="sm" onClick={() => {
-                  if (!newWebhookUrl.trim()) return
-                  addWebhook(newWebhookUrl.trim(), ['opportunity_created', 'opportunity_updated', 'journal_created'])
-                  setWebhooks(listWebhooks())
-                  setNewWebhookUrl('')
-                  toast.success(t('settings.webhookAdded'))
-                }}>{t('settings.addWebhook')}</Button>
+            <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
+              <div>
+                <p className="text-sm font-medium">{t('settings.apiKeys')}: {apiKeys.length}</p>
+                <p className="text-sm font-medium">{t('settings.webhooks')}: {webhooks.length}</p>
               </div>
-              {webhooks.length > 0 && (
-                <ul className="space-y-2">
-                  {webhooks.map((w) => (
-                    <li key={w.id} className="flex items-center justify-between rounded-lg border p-2 text-sm">
-                      <span className="truncate text-muted-foreground">{w.url}</span>
-                      <Button variant="ghost" size="sm" className="text-destructive shrink-0" onClick={() => {
-                        removeWebhook(w.id)
-                        setWebhooks(listWebhooks())
-                        toast.success(t('settings.webhookRemoved'))
-                      }}>{t('settings.remove')}</Button>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <Link to="/integrations">
+                <Button variant="outline" size="sm" className="gap-1">
+                  <Key className="h-4 w-4" /> {t('settings.manageIntegrations', 'Manage Integrations')}
+                </Button>
+              </Link>
             </div>
-            <a href="/docs/api.md" target="_blank" rel="noopener" className="text-sm text-primary hover:underline">{t('settings.apiDocs')}</a>
           </CardContent>
         </Card>
 

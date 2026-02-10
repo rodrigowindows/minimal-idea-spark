@@ -26,6 +26,7 @@ import {
   ImageIcon,
   History,
   HelpCircle,
+  Plug,
 } from 'lucide-react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
@@ -74,6 +75,7 @@ const navItems: { to: string; icon: typeof LayoutDashboard; labelKey: string }[]
   { to: '/workspace', icon: Building2, labelKey: 'nav.workspace' },
   { to: '/import', icon: FileStack, labelKey: 'nav.import' },
   { to: '/reports', icon: FileText, labelKey: 'nav.reports' },
+  { to: '/integrations', icon: Plug, labelKey: 'nav.integrations' },
   { to: '/help', icon: HelpCircle, labelKey: 'nav.help' },
   { to: '/settings', icon: Settings2, labelKey: 'nav.settings' },
 ]
@@ -82,7 +84,7 @@ const SIDEBAR_SECTIONS: { sectionKey: string; paths: string[] }[] = [
   { sectionKey: 'nav.sectionPrincipal', paths: ['/', '/consultant', '/opportunities', '/journal'] },
   { sectionKey: 'nav.sectionProdutividade', paths: ['/habits', '/goals', '/calendar', '/priorities', '/analytics', '/weekly-review', '/reports'] },
   { sectionKey: 'nav.sectionFerramentas', paths: ['/notifications', '/content-generator', '/automation', '/templates', '/images', '/version-history'] },
-  { sectionKey: 'nav.sectionConfig', paths: ['/workspace', '/import', '/help', '/settings'] },
+  { sectionKey: 'nav.sectionConfig', paths: ['/workspace', '/integrations', '/import', '/help', '/settings'] },
 ]
 
 const STORAGE_KEY = 'lifeos_sidebar_sections'

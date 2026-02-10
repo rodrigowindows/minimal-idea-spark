@@ -55,6 +55,7 @@ const Auth = lazy(() => import("@/pages/Auth").then((m) => ({ default: m.Auth })
 const Help = lazy(() => import("@/pages/Help").then((m) => ({ default: m.Help })));
 const ImportPage = lazy(() => import("@/pages/ImportPage").then((m) => ({ default: m.ImportPage })));
 const ReportsPage = lazy(() => import("@/pages/ReportsPage").then((m) => ({ default: m.ReportsPage })));
+const Integrations = lazy(() => import("@/pages/Integrations").then((m) => ({ default: m.Integrations })));
 
 const PageFallback = () => (
   <div className="flex min-h-[50vh] items-center justify-center" role="status" aria-label="Loading page">
@@ -129,6 +130,7 @@ function AppContent() {
           <Route path="/help" element={<Suspense fallback={<PageFallback />}><Help /></Suspense>} />
           <Route path="/import" element={<Suspense fallback={<PageFallback />}><ImportPage /></Suspense>} />
           <Route path="/reports" element={<Suspense fallback={<PageFallback />}><ReportsPage /></Suspense>} />
+          <Route path="/integrations" element={<Suspense fallback={<PageFallback />}><Integrations /></Suspense>} />
           <Route path="/workspace" element={<Suspense fallback={<PageFallback />}><Workspace /></Suspense>} />
         </Route>
         <Route path="/invite/:token" element={<Suspense fallback={<PageFallback />}><AcceptInvite /></Suspense>} />
