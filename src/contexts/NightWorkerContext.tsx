@@ -1,0 +1,187 @@
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import type { NightWorkerConfig } from '@/types/night-worker'
+
+const STORAGE_KEY = 'nightworker_config_v1'
+const DEFAULT_BASE_URL = (import.meta.env.VITE_NIGHTWORKER_API_URL as string | undefined) || 'http://localhost:5555'
+
+export class ApiError extends Error {
+  status?: number
+  constructor(message: string, status?: number) {
+    super(message)
+    this.status = status
+  }
+}
+
+export type ApiFetchOptions = RequestInit & { skipAuth?: boolean; retry?: number }
+
+interface NightWorkerContextValue {
+  config: NightWorkerConfig
+  setConfig: (partial: Partial<NightWorkerConfig>) => void
+  setToken: (token: string | null) => void
+  clearAuth: () => void
+  apiFetch: <T = unknown>(path: string, options?: ApiFetchOptions) => Promise<T>
+  isConnected: boolean
+  lastError: string | null
+}
+
+const defaultConfig: NightWorkerConfig = {
+  baseUrl: DEFAULT_BASE_URL,
+  token: null,
+  port: 5555,
+  workers: {
+    claude: {
+      active: true,
+      provider: 'claude_cli',
+      windowStart: '12:00',
+      windowEnd: '11:59',
+      intervalSeconds: 60,
+      timeoutSeconds: 0,
+      maxFiles: 3,
+      maxPromptSize: 8000,
+      folder: 'C:\\\\night-worker\\\\claude',
+    },
+    codex: {
+      active: true,
+      provider: 'codex_cli',
+      windowStart: '12:00',
+      windowEnd: '11:59',
+      intervalSeconds: 60,
+      timeoutSeconds: 0,
+      maxFiles: 3,
+      maxPromptSize: 8000,
+      folder: 'C:\\\\night-worker\\\\codex',
+      cliPath: 'C:\\\\code\\\\codex-cli',
+      model: 'gpt-4.1-mini',
+    },
+  },
+  providers: ['claude_cli', 'codex_cli', 'openai_api'],
+}
+
+function loadConfig(): NightWorkerConfig {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      const parsed = JSON.parse(saved) as NightWorkerConfig
+      return {
+        ...defaultConfig,
+        ...parsed,
+        workers: {
+          claude: { ...defaultConfig.workers.claude, ...(parsed.workers?.claude || {}) },
+          codex: { ...defaultConfig.workers.codex, ...(parsed.workers?.codex || {}) },
+        },
+      }
+    }
+  } catch {
+    /* ignore corrupted storage */
+  }
+  return defaultConfig
+}
+
+const NightWorkerContext = createContext<NightWorkerContextValue | undefined>(undefined)
+
+function sanitizeBaseUrl(url: string) {
+  if (!url) return DEFAULT_BASE_URL
+  return url.replace(/\/+$/, '')
+}
+
+export function NightWorkerProvider({ children }: { children: ReactNode }) {
+  const [config, setConfigState] = useState<NightWorkerConfig>(() => loadConfig())
+  const [lastError, setLastError] = useState<string | null>(null)
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(config))
+    } catch {
+      /* ignore */
+    }
+  }, [config])
+
+  const setConfig = useCallback((partial: Partial<NightWorkerConfig>) => {
+    setConfigState((prev) => ({
+      ...prev,
+      ...partial,
+      baseUrl: sanitizeBaseUrl(partial.baseUrl ?? prev.baseUrl),
+      workers: {
+        claude: { ...prev.workers.claude, ...(partial.workers?.claude || {}) },
+        codex: { ...prev.workers.codex, ...(partial.workers?.codex || {}) },
+      },
+    }))
+  }, [])
+
+  const setToken = useCallback((token: string | null) => {
+    setConfigState((prev) => ({ ...prev, token: token || null }))
+  }, [])
+
+  const clearAuth = useCallback(() => {
+    setConfigState((prev) => ({ ...prev, token: null }))
+  }, [])
+
+  const apiFetch = useCallback(
+    async <T,>(path: string, options?: ApiFetchOptions) => {
+      const { skipAuth = false, retry = 3, headers, ...rest } = options || {}
+      const base = sanitizeBaseUrl(config.baseUrl || DEFAULT_BASE_URL)
+      const url = path.startsWith('http') ? path : `${base}/${path.replace(/^\//, '')}`
+      const mergedHeaders = new Headers(headers || {})
+      if (!mergedHeaders.has('Content-Type') && rest.body && !(rest.body instanceof FormData)) {
+        mergedHeaders.set('Content-Type', 'application/json')
+      }
+      if (!skipAuth && config.token) {
+        mergedHeaders.set('Authorization', `Bearer ${config.token}`)
+      }
+
+      let attempt = 0
+      let error: unknown
+
+      while (attempt < retry) {
+        try {
+          const response = await fetch(url, { ...rest, headers: mergedHeaders })
+          if (response.status === 401) {
+            setLastError('auth')
+            throw new ApiError('Unauthorized', 401)
+          }
+          if (!response.ok) {
+            const text = await response.text()
+            throw new ApiError(text || response.statusText, response.status)
+          }
+          const contentType = response.headers.get('content-type') || ''
+          const data = response.status === 204
+            ? null
+            : contentType.includes('application/json')
+              ? await response.json()
+              : await response.text()
+          setLastError(null)
+          return data as T
+        } catch (err) {
+          error = err
+          attempt += 1
+          if (err instanceof DOMException && err.name === 'AbortError') break
+          if (attempt >= retry) break
+          await new Promise((resolve) => setTimeout(resolve, Math.min(4000, 250 * 2 ** attempt)))
+        }
+      }
+      throw error
+    },
+    [config.baseUrl, config.token]
+  )
+
+  const value = useMemo<NightWorkerContextValue>(
+    () => ({
+      config,
+      setConfig,
+      setToken,
+      clearAuth,
+      apiFetch,
+      isConnected: !!config.token,
+      lastError,
+    }),
+    [apiFetch, clearAuth, config, lastError, setConfig, setToken]
+  )
+
+  return <NightWorkerContext.Provider value={value}>{children}</NightWorkerContext.Provider>
+}
+
+export function useNightWorker() {
+  const ctx = useContext(NightWorkerContext)
+  if (!ctx) throw new Error('useNightWorker must be used inside NightWorkerProvider')
+  return ctx
+}

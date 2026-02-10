@@ -1,42 +1,30 @@
-import { useState, useCallback } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  Bell,
-  BookOpen,
-  CalendarDays,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
-  Crosshair,
+  Clock3,
   Focus,
   Globe,
   LayoutDashboard,
-  MessageSquare,
-  PenTool,
-  Sparkles,
-  Target,
-  BarChart3,
-  Repeat,
-  Flag,
-  ClipboardCheck,
+  Send,
   Settings2,
-  Building2,
-  Zap,
-  FileStack,
-  FileText,
-  ImageIcon,
-  History,
-  HelpCircle,
-  Plug,
+  Terminal,
+  ListChecks,
+  BarChart3,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { useAppContext } from '@/contexts/AppContext'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useAuth } from '@/contexts/AuthContext'
 import { XPProgressBar } from '@/components/gamification/XPProgressBar'
 import { WorkspaceSwitcher } from '@/components/WorkspaceSwitcher'
 import { NotificationCenter } from '@/components/NotificationCenter'
 import { SyncStatusIndicator } from '@/components/SyncStatusIndicator'
+import { useRecentPages } from '@/hooks/useRecentPages'
+import { usePromptsQuery } from '@/hooks/useNightWorkerApi'
 import {
   Tooltip,
   TooltipContent,
@@ -49,49 +37,48 @@ interface SidebarProps {
   onToggle: () => void
 }
 
+type NavSection = 'principal' | 'config'
+
+interface NavItem {
+  to: string
+  icon: typeof LayoutDashboard
+  labelKey: string
+  section: NavSection
+  shortcut?: string
+  badge?: number
+}
+
 const FLAG_MAP: Record<string, string> = {
   'pt-BR': '🇧🇷 PT',
   en: '🇺🇸 EN',
   es: '🇪🇸 ES',
 }
 
-const navItems: { to: string; icon: typeof LayoutDashboard; labelKey: string }[] = [
-  { to: '/', icon: LayoutDashboard, labelKey: 'nav.dashboard' },
-  { to: '/consultant', icon: MessageSquare, labelKey: 'nav.consultant' },
-  { to: '/opportunities', icon: Target, labelKey: 'nav.opportunities' },
-  { to: '/journal', icon: BookOpen, labelKey: 'nav.journal' },
-  { to: '/habits', icon: Repeat, labelKey: 'nav.habits' },
-  { to: '/goals', icon: Flag, labelKey: 'nav.goals' },
-  { to: '/calendar', icon: CalendarDays, labelKey: 'nav.calendar' },
-  { to: '/priorities', icon: Crosshair, labelKey: 'nav.priorities' },
-  { to: '/analytics', icon: BarChart3, labelKey: 'nav.analytics' },
-  { to: '/weekly-review', icon: ClipboardCheck, labelKey: 'nav.weeklyReview' },
-  { to: '/notifications', icon: Bell, labelKey: 'nav.notifications' },
-  { to: '/content-generator', icon: PenTool, labelKey: 'nav.contentGenerator' },
-  { to: '/automation', icon: Zap, labelKey: 'nav.automation' },
-  { to: '/templates', icon: FileStack, labelKey: 'nav.templates' },
-  { to: '/images', icon: ImageIcon, labelKey: 'nav.images' },
-  { to: '/version-history', icon: History, labelKey: 'nav.versionHistory' },
-  { to: '/workspace', icon: Building2, labelKey: 'nav.workspace' },
-  { to: '/import', icon: FileStack, labelKey: 'nav.import' },
-  { to: '/reports', icon: FileText, labelKey: 'nav.reports' },
-  { to: '/integrations', icon: Plug, labelKey: 'nav.integrations' },
-  { to: '/help', icon: HelpCircle, labelKey: 'nav.help' },
-  { to: '/settings', icon: Settings2, labelKey: 'nav.settings' },
+const NAV_ITEMS: NavItem[] = [
+  { to: '/', icon: LayoutDashboard, labelKey: 'nav.dashboard', section: 'principal', shortcut: 'Alt+1' },
+  { to: '/submit', icon: Send, labelKey: 'nav.submit', section: 'principal', shortcut: 'Alt+2' },
+  { to: '/prompts', icon: ListChecks, labelKey: 'nav.prompts', section: 'principal', shortcut: 'Alt+3' },
+  { to: '/logs', icon: Terminal, labelKey: 'nav.logs', section: 'principal', shortcut: 'Alt+4' },
+  { to: '/settings', icon: Settings2, labelKey: 'nav.settings', section: 'config', shortcut: 'Alt+9' },
 ]
 
-const SIDEBAR_SECTIONS: { sectionKey: string; paths: string[] }[] = [
-  { sectionKey: 'nav.sectionPrincipal', paths: ['/', '/consultant', '/opportunities', '/journal'] },
-  { sectionKey: 'nav.sectionProdutividade', paths: ['/habits', '/goals', '/calendar', '/priorities', '/analytics', '/weekly-review', '/reports'] },
-  { sectionKey: 'nav.sectionFerramentas', paths: ['/notifications', '/content-generator', '/automation', '/templates', '/images', '/version-history'] },
-  { sectionKey: 'nav.sectionConfig', paths: ['/workspace', '/integrations', '/import', '/help', '/settings'] },
-]
+type SectionKey = NavSection | 'recent' | 'favorites'
 
-const STORAGE_KEY = 'lifeos_sidebar_sections'
+const SECTION_LABELS: Record<SectionKey, string> = {
+  principal: 'nav.sectionPrincipal',
+  config: 'nav.sectionConfig',
+  recent: 'nav.sectionRecent',
+  favorites: 'nav.sectionFavorites',
+}
 
-function getStoredSections(): Record<string, boolean> {
+const SECTION_ORDER: SectionKey[] = ['favorites', 'recent', 'principal', 'config']
+
+const STORAGE_KEY_BASE = 'lifeos_sidebar_sections'
+const FAVORITES_KEY_BASE = 'lifeos_sidebar_favorites'
+
+function getStoredSections(key: string): Record<string, boolean> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(key)
     if (!raw) return {}
     const parsed = JSON.parse(raw) as Record<string, boolean>
     return typeof parsed === 'object' ? parsed : {}
@@ -100,25 +87,261 @@ function getStoredSections(): Record<string, boolean> {
   }
 }
 
+interface SidebarNavItemProps {
+  item: {
+    to: string
+    icon: typeof LayoutDashboard
+    label: string
+    shortcut?: string
+    badge?: number
+  }
+  collapsed: boolean
+  isFavorite?: boolean
+  onToggleFavorite?: () => void
+}
+
+function SidebarNavItem({ item, collapsed, isFavorite, onToggleFavorite }: SidebarNavItemProps) {
+  const { t } = useTranslation()
+
+  const favoriteButton =
+    onToggleFavorite && !collapsed ? (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          onToggleFavorite()
+        }}
+        aria-pressed={!!isFavorite}
+        aria-label={isFavorite ? t('nav.removeFavorite') : t('nav.addFavorite')}
+        className="ml-1 rounded-md p-1 text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <Star
+          className={cn('h-4 w-4', isFavorite && 'fill-current text-amber-400')}
+          aria-hidden="true"
+        />
+      </button>
+    ) : null
+
+  const content = (
+    <NavLink
+      to={item.to}
+      end={item.to === '/'}
+      aria-label={collapsed ? item.label : undefined}
+      className={({ isActive }) =>
+        cn(
+          'flex w-full flex-1 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+          'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+          isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-muted-foreground',
+          collapsed && 'justify-center px-2'
+        )
+      }
+    >
+      <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+      {!collapsed && (
+        <span className="truncate flex-1">{item.label}</span>
+      )}
+      {!collapsed && item.badge !== undefined && item.badge > 0 && (
+        <span className="ml-auto rounded-full bg-amber-500/20 px-2 py-0.5 text-[11px] font-semibold text-amber-200">
+          {item.badge}
+        </span>
+      )}
+    </NavLink>
+  )
+
+  if (!collapsed) {
+    return (
+      <div className="group flex items-center gap-2">
+        {content}
+        {favoriteButton && (
+          <div className="opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+            {favoriteButton}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="relative">
+          {content}
+          {item.badge !== undefined && item.badge > 0 && (
+            <span className="absolute -right-1 -top-1 rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-black">
+              {item.badge}
+            </span>
+          )}
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="right">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span>{item.label}</span>
+            {item.shortcut && (
+              <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                {item.shortcut}
+              </kbd>
+            )}
+          </div>
+          {onToggleFavorite && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onToggleFavorite()
+              }}
+              aria-pressed={!!isFavorite}
+              aria-label={isFavorite ? t('nav.removeFavorite') : t('nav.addFavorite')}
+              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted"
+            >
+              <Star className={cn('h-4 w-4', isFavorite && 'fill-current text-amber-400')} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { deepWorkMode, toggleDeepWorkMode } = useAppContext()
   const { t } = useTranslation()
   const { language, toggleLanguage } = useLanguage()
-  const [sectionsOpen, setSectionsOpen] = useState<Record<string, boolean>>(getStoredSections)
+  const { user } = useAuth()
+  const { data: promptData } = usePromptsQuery(15000)
+  const pendingCount = promptData?.filter((p) => p.status === 'pending').length ?? 0
+  const navItemsWithBadges = useMemo(
+    () =>
+      NAV_ITEMS.map((item) =>
+        item.to === '/prompts' ? { ...item, badge: pendingCount } : item
+      ),
+    [pendingCount]
+  )
 
-  const toggleSection = useCallback((key: string) => {
-    setSectionsOpen((prev) => {
-      const next = { ...prev, [key]: !prev[key] }
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      } catch {
-        // ignore storage errors
+  const storageKey = useMemo(
+    () => (user?.id ? `${STORAGE_KEY_BASE}_${user.id}` : STORAGE_KEY_BASE),
+    [user?.id]
+  )
+  const favoritesKey = useMemo(
+    () => (user?.id ? `${FAVORITES_KEY_BASE}_${user.id}` : FAVORITES_KEY_BASE),
+    [user?.id]
+  )
+
+  const [sectionsOpen, setSectionsOpen] = useState<Record<string, boolean>>(() => getStoredSections(storageKey))
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem(favoritesKey)
+      if (!raw) return []
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  })
+
+  useEffect(() => {
+    setSectionsOpen(getStoredSections(storageKey))
+  }, [storageKey])
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(favoritesKey)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed)) {
+          setFavorites(parsed)
+        }
+      } else {
+        setFavorites([])
       }
-      return next
-    })
-  }, [])
+    } catch {
+      setFavorites([])
+    }
+  }, [favoritesKey])
 
-  const isSectionOpen = (key: string) => sectionsOpen[key] !== false
+  const toggleSection = useCallback(
+    (key: string) => {
+      setSectionsOpen((prev) => {
+        const next = { ...prev, [key]: !prev[key] }
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(next))
+        } catch {
+          // ignore storage errors
+        }
+        return next
+      })
+    },
+    [storageKey]
+  )
+
+  const isSectionOpen = useCallback(
+    (key: string) => sectionsOpen[key] !== false,
+    [sectionsOpen]
+  )
+
+  const navItemsForRecent = useMemo(
+    () => navItemsWithBadges.map(({ to, labelKey }) => ({ to, labelKey })),
+    [navItemsWithBadges]
+  )
+
+  const { recentPages, clearRecent } = useRecentPages(navItemsForRecent, t, { userId: user?.id ?? null, max: 5 })
+
+  const recentNavItems = useMemo(
+    () =>
+      recentPages.map((page) => {
+        const match = navItemsWithBadges.find((item) => item.to === page.path)
+        return {
+          to: page.path,
+          icon: match?.icon ?? Clock3,
+          label: page.label ?? (match ? t(match.labelKey) : page.path),
+          shortcut: match?.shortcut,
+          badge: match?.badge,
+        }
+      }),
+    [recentPages, navItemsWithBadges, t]
+  )
+
+  const toggleFavorite = useCallback(
+    (path: string) => {
+      setFavorites((prev) => {
+        const exists = prev.includes(path)
+        const next = exists ? prev.filter((p) => p !== path) : [path, ...prev].slice(0, 7)
+        try {
+          localStorage.setItem(favoritesKey, JSON.stringify(next))
+        } catch {
+          /* ignore storage errors */
+        }
+        return next
+      })
+    },
+    [favoritesKey]
+  )
+
+  const favoriteNavItems = useMemo(() => {
+    return favorites
+      .map((path) => navItemsWithBadges.find((item) => item.to === path))
+      .filter(Boolean)
+      .map((item) => ({
+        to: item!.to,
+        icon: item!.icon,
+        label: t(item!.labelKey),
+        shortcut: item!.shortcut,
+        badge: item!.badge,
+      }))
+  }, [favorites, navItemsWithBadges, t])
+
+  const sections = useMemo(() => {
+    const grouped: Record<NavSection, NavItem[]> = {
+      principal: [],
+      config: [],
+    }
+    navItemsWithBadges.forEach((item) => {
+      grouped[item.section].push(item)
+    })
+    return grouped
+  }, [navItemsWithBadges])
 
   return (
     <aside
@@ -133,7 +356,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         <div className="flex items-center gap-2">
           <Sparkles className="h-6 w-6 shrink-0 text-primary" aria-hidden="true" />
           {!collapsed && (
-            <span className="text-lg font-semibold tracking-tight">Canvas</span>
+            <span className="text-lg font-semibold tracking-tight">Night Worker</span>
           )}
         </div>
         <div className="flex items-center gap-1">
@@ -165,77 +388,132 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         <XPProgressBar compact={collapsed} />
       </div>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto p-2" aria-label="Main navigation">
-        {SIDEBAR_SECTIONS.map((section) => {
-          const open = isSectionOpen(section.sectionKey)
-          const items = navItems.filter((item) => section.paths.includes(item.to))
-          return (
-            <div key={section.sectionKey} className="space-y-0.5" role="group" aria-label={t(section.sectionKey)}>
-              {!collapsed ? (
-                <>
-                  <button
-                    type="button"
-                    className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                    onClick={() => toggleSection(section.sectionKey)}
-                    aria-expanded={open}
-                    aria-controls={`nav-section-${section.sectionKey.replace(/\./g, '-')}`}
-                  >
-                    <span>{t(section.sectionKey)}</span>
-                    <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', !open && '-rotate-90')} aria-hidden="true" />
-                  </button>
-                  {open && (
-                    <ul id={`nav-section-${section.sectionKey.replace(/\./g, '-')}`} role="list" className="space-y-0.5">
-                      {items.map((item) => (
+      <TooltipProvider delayDuration={0}>
+        <nav className="flex-1 space-y-2 overflow-y-auto p-2 scroll-smooth" aria-label="Main navigation">
+          {SECTION_ORDER.map((sectionKey) => {
+            if (sectionKey === 'favorites') {
+              if (!favoriteNavItems.length) return null
+              const sectionLabelKey = SECTION_LABELS[sectionKey]
+              const open = isSectionOpen(sectionLabelKey)
+              const showItems = collapsed || open
+
+              return (
+                <div key="favorites" className="space-y-1" role="group" aria-label={t(sectionLabelKey)}>
+                  {!collapsed && (
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                      onClick={() => toggleSection(sectionLabelKey)}
+                      aria-expanded={open}
+                      aria-controls="nav-section-favorites"
+                    >
+                      <span>{t(sectionLabelKey)}</span>
+                      <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', !open && '-rotate-90')} aria-hidden="true" />
+                    </button>
+                  )}
+                  {showItems && (
+                    <ul id="nav-section-favorites" role="list" className="space-y-0.5">
+                      {favoriteNavItems.map((item) => (
                         <li key={item.to}>
-                          <NavLink
-                            to={item.to}
-                            end={item.to === '/'}
-                            aria-current={undefined}
-                            className={({ isActive }) =>
-                              cn(
-                                'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
-                                'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                                isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-muted-foreground'
-                              )
-                            }
-                          >
-                            <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
-                            <span>{t(item.labelKey)}</span>
-                          </NavLink>
+                          <SidebarNavItem
+                            item={item}
+                            collapsed={collapsed}
+                            isFavorite
+                            onToggleFavorite={() => toggleFavorite(item.to)}
+                          />
                         </li>
                       ))}
                     </ul>
                   )}
-                </>
-              ) : (
-                <TooltipProvider delayDuration={0}>
-                  {items.map((item) => (
-                    <Tooltip key={item.to}>
-                      <TooltipTrigger asChild>
-                        <NavLink
-                          to={item.to}
-                          end={item.to === '/'}
-                          aria-label={t(item.labelKey)}
-                          className={({ isActive }) =>
-                            cn(
-                              'flex justify-center rounded-xl px-2 py-2.5 text-sm transition-colors',
-                              'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                              isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-muted-foreground'
-                            )
-                          }
+                </div>
+              )
+            }
+
+            if (sectionKey === 'recent') {
+              if (!recentNavItems.length) return null
+              const sectionLabelKey = SECTION_LABELS[sectionKey]
+              const open = isSectionOpen(sectionLabelKey)
+              const showItems = collapsed || open
+
+              return (
+                <div key="recent" className="space-y-1" role="group" aria-label={t(sectionLabelKey)}>
+                  {!collapsed && (
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                      onClick={() => toggleSection(sectionLabelKey)}
+                      aria-expanded={open}
+                      aria-controls="nav-section-recent"
+                    >
+                      <span>{t(sectionLabelKey)}</span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            clearRecent()
+                          }}
+                          className="rounded-md p-1 text-[11px] font-semibold text-muted-foreground hover:bg-muted"
+                          aria-label={t('nav.clearRecent')}
                         >
-                          <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
-                        </NavLink>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">{t(item.labelKey)}</TooltipContent>
-                    </Tooltip>
-                  ))}
-                </TooltipProvider>
-              )}
-            </div>
-          )
-        })}
-      </nav>
+                          <X className="h-3 w-3" aria-hidden="true" />
+                        </button>
+                        <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', !open && '-rotate-90')} aria-hidden="true" />
+                      </div>
+                    </button>
+                  )}
+                  {showItems && (
+                    <ul id="nav-section-recent" role="list" className="space-y-0.5">
+                      {recentNavItems.map((item) => (
+                        <li key={item.to}>
+                          <SidebarNavItem item={item} collapsed={collapsed} />
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )
+            }
+
+            const items = sections[sectionKey as NavSection]
+            const sectionLabelKey = SECTION_LABELS[sectionKey]
+            const open = isSectionOpen(sectionLabelKey)
+            const showItems = collapsed || open
+
+            return (
+              <div key={sectionKey} className="space-y-1" role="group" aria-label={t(sectionLabelKey)}>
+                {!collapsed && (
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    onClick={() => toggleSection(sectionLabelKey)}
+                    aria-expanded={open}
+                    aria-controls={`nav-section-${sectionKey}`}
+                  >
+                    <span>{t(sectionLabelKey)}</span>
+                    <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', !open && '-rotate-90')} aria-hidden="true" />
+                  </button>
+                )}
+                {showItems && (
+                  <ul id={`nav-section-${sectionKey}`} role="list" className="space-y-0.5">
+                    {items.map((item) => (
+                      <li key={item.to}>
+                        <SidebarNavItem
+                          item={{ to: item.to, icon: item.icon, label: t(item.labelKey), shortcut: item.shortcut, badge: item.badge }}
+                          collapsed={collapsed}
+                          isFavorite={favorites.includes(item.to)}
+                          onToggleFavorite={() => toggleFavorite(item.to)}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )
+          })}
+        </nav>
+      </TooltipProvider>
 
       <div className="space-y-1 border-t border-border/50 p-2">
         <button

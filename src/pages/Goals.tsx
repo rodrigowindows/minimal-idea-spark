@@ -21,7 +21,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useLocalData } from '@/hooks/useLocalData'
-import type { OKRCycle } from '@/hooks/useLocalData'
+import type { OKRCycle, Goal } from '@/hooks/useLocalData'
 import { toast } from 'sonner'
 import {
   Flag,
@@ -32,7 +32,7 @@ import {
 import { VoiceInput } from '@/components/smart-capture/VoiceInput'
 import { EmptyState } from '@/components/EmptyState'
 import { GoalCard } from '@/components/Goals/GoalCard'
-import { getCurrentCycle, getCycleLabel, filterGoalsByCycle } from '@/lib/goals/goal-service'
+import { getCurrentCycle, getCycleLabel, filterGoalsByCycle, suggestOpportunitiesForGoal } from '@/lib/goals/goal-service'
 
 const ALL_CYCLES: (OKRCycle | 'all')[] = ['all', 'Q1', 'Q2', 'Q3', 'Q4', 'S1', 'S2', 'annual', 'custom']
 
@@ -40,7 +40,7 @@ export function Goals() {
   const { t } = useTranslation()
   const {
     goals, domains, opportunities,
-    addGoal, updateGoal, toggleMilestone, deleteGoal,
+    addGoal, addOpportunity, updateGoal, toggleMilestone, deleteGoal,
     addKeyResult, updateKeyResult, deleteKeyResult,
     linkOpportunityToKeyResult, unlinkOpportunityFromKeyResult,
     completeGoal, cancelGoal,
@@ -49,6 +49,7 @@ export function Goals() {
   const [expandedGoal, setExpandedGoal] = useState<string | null>(null)
   const [selectedCycle, setSelectedCycle] = useState<OKRCycle | 'all'>('all')
   const [showHistory, setShowHistory] = useState(false)
+  const [suggestingGoalId, setSuggestingGoalId] = useState<string | null>(null)
 
   // New goal form state
   const [newTitle, setNewTitle] = useState('')
@@ -97,6 +98,26 @@ export function Goals() {
   const completedGoals = filteredGoals.filter(g => g.status === 'completed')
   const cancelledGoals = filteredGoals.filter(g => g.status === 'cancelled')
   const historyGoals = [...completedGoals, ...cancelledGoals]
+
+  const handleSuggestForGoal = async (goal: Goal) => {
+    setSuggestingGoalId(goal.id)
+    try {
+      const suggested = suggestOpportunitiesForGoal(goal)
+      suggested.forEach(s => {
+        addOpportunity({
+          ...s,
+          goal_id: goal.id,
+          domain_id: s.domain_id ?? goal.domain_id ?? null,
+        })
+      })
+      toast.success(t('goals.suggestionsAdded', { count: suggested.length }))
+    } catch (error) {
+      console.error(error)
+      toast.error(t('goals.suggestionError'))
+    } finally {
+      setSuggestingGoalId(null)
+    }
+  }
 
   return (
     <div className="min-h-screen p-4 md:p-6 lg:p-8">
@@ -178,6 +199,8 @@ export function Goals() {
                     onDeleteKeyResult={(krId) => deleteKeyResult(goal.id, krId)}
                     onLinkOpportunity={(krId, oppId) => linkOpportunityToKeyResult(goal.id, krId, oppId)}
                     onUnlinkOpportunity={(krId, oppId) => unlinkOpportunityFromKeyResult(goal.id, krId, oppId)}
+                    onSuggest={() => handleSuggestForGoal(goal)}
+                    suggesting={suggestingGoalId === goal.id}
                     onComplete={() => {
                       completeGoal(goal.id)
                       toast.success(t('goals.goalCompleted'))
@@ -218,6 +241,8 @@ export function Goals() {
                   onDeleteKeyResult={(krId) => deleteKeyResult(goal.id, krId)}
                   onLinkOpportunity={(krId, oppId) => linkOpportunityToKeyResult(goal.id, krId, oppId)}
                   onUnlinkOpportunity={(krId, oppId) => unlinkOpportunityFromKeyResult(goal.id, krId, oppId)}
+                  onSuggest={() => handleSuggestForGoal(goal)}
+                  suggesting={suggestingGoalId === goal.id}
                   onComplete={() => completeGoal(goal.id)}
                   onCancel={() => cancelGoal(goal.id)}
                 />

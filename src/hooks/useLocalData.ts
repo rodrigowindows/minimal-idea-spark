@@ -11,6 +11,7 @@ import type { Action } from '@/lib/automation/actions'
 import { createSnapshot } from '@/lib/versioning/manager'
 import type { EntityType } from '@/lib/db/schema-versions'
 import { enqueue } from '@/lib/pwa/sync-queue'
+import { calculateGoalProgress } from '@/lib/goals/goal-service'
 
 const STORAGE_KEYS = {
   domains: 'lifeos_domains',
@@ -372,22 +373,18 @@ export function useLocalData() {
   const completeGoal = useCallback((goalId: string) => {
     setGoals(prev => prev.map(g => {
       if (g.id !== goalId) return g
-      const krProgress = g.key_results.length > 0
-        ? g.key_results.reduce((sum, kr) => sum + Math.min(100, Math.round((kr.current_value / Math.max(kr.target_value, 1)) * 100)), 0) / g.key_results.length
-        : g.progress
-      return { ...g, status: 'completed', progress: 100, final_score: Math.round(krProgress) }
+      const progress = calculateGoalProgress(g, opportunities)
+      return { ...g, status: 'completed', progress: 100, final_score: progress }
     }))
-  }, [])
+  }, [opportunities])
 
   const cancelGoal = useCallback((goalId: string) => {
     setGoals(prev => prev.map(g => {
       if (g.id !== goalId) return g
-      const krProgress = g.key_results.length > 0
-        ? g.key_results.reduce((sum, kr) => sum + Math.min(100, Math.round((kr.current_value / Math.max(kr.target_value, 1)) * 100)), 0) / g.key_results.length
-        : g.progress
-      return { ...g, status: 'cancelled', final_score: Math.round(krProgress) }
+      const progress = calculateGoalProgress(g, opportunities)
+      return { ...g, status: 'cancelled', final_score: progress, progress }
     }))
-  }, [])
+  }, [opportunities])
 
   const deleteGoal = useCallback((id: string) => {
     setGoals(prev => prev.filter(g => g.id !== id))

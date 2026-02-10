@@ -3,7 +3,9 @@ import { cn } from '@/lib/utils'
 
 interface PageContentProps {
   children: ReactNode
-  /** Use 'narrow' for reading-heavy pages (e.g. journal, article) */
+  /**
+   * Use 'narrow' for reading-heavy pages (journal/knowledge), 'wide' for dense dashboards.
+   */
   maxWidth?: 'full' | 'narrow' | 'wide'
   className?: string
 }
@@ -12,7 +14,7 @@ export function PageContent({ children, maxWidth = 'full', className }: PageCont
   return (
     <div
       className={cn(
-        'min-h-screen p-4 md:p-6 lg:p-8',
+        'min-h-screen p-6 md:p-8',
         maxWidth === 'narrow' && 'mx-auto max-w-3xl',
         maxWidth === 'wide' && 'mx-auto max-w-6xl',
         className

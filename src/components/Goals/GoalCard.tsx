@@ -30,6 +30,7 @@ import {
   TrendingUp,
   CheckCircle2,
   XCircle,
+  Sparkles,
 } from 'lucide-react'
 
 interface GoalCardProps {
@@ -40,6 +41,8 @@ interface GoalCardProps {
   onToggleExpand: () => void
   onToggleMilestone: (id: string) => void
   onDelete: () => void
+  onSuggest?: () => void
+  suggesting?: boolean
   onAddKeyResult: (kr: Omit<KeyResult, 'id' | 'linked_opportunity_ids'>) => void
   onUpdateKeyResult: (krId: string, data: Partial<KeyResult>) => void
   onDeleteKeyResult: (krId: string) => void
@@ -57,6 +60,8 @@ export function GoalCard({
   onToggleExpand,
   onToggleMilestone,
   onDelete,
+  onSuggest,
+  suggesting,
   onAddKeyResult,
   onUpdateKeyResult,
   onDeleteKeyResult,
@@ -200,13 +205,27 @@ export function GoalCard({
                 >
                   {/* Key Results Section */}
                   <div>
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between mb-2 gap-2">
                       <h4 className="text-sm font-semibold">{t('goals.keyResults')}</h4>
-                      {goal.status === 'active' && (
-                        <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={() => setShowAddKR(true)}>
-                          <Plus className="h-3 w-3" />{t('goals.addKR')}
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {goal.status === 'active' && onSuggest && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 gap-1 text-xs"
+                            onClick={onSuggest}
+                            disabled={suggesting}
+                          >
+                            <Sparkles className="h-3 w-3" />
+                            {suggesting ? t('goals.generatingSuggestions') : t('goals.suggestOpportunities')}
+                          </Button>
+                        )}
+                        {goal.status === 'active' && (
+                          <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={() => setShowAddKR(true)}>
+                            <Plus className="h-3 w-3" />{t('goals.addKR')}
+                          </Button>
+                        )}
+                      </div>
                     </div>
 
                     {goal.key_results.length === 0 && !showAddKR && (

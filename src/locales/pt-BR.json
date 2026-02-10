@@ -35,6 +35,10 @@
     "sectionFerramentas": "Ferramentas",
     "sectionConfig": "Configuração",
     "sectionRecent": "Recentes",
+    "sectionFavorites": "Favoritos",
+    "addFavorite": "Adicionar aos favoritos",
+    "removeFavorite": "Remover dos favoritos",
+    "clearRecent": "Limpar recentes",
     "bottomNavigation": "Navegação inferior"
   },
   "onboarding": {
@@ -419,7 +423,11 @@
     "viewAll": "Ver todas",
     "noActiveGoals": "Nenhuma meta ativa",
     "createFirst": "Criar primeira meta",
-    "activeGoalsCount": "metas ativas"
+    "activeGoalsCount": "metas ativas",
+    "suggestOpportunities": "Sugerir oportunidades (IA)",
+    "generatingSuggestions": "Gerando sugestões...",
+    "suggestionsAdded": "{{count}} oportunidades sugeridas para esta meta",
+    "suggestionError": "Não foi possível gerar sugestões agora."
   },
   "opportunities": {
     "title": "Oportunidades",

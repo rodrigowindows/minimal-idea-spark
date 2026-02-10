@@ -1,6 +1,10 @@
 {
   "nav": {
     "dashboard": "Dashboard",
+    "submit": "Submit Prompt",
+    "prompts": "Prompts",
+    "logs": "Logs",
+    "connect": "Connect",
     "consultant": "Consultant",
     "opportunities": "Opportunities",
     "journal": "Journal",
@@ -35,6 +39,10 @@
     "sectionFerramentas": "Tools",
     "sectionConfig": "Settings",
     "sectionRecent": "Recent",
+    "sectionFavorites": "Favorites",
+    "addFavorite": "Add to favorites",
+    "removeFavorite": "Remove from favorites",
+    "clearRecent": "Clear recent",
     "bottomNavigation": "Bottom navigation"
   },
   "breadcrumbs": {
@@ -61,7 +69,11 @@
     "help": "Help",
     "import": "Import",
     "reports": "Reports",
-    "integrations": "Integrations"
+    "integrations": "Integrations",
+    "submit": "Submit",
+    "prompts": "Prompts",
+    "logs": "Logs",
+    "connect": "Connect"
   },
   "notFound": {
     "title": "Page not found",
@@ -482,7 +494,11 @@
     "viewAll": "View all",
     "noActiveGoals": "No active goals",
     "createFirst": "Create first goal",
-    "activeGoalsCount": "active goals"
+    "activeGoalsCount": "active goals",
+    "suggestOpportunities": "Suggest opportunities (AI)",
+    "generatingSuggestions": "Generating suggestions...",
+    "suggestionsAdded": "{{count}} opportunities drafted for this goal",
+    "suggestionError": "Could not generate suggestions right now."
   },
   "opportunities": {
     "title": "Opportunities",

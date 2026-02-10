@@ -5,22 +5,20 @@ import { cn } from '@/lib/utils';
 import { usePWA } from '@/hooks/usePWA';
 import {
   LayoutDashboard,
-  Target,
-  Plus,
-  MessageSquare,
-  BarChart3,
+  Send,
+  ListChecks,
+  Terminal,
+  Settings2,
   WifiOff,
-  Download,
   RefreshCw,
-  X,
 } from 'lucide-react';
 
 const navItems = [
-  { to: '/', icon: LayoutDashboard, labelKey: 'nav.home' },
-  { to: '/opportunities', icon: Target, labelKey: 'nav.tasks' },
-  { to: '__fab__', icon: Plus, labelKey: 'nav.capture' },
-  { to: '/consultant', icon: MessageSquare, labelKey: 'nav.advisor' },
-  { to: '/analytics', icon: BarChart3, labelKey: 'nav.stats' },
+  { to: '/', icon: LayoutDashboard, labelKey: 'nav.dashboard' },
+  { to: '/submit', icon: Send, labelKey: 'nav.submit' },
+  { to: '/prompts', icon: ListChecks, labelKey: 'nav.prompts' },
+  { to: '/logs', icon: Terminal, labelKey: 'nav.logs' },
+  { to: '/settings', icon: Settings2, labelKey: 'nav.settings' },
 ];
 
 export function MobileNav() {
@@ -30,26 +28,15 @@ export function MobileNav() {
   const {
     isOffline,
     pendingActions,
-    canInstall,
-    promptInstall,
     updateAvailable,
     applyUpdate,
   } = usePWA();
 
-  const [showBanner, setShowBanner] = useState(false);
-  const [bannerDismissed, setBannerDismissed] = useState(false);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
 
-  // Show install banner after 30s if installable and not dismissed
-  useEffect(() => {
-    if (!canInstall || bannerDismissed) return;
-    const timer = setTimeout(() => setShowBanner(true), 30000);
-    return () => clearTimeout(timer);
-  }, [canInstall, bannerDismissed]);
-
   // Swipe gesture navigation (left/right between main pages)
-  const pages = ['/', '/opportunities', '/journal', '/consultant', '/analytics'];
+  const pages = ['/', '/submit', '/prompts', '/logs', '/settings'];
 
   useEffect(() => {
     const main = document.querySelector('main');
@@ -115,72 +102,10 @@ export function MobileNav() {
         </div>
       )}
 
-      {/* Install banner (slides up from bottom, above nav) */}
-      {showBanner && canInstall && (
-        <div className="fixed inset-x-0 bottom-16 z-50 mx-3" role="complementary" aria-label="Install app banner">
-          <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-lg">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-              <Download className="h-5 w-5 text-primary" aria-hidden="true" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium">Install Canvas</p>
-              <p className="text-xs text-muted-foreground truncate">
-                Add to home screen for a better experience
-              </p>
-            </div>
-            <button
-              onClick={async () => {
-                await promptInstall();
-                setShowBanner(false);
-              }}
-              className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
-              aria-label="Install Canvas app"
-            >
-              Install
-            </button>
-            <button
-              onClick={() => {
-                setShowBanner(false);
-                setBannerDismissed(true);
-              }}
-              className="shrink-0 p-1 text-muted-foreground hover:text-foreground"
-              aria-label="Dismiss install banner"
-            >
-              <X className="h-4 w-4" aria-hidden="true" />
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Bottom navigation */}
       <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border/50 bg-sidebar/95 backdrop-blur-md" aria-label="Mobile navigation">
         <ul className="flex h-16 items-center justify-around pb-[env(safe-area-inset-bottom)]" role="list">
           {navItems.map((item) => {
-            if (item.to === '__fab__') {
-              return (
-                <li key="fab">
-                  <button
-                    onClick={() => {
-                      navigate('/');
-                      setTimeout(() => {
-                        const input = document.querySelector<HTMLInputElement>(
-                          'input[placeholder*="Capture"]'
-                        );
-                        input?.focus();
-                      }, 300);
-                    }}
-                    className="flex flex-col items-center gap-0.5 touch-manipulation active:scale-95 transition-transform"
-                    aria-label={t(item.labelKey)}
-                  >
-                    <div className="flex h-12 w-12 -mt-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30">
-                      <Plus className="h-6 w-6" aria-hidden="true" />
-                    </div>
-                    <span className="text-[10px] font-medium text-primary">{t(item.labelKey)}</span>
-                  </button>
-                </li>
-              );
-            }
-
             return (
               <li key={item.to}>
                 <NavLink

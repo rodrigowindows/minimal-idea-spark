@@ -35,6 +35,42 @@ export interface Opportunity {
   domain?: LifeDomain
 }
 
+export type OKRCycle = 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'S1' | 'S2' | 'annual' | 'custom'
+
+export interface GoalRecord {
+  id: string
+  user_id: string
+  domain_id: string | null
+  title: string
+  description: string | null
+  start_date: string
+  target_date: string
+  cycle: OKRCycle
+  status: 'active' | 'completed' | 'cancelled'
+  progress: number
+  final_score: number | null
+  created_at: string
+  updated_at: string
+}
+
+export interface KeyResultRecord {
+  id: string
+  goal_id: string
+  user_id: string
+  title: string
+  target_value: number
+  current_value: number
+  unit: string
+  created_at: string
+  updated_at: string
+}
+
+export interface KeyResultOpportunity {
+  key_result_id: string
+  opportunity_id: string
+  created_at: string
+}
+
 export interface FocusSession {
   id: string
   user_id: string
