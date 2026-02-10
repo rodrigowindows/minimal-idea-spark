@@ -37,6 +37,7 @@ import { PageTransition } from '@/components/layout/PageTransition'
 
 // Routes where breadcrumbs should not appear
 const NO_BREADCRUMB_ROUTES = new Set(['/'])
+const ENABLE_COLLAB_CURSORS = import.meta.env.VITE_ENABLE_COLLAB_CURSORS === 'true'
 
 export function AppLayout() {
   const { t } = useTranslation()
@@ -66,7 +67,7 @@ export function AppLayout() {
         }}
       />
 
-      {isConnected && !deepWorkMode && (
+      {ENABLE_COLLAB_CURSORS && isConnected && !deepWorkMode && (
         <CollaborativeCursor presences={presences} currentUserId={currentUserId} />
       )}
 
