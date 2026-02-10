@@ -182,6 +182,20 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
 
 export function useNightWorker() {
   const ctx = useContext(NightWorkerContext)
-  if (!ctx) throw new Error('useNightWorker must be used inside NightWorkerProvider')
+  if (!ctx) {
+    // Graceful fallback when provider is not available (e.g., during SSR, old cached builds)
+    console.warn('useNightWorker called outside NightWorkerProvider - returning default values')
+    return {
+      config: defaultConfig,
+      setConfig: () => {},
+      setToken: () => {},
+      clearAuth: () => {},
+      apiFetch: async () => {
+        throw new Error('NightWorkerProvider not available')
+      },
+      isConnected: false,
+      lastError: 'provider_missing',
+    } as NightWorkerContextValue
+  }
   return ctx
 }
