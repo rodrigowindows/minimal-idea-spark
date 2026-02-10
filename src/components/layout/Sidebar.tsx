@@ -65,7 +65,7 @@ const FLAG_MAP: Record<string, string> = {
 const NAV_ITEMS: NavItem[] = [
   { to: '/', icon: LayoutDashboard, labelKey: 'nav.dashboard', section: 'principal', shortcut: 'Alt+1' },
   { to: '/submit', icon: Send, labelKey: 'nav.submit', section: 'principal', shortcut: 'Alt+2' },
-  { to: '/prompts', icon: ListChecks, labelKey: 'nav.prompts', section: 'principal', shortcut: 'Alt+3' },
+  { to: '/prompts', icon: ListChecks, labelKey: 'nav.prompts', section: 'principal', shortcut: 'Alt+3', hasSubmenu: true } as NavItem & { hasSubmenu: boolean },
   { to: '/logs', icon: Terminal, labelKey: 'nav.logs', section: 'principal', shortcut: 'Alt+4' },
   { to: '/settings', icon: Settings2, labelKey: 'nav.settings', section: 'config', shortcut: 'Alt+9' },
 ]
@@ -220,6 +220,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { user } = useAuth()
   const { data: promptData } = usePromptsQuery(15000)
   const pendingCount = promptData?.filter((p) => p.status === 'pending').length ?? 0
+  const [promptsSubmenuOpen, setPromptsSubmenuOpen] = useState(false)
   const navItemsWithBadges = useMemo(
     () =>
       NAV_ITEMS.map((item) =>
@@ -505,16 +506,84 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 )}
                 {showItems && (
                   <ul id={`nav-section-${sectionKey}`} role="list" className="space-y-0.5">
-                    {items.map((item) => (
-                      <li key={item.to}>
-                        <SidebarNavItem
-                          item={{ to: item.to, icon: item.icon, label: t(item.labelKey), shortcut: item.shortcut, badge: item.badge }}
-                          collapsed={collapsed}
-                          isFavorite={favorites.includes(item.to)}
-                          onToggleFavorite={() => toggleFavorite(item.to)}
-                        />
-                      </li>
-                    ))}
+                    {items.map((item) => {
+                      // Special handling for Prompts submenu
+                      if (item.to === '/prompts' && !collapsed) {
+                        return (
+                          <li key={item.to} className="space-y-0.5">
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => setPromptsSubmenuOpen(!promptsSubmenuOpen)}
+                                className="flex-1"
+                              >
+                                <SidebarNavItem
+                                  item={{ to: item.to, icon: item.icon, label: t(item.labelKey), shortcut: item.shortcut, badge: item.badge }}
+                                  collapsed={false}
+                                  isFavorite={favorites.includes(item.to)}
+                                  onToggleFavorite={() => toggleFavorite(item.to)}
+                                />
+                              </button>
+                              <button
+                                onClick={() => setPromptsSubmenuOpen(!promptsSubmenuOpen)}
+                                className="p-2 hover:bg-sidebar-accent rounded-md transition-colors"
+                                aria-expanded={promptsSubmenuOpen}
+                              >
+                                <ChevronDown className={cn('h-3.5 w-3.5 transition-transform text-muted-foreground', !promptsSubmenuOpen && '-rotate-90')} />
+                              </button>
+                            </div>
+
+                            {promptsSubmenuOpen && promptData && promptData.length > 0 && (
+                              <ul className="ml-6 mt-1 space-y-0.5 border-l-2 border-border/50 pl-2">
+                                {promptData.slice(0, 10).map((prompt) => (
+                                  <li key={prompt.id}>
+                                    <NavLink
+                                      to={`/prompts/${prompt.id}`}
+                                      className={({ isActive }) =>
+                                        cn(
+                                          'flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition-colors',
+                                          'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                                          isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-muted-foreground'
+                                        )
+                                      }
+                                    >
+                                      <span className={cn(
+                                        'h-1.5 w-1.5 rounded-full shrink-0',
+                                        prompt.status === 'pending' ? 'bg-amber-400' :
+                                        prompt.status === 'processing' ? 'bg-blue-400' :
+                                        prompt.status === 'completed' ? 'bg-green-400' :
+                                        'bg-red-400'
+                                      )} />
+                                      <span className="truncate">{prompt.title || `Prompt #${prompt.id.slice(0, 8)}`}</span>
+                                    </NavLink>
+                                  </li>
+                                ))}
+                                {promptData.length > 10 && (
+                                  <li>
+                                    <NavLink
+                                      to="/prompts"
+                                      className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors italic"
+                                    >
+                                      +{promptData.length - 10} more...
+                                    </NavLink>
+                                  </li>
+                                )}
+                              </ul>
+                            )}
+                          </li>
+                        )
+                      }
+
+                      return (
+                        <li key={item.to}>
+                          <SidebarNavItem
+                            item={{ to: item.to, icon: item.icon, label: t(item.labelKey), shortcut: item.shortcut, badge: item.badge }}
+                            collapsed={collapsed}
+                            isFavorite={favorites.includes(item.to)}
+                            onToggleFavorite={() => toggleFavorite(item.to)}
+                          />
+                        </li>
+                      )
+                    })}
                   </ul>
                 )}
               </div>
