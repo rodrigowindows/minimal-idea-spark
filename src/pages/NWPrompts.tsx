@@ -30,7 +30,7 @@ export default function NWPrompts() {
   const [page, setPage] = useState(1)
 
   useEffect(() => {
-    if (!isConnected) navigate('/connect')
+    if (!isConnected) navigate('/nw/connect')
   }, [isConnected, navigate])
 
   const filtered = useMemo(() => {
@@ -96,7 +96,7 @@ export default function NWPrompts() {
           <Button variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
-          <Button onClick={() => navigate('/submit')}>Enviar novo</Button>
+          <Button onClick={() => navigate('/nw/submit')}>Enviar novo</Button>
         </div>
       </div>
 
@@ -194,7 +194,7 @@ export default function NWPrompts() {
                       <div className="flex flex-col items-center gap-2">
                         <Send className="h-6 w-6 text-blue-300" />
                         <p>Nenhum prompt encontrado</p>
-                        <Button onClick={() => navigate('/submit')}>Enviar primeiro prompt</Button>
+                        <Button onClick={() => navigate('/nw/submit')}>Enviar primeiro prompt</Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -214,7 +214,7 @@ export default function NWPrompts() {
                     </TableCell>
                     <TableCell className="max-w-[220px] truncate font-mono text-xs text-blue-200">{prompt.target_folder || '—'}</TableCell>
                     <TableCell className="text-right space-x-2">
-                      <Button variant="ghost" size="sm" onClick={() => navigate(`/prompts/${prompt.id}`)}>Ver</Button>
+                      <Button variant="ghost" size="sm" onClick={() => navigate(`/nw/prompts/${prompt.id}`)}>Ver</Button>
                       {prompt.status === 'failed' && (
                         <Button variant="outline" size="sm" onClick={() => handleResend(prompt)} disabled={resendMutation.isPending}>
                           Reenviar
