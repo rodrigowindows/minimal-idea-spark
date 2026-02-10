@@ -169,6 +169,9 @@ export function Integrations() {
           description: item.description ?? '',
           status: item.status ?? 'backlog',
           domain_id: item.domain_id ?? '',
+          type: (item as any).type ?? 'action',
+          priority: (item as any).priority ?? 5,
+          strategic_value: (item as any).strategic_value ?? null,
         })
         result.success++
       } catch (e) {

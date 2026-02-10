@@ -30,12 +30,12 @@ export async function getRateLimitInfo(apiKeyId?: string): Promise<RateLimitInfo
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
   const [todayRes, monthRes] = await Promise.all([
-    supabase
+    (supabase as any)
       .from('api_usage_logs')
       .select('id', { count: 'exact', head: true })
       .eq('api_key_id', apiKeyId)
       .gte('created_at', startOfDay),
-    supabase
+    (supabase as any)
       .from('api_usage_logs')
       .select('id', { count: 'exact', head: true })
       .eq('api_key_id', apiKeyId)
