@@ -77,7 +77,7 @@ describe('usePriorities', () => {
     const { result } = renderHook(() =>
       usePriorities(
         [{ title: 'O1', status: 'backlog', type: 'task', strategic_value: 5 }],
-        [{ id: 'g1', user_id: 'mock-user-001', title: 'G1', description: '', domain_id: null, target_date: '', progress: 0, milestones: [], created_at: '' }]
+        [{ id: 'g1', user_id: 'mock-user-001', title: 'G1', description: '', domain_id: null, target_date: '', start_date: '', progress: 0, milestones: [], key_results: [], cycle: 'Q1' as const, status: 'active' as const, created_at: '' }]
       )
     )
     expect(result.current.insights).toBeDefined()

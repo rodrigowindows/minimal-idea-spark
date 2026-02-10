@@ -70,7 +70,7 @@ export function listWebhooks(): WebhookEndpoint[] {
 }
 
 export async function listWebhooksAsync(): Promise<WebhookEndpoint[]> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('webhook_endpoints')
     .select('*')
     .order('created_at', { ascending: false })
@@ -123,7 +123,7 @@ export async function addWebhookAsync(
 ): Promise<WebhookEndpoint> {
   const secret = `whsec_${crypto.randomUUID().replace(/-/g, '')}`
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('webhook_endpoints')
     .insert({ url, secret, events, description, enabled: true })
     .select()
@@ -158,7 +158,7 @@ export function updateWebhook(id: string, patch: Partial<WebhookEndpoint>): bool
 }
 
 export async function updateWebhookAsync(id: string, patch: Partial<Pick<WebhookEndpoint, 'url' | 'events' | 'enabled' | 'description'>>): Promise<boolean> {
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('webhook_endpoints')
     .update({ ...patch, updated_at: new Date().toISOString() })
     .eq('id', id)
@@ -178,7 +178,7 @@ export function removeWebhook(id: string): boolean {
 }
 
 export async function removeWebhookAsync(id: string): Promise<boolean> {
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('webhook_endpoints')
     .delete()
     .eq('id', id)
@@ -191,7 +191,7 @@ export async function removeWebhookAsync(id: string): Promise<boolean> {
 
 /** Get delivery logs for a webhook endpoint */
 export async function getWebhookLogs(webhookId: string, limit = 50): Promise<WebhookLog[]> {
-  const { data } = await supabase
+  const { data } = await (supabase as any)
     .from('webhook_logs')
     .select('*')
     .eq('webhook_id', webhookId)

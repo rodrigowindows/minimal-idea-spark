@@ -39,7 +39,7 @@ export function listApiKeys(): ApiKeyRecord[] {
 }
 
 export async function listApiKeysAsync(): Promise<ApiKeyRecord[]> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('api_keys')
     .select('id, name, prefix, scopes, last_used_at, expires_at, revoked_at, created_at')
     .is('revoked_at', null)
@@ -96,7 +96,7 @@ export async function createApiKeyAsync(
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('api_keys')
     .insert({ name, key_hash: keyHash, prefix, scopes })
     .select()
@@ -135,7 +135,7 @@ export function revokeApiKey(id: string): boolean {
 }
 
 export async function revokeApiKeyAsync(id: string): Promise<boolean> {
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('api_keys')
     .update({ revoked_at: new Date().toISOString() })
     .eq('id', id)
@@ -153,7 +153,7 @@ export async function getApiKeyUsage(apiKeyId: string, limit = 50): Promise<Arra
   status_code: number
   created_at: string
 }>> {
-  const { data } = await supabase
+  const { data } = await (supabase as any)
     .from('api_usage_logs')
     .select('method, path, status_code, created_at')
     .eq('api_key_id', apiKeyId)

@@ -29,7 +29,8 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
+    // deno-lint-ignore no-explicit-any
+    const supabaseClient: any = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {

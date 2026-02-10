@@ -24,31 +24,11 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 
-interface BrowserRecognitionResult {
-  isFinal: boolean
-  0: { transcript: string }
-}
-
-interface BrowserRecognitionEvent {
-  resultIndex: number
-  results: ArrayLike<BrowserRecognitionResult>
-}
-
-interface BrowserRecognitionErrorEvent {
-  error: string
-}
-
-interface BrowserSpeechRecognition {
-  continuous: boolean
-  interimResults: boolean
-  lang: string
-  onresult: ((event: BrowserRecognitionEvent) => void) | null
-  onend: (() => void) | null
-  onerror: ((event: BrowserRecognitionErrorEvent) => void) | null
-  onstart: (() => void) | null
-  start: () => void
-  stop: () => void
-}
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// Use `any` for browser SpeechRecognition types to avoid cross-browser TS conflicts
+type BrowserRecognitionEvent = any
+type BrowserRecognitionErrorEvent = any
+type BrowserSpeechRecognition = any
 
 type BrowserSpeechRecognitionCtor = new () => BrowserSpeechRecognition
 
@@ -305,7 +285,7 @@ export function VoiceInput({
         }
 
         recordingStartedAtRef.current = Date.now()
-        recognition.onstart = () => {
+        ;(recognition as any).onstart = () => {
           log('browser-onstart')
         }
 
