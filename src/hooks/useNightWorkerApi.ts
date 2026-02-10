@@ -1,9 +1,27 @@
 import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNightWorker, ApiError } from '@/contexts/NightWorkerContext'
-import type { HealthResponse, LogEntry, PromptItem } from '@/types/night-worker'
+import type {
+  CreatePromptResponse,
+  HealthResponse,
+  LogEntry,
+  PromptDetail,
+  PromptItem,
+  PromptsListResponse,
+} from '@/types/night-worker'
 
 const PROMPTS_KEY = ['nightworker', 'prompts']
+
+/**
+ * Extracts a human-readable name from a filename like "a1b2c3d4_nome-do-prompt.txt"
+ */
+function nameFromFilename(filename?: string): string {
+  if (!filename) return 'sem-nome'
+  // Remove ID prefix (anything before first underscore) and .txt extension
+  const withoutExt = filename.replace(/\.txt$/i, '')
+  const underscoreIdx = withoutExt.indexOf('_')
+  return underscoreIdx >= 0 ? withoutExt.substring(underscoreIdx + 1) : withoutExt
+}
 
 export function useHealthQuery() {
   const { apiFetch, config } = useNightWorker()
@@ -19,7 +37,31 @@ export function usePromptsQuery(pollMs = 15000) {
   const { apiFetch, isConnected } = useNightWorker()
   return useQuery<PromptItem[]>({
     queryKey: PROMPTS_KEY,
-    queryFn: () => apiFetch<PromptItem[]>('/prompts'),
+    queryFn: async () => {
+      // The API may return { total, providers, prompts: [...] } or a plain array
+      const raw = await apiFetch<PromptsListResponse | PromptItem[]>('/prompts')
+
+      // Handle wrapped response
+      const items = Array.isArray(raw) ? raw : (raw as PromptsListResponse).prompts ?? []
+
+      return items.map((item: any) => ({
+        id: item.id,
+        name: item.name || nameFromFilename(item.filename),
+        provider: item.provider,
+        status: item.status,
+        content: item.content,
+        target_folder: item.target_folder,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        result_path: item.result_path ?? item.path ?? null,
+        result_content: item.result_content ?? item.result ?? null,
+        error: item.error ?? null,
+        attempts: item.attempts,
+        next_retry_at: item.next_retry_at,
+        filename: item.filename,
+        has_result: item.has_result ?? (item.result != null),
+      } satisfies PromptItem))
+    },
     refetchInterval: pollMs,
     staleTime: 3000,
     enabled: isConnected,
@@ -30,9 +72,29 @@ export function usePromptStatusQuery(id?: string) {
   const { apiFetch, isConnected } = useNightWorker()
   return useQuery<PromptItem>({
     queryKey: ['nightworker', 'prompt', id],
-    queryFn: () => apiFetch<PromptItem>(`/prompts/${id}/status`),
+    queryFn: async () => {
+      const raw = await apiFetch<PromptDetail & Record<string, unknown>>(`/prompts/${id}/status`)
+      return {
+        id: raw.id,
+        name: (raw as any).name || nameFromFilename(raw.filename),
+        provider: raw.provider,
+        status: raw.status,
+        content: raw.content ?? null,
+        target_folder: (raw as any).target_folder ?? null,
+        created_at: (raw as any).created_at,
+        updated_at: (raw as any).updated_at,
+        result_path: raw.path ?? (raw as any).result_path ?? null,
+        result_content: raw.result ?? (raw as any).result_content ?? null,
+        error: (raw as any).error ?? null,
+        attempts: (raw as any).attempts,
+        filename: raw.filename,
+      } satisfies PromptItem
+    },
     enabled: Boolean(id) && isConnected,
-    refetchInterval: (data) => (data?.status === 'pending' ? 5000 : false),
+    refetchInterval: (query) => {
+      const d = query.state.data
+      return d?.status === 'pending' ? 5000 : false
+    },
     staleTime: 2000,
   })
 }
@@ -42,7 +104,7 @@ export function useCreatePromptMutation() {
   const client = useQueryClient()
   return useMutation({
     mutationFn: (body: { provider: string; name: string; content: string; target_folder: string }) =>
-      apiFetch<{ id: string }>('/prompts', {
+      apiFetch<CreatePromptResponse>('/prompts', {
         method: 'POST',
         body: JSON.stringify(body),
       }),

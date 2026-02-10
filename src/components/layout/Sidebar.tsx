@@ -9,9 +9,12 @@ import {
   LayoutDashboard,
   Send,
   Settings2,
+  Sparkles,
+  Star,
   Terminal,
   ListChecks,
   BarChart3,
+  X,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'

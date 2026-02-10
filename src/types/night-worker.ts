@@ -2,6 +2,28 @@ export type NightWorkerProvider = 'codex' | 'claude' | string;
 
 export type PromptStatus = 'pending' | 'done' | 'failed';
 
+/** Item returned in the GET /prompts list */
+export interface PromptListItem {
+  id: string;
+  provider: NightWorkerProvider;
+  status: PromptStatus;
+  filename: string;
+  created_at?: string;
+  has_result: boolean;
+}
+
+/** Full prompt detail returned by GET /prompts/:id/status */
+export interface PromptDetail {
+  id: string;
+  provider: NightWorkerProvider;
+  status: PromptStatus;
+  filename: string;
+  path?: string;
+  content?: string | null;
+  result?: string | null;
+}
+
+/** Normalized prompt item used throughout the UI */
 export interface PromptItem {
   id: string;
   name: string;
@@ -16,6 +38,24 @@ export interface PromptItem {
   error?: string | null;
   attempts?: number;
   next_retry_at?: string | null;
+  filename?: string;
+  has_result?: boolean;
+}
+
+/** Response from GET /prompts */
+export interface PromptsListResponse {
+  total: number;
+  providers: string[];
+  prompts: PromptListItem[];
+}
+
+/** Response from POST /prompts */
+export interface CreatePromptResponse {
+  id: string;
+  provider: string;
+  status: PromptStatus;
+  filename: string;
+  message: string;
 }
 
 export interface WorkerConfig {
@@ -45,6 +85,9 @@ export interface NightWorkerConfig {
 
 export interface HealthResponse {
   status: 'ok' | 'error';
+  providers?: string[];
+  uptime?: string;
+  version?: string;
   pending?: number;
   processedToday?: number;
   failures?: number;
