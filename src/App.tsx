@@ -156,7 +156,6 @@ function AuthGate() {
         <WarRoomLayoutProvider>
         <LanguageProvider>
         <AppProvider>
-          <NightWorkerProvider>
           <ShortcutProvider>
           <WorkspaceProvider>
             <RealtimeProvider>
@@ -164,7 +163,6 @@ function AuthGate() {
             </RealtimeProvider>
           </WorkspaceProvider>
           </ShortcutProvider>
-          </NightWorkerProvider>
         </AppProvider>
       </LanguageProvider>
       </WarRoomLayoutProvider>
@@ -179,11 +177,13 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <AuthGate />
-        </AuthProvider>
-      </BrowserRouter>
+      <NightWorkerProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <AuthGate />
+          </AuthProvider>
+        </BrowserRouter>
+      </NightWorkerProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
