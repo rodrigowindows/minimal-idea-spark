@@ -1,5 +1,5 @@
 /* Enhanced Service Worker – Canvas PWA */
-const CACHE_VERSION = 'canvas-v5';
+const CACHE_VERSION = 'canvas-v6';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const API_CACHE = `${CACHE_VERSION}-api`;
