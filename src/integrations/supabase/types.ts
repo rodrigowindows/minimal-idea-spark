@@ -14,6 +14,180 @@ export type Database = {
   }
   public: {
     Tables: {
+      calendar_events: {
+        Row: {
+          category: string
+          color: string
+          created_at: string
+          description: string | null
+          end: string
+          id: string
+          opportunity_id: string | null
+          recurrence: string | null
+          reminder_minutes: number | null
+          start: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          color?: string
+          created_at?: string
+          description?: string | null
+          end: string
+          id?: string
+          opportunity_id?: string | null
+          recurrence?: string | null
+          reminder_minutes?: number | null
+          start: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          color?: string
+          created_at?: string
+          description?: string | null
+          end?: string
+          id?: string
+          opportunity_id?: string | null
+          recurrence?: string | null
+          reminder_minutes?: number | null
+          start?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      daily_logs: {
+        Row: {
+          content: string
+          created_at: string
+          energy_level: number | null
+          id: string
+          log_date: string
+          mood: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          energy_level?: number | null
+          id?: string
+          log_date?: string
+          mood?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          energy_level?: number | null
+          id?: string
+          log_date?: string
+          mood?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      goals: {
+        Row: {
+          created_at: string
+          cycle: string
+          description: string
+          domain_id: string | null
+          final_score: number | null
+          id: string
+          key_results: Json
+          milestones: Json
+          progress: number
+          start_date: string
+          status: string
+          target_date: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          cycle?: string
+          description?: string
+          domain_id?: string | null
+          final_score?: number | null
+          id?: string
+          key_results?: Json
+          milestones?: Json
+          progress?: number
+          start_date?: string
+          status?: string
+          target_date?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          cycle?: string
+          description?: string
+          domain_id?: string | null
+          final_score?: number | null
+          id?: string
+          key_results?: Json
+          milestones?: Json
+          progress?: number
+          start_date?: string
+          status?: string
+          target_date?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      habits: {
+        Row: {
+          best_streak: number
+          created_at: string
+          current_streak: number
+          description: string | null
+          frequency: string
+          id: string
+          target_count: number
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          best_streak?: number
+          created_at?: string
+          current_streak?: number
+          description?: string | null
+          frequency?: string
+          id?: string
+          target_count?: number
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          best_streak?: number
+          created_at?: string
+          current_streak?: number
+          description?: string | null
+          frequency?: string
+          id?: string
+          target_count?: number
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ideas: {
         Row: {
           created_at: string | null
@@ -29,6 +203,108 @@ export type Database = {
           created_at?: string | null
           id?: string
           title?: string
+        }
+        Relationships: []
+      }
+      knowledge_base: {
+        Row: {
+          content_chunk: string | null
+          created_at: string
+          id: string
+          source_title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content_chunk?: string | null
+          created_at?: string
+          id?: string
+          source_title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content_chunk?: string | null
+          created_at?: string
+          id?: string
+          source_title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      opportunities: {
+        Row: {
+          created_at: string
+          description: string | null
+          domain_id: string | null
+          due_date: string | null
+          goal_id: string | null
+          id: string
+          priority: number
+          reminder_at: string | null
+          status: string
+          strategic_value: number | null
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+          xp_reward: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          domain_id?: string | null
+          due_date?: string | null
+          goal_id?: string | null
+          id?: string
+          priority?: number
+          reminder_at?: string | null
+          status?: string
+          strategic_value?: number | null
+          title: string
+          type?: string
+          updated_at?: string
+          user_id: string
+          xp_reward?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          domain_id?: string | null
+          due_date?: string | null
+          goal_id?: string | null
+          id?: string
+          priority?: number
+          reminder_at?: string | null
+          status?: string
+          strategic_value?: number | null
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+          xp_reward?: number | null
+        }
+        Relationships: []
+      }
+      search_history: {
+        Row: {
+          created_at: string
+          id: string
+          query: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          query: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          query?: string
+          user_id?: string
         }
         Relationships: []
       }
