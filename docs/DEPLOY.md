@@ -16,6 +16,7 @@ npm run build
 O output fica em `dist/` (Vite). A base da aplicação é `/`; para subpath, configure `base` em `vite.config.ts`.
 
 Opcional: rodar `scripts/pre-deploy.ps1` para lint + testes + build em sequência.
+Opcional: para Linux/macOS, rodar `scripts/pre-deploy.sh`.
 
 ## Variáveis de produção
 

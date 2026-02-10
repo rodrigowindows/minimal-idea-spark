@@ -9,6 +9,7 @@ Verificar antes de cada deploy:
 - [ ] Layout estável: sidebar + main sem overflow horizontal; mobile com header e bottom nav
 - [ ] Smoke manual: login → criar oportunidade → abrir Cmd+K → trocar tema
 - [ ] (Opcional) Rodar script: `scripts/pre-deploy.ps1`
+- [ ] (Opcional) Rodar script: `scripts/pre-deploy.sh`
 
 ## Smoke tests manuais (pós-deploy)
 

@@ -7,7 +7,7 @@
 | **AppContext** | sidebarOpen, deepWorkMode, currentOpportunity, levelUpTriggered, commandPaletteOpen | Só memória |
 | **AuthContext** | session, user (Supabase Auth) | Supabase; loading inicial do session |
 | **ThemeContext** | dark/light | localStorage (ou sistema) |
-| **LanguageContext** | language (pt-BR, en, es), t() | Só memória (ou localStorage se implementado) |
+| **LanguageContext** | language (pt-BR, en, es), t() | localStorage (app_language) |
 | **WarRoomLayoutContext** | order, visible (widgets do dashboard) | localStorage |
 | **WorkspaceContext** | currentOrg, workspaces | Supabase + memória |
 | **RealtimeContext** | presences, edits, chat | Supabase Realtime; room por workspace |

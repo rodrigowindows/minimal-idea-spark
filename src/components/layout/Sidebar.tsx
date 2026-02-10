@@ -28,15 +28,15 @@ import {
   HelpCircle,
   Plug,
 } from 'lucide-react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { useAppContext } from '@/contexts/AppContext'
-import { useTranslation } from '@/contexts/LanguageContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { XPProgressBar } from '@/components/gamification/XPProgressBar'
 import { WorkspaceSwitcher } from '@/components/WorkspaceSwitcher'
 import { NotificationCenter } from '@/components/NotificationCenter'
 import { SyncStatusIndicator } from '@/components/SyncStatusIndicator'
-import { useRecentPages } from '@/hooks/useRecentPages'
 import {
   Tooltip,
   TooltipContent,
@@ -101,10 +101,10 @@ function getStoredSections(): Record<string, boolean> {
 }
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
-  const { deepWorkMode, toggleDeepWorkMode, setCommandPaletteOpen } = useAppContext()
-  const { language, t, toggleLanguage } = useTranslation()
+  const { deepWorkMode, toggleDeepWorkMode } = useAppContext()
+  const { t } = useTranslation()
+  const { language, toggleLanguage } = useLanguage()
   const [sectionsOpen, setSectionsOpen] = useState<Record<string, boolean>>(getStoredSections)
-  const { recentPages } = useRecentPages(navItems.map((n) => ({ to: n.to, labelKey: n.labelKey })), t)
 
   const toggleSection = useCallback((key: string) => {
     setSectionsOpen((prev) => {
@@ -168,37 +168,6 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       {/* Navigation with sections and recent */}
       <nav className="flex-1 space-y-1 overflow-y-auto p-2" aria-label="Main navigation">
-        {!collapsed && recentPages.length > 0 && (
-          <div className="mb-2">
-            <button
-              type="button"
-              className="flex w-full items-center gap-2 px-2 py-1.5 text-xs font-medium text-muted-foreground hover:text-sidebar-foreground"
-              onClick={() => setCommandPaletteOpen(true)}
-            >
-              <span>{t('nav.sectionRecent')}</span>
-            </button>
-            {recentPages.slice(0, 3).map((p) => {
-              const item = navItems.find((n) => n.to === p.path || (p.path.startsWith(n.to + '/') && n.to !== '/'))
-              const label = item ? t(item.labelKey) : p.label
-              return (
-                <NavLink
-                  key={p.path + p.timestamp}
-                  to={p.path}
-                  end={p.path === '/'}
-                  className={({ isActive }) =>
-                    cn(
-                      'flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition-colors',
-                      'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                      isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-muted-foreground'
-                    )
-                  }
-                >
-                  <span className="truncate">{label}</span>
-                </NavLink>
-              )
-            })}
-          </div>
-        )}
         {SIDEBAR_SECTIONS.map((section) => {
           const open = isSectionOpen(section.sectionKey)
           const items = navItems.filter((item) => section.paths.includes(item.to))

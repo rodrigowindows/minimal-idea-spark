@@ -23,6 +23,7 @@
     "integrations": "Integraciones",
     "deepWork": "Trabajo Profundo",
     "collapse": "Colapsar",
+    "expand": "Expandir",
     "calendar": "Calendario",
     "home": "Inicio",
     "tasks": "Tareas",
@@ -33,7 +34,8 @@
     "sectionProdutividade": "Productividad",
     "sectionFerramentas": "Herramientas",
     "sectionConfig": "Configuración",
-    "sectionRecent": "Recientes"
+    "sectionRecent": "Recientes",
+    "bottomNavigation": "Navegación inferior"
   },
   "breadcrumbs": {
     "opportunities": "Oportunidades",

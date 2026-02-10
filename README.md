@@ -164,7 +164,7 @@ This project is built with:
 
 ## How can I deploy this project?
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish. Antes do deploy, use o [Checklist de release](docs/RELEASE_CHECKLIST.md) e, se preferir, rode `scripts/pre-deploy.ps1`.
+Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish. Antes do deploy, use o [Checklist de release](docs/RELEASE_CHECKLIST.md) e, se preferir, rode `scripts/pre-deploy.ps1` (Windows) ou `scripts/pre-deploy.sh` (Linux/macOS).
 
 ## Can I connect a custom domain to my Lovable project?
 

@@ -12,7 +12,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "predeploy:win": "powershell -ExecutionPolicy Bypass -File scripts/pre-deploy.ps1",
+    "predeploy:unix": "bash scripts/pre-deploy.sh"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -7,7 +7,6 @@ import {
   transcribeAudio,
   isTranscriptionConfigured,
   isBrowserRecognitionSupported,
-  createBrowserRecognizer,
 } from '@/lib/audio-transcription'
 import type { SupportedLanguage } from '@/lib/audio-transcription'
 
@@ -17,9 +16,6 @@ interface VoiceInputProps {
   language?: SupportedLanguage
 }
 
-const useBackendTranscription = isTranscriptionConfigured()
-const useBrowserFallback = isBrowserRecognitionSupported()
-
 export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: VoiceInputProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [isTranscribing, setIsTranscribing] = useState(false)
@@ -28,10 +24,17 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const recordingStartedAtRef = useRef<number>(0)
+  /** Only true after user explicitly presses the mic button; prevents "no speech" toast on load. */
+  const userInitiatedRecordingRef = useRef(false)
 
   const langMap: Record<string, string> = { 'pt-BR': 'pt-BR', en: 'en-US', es: 'es-ES' }
 
   const startRecording = useCallback(async () => {
+    const useBackendTranscription = isTranscriptionConfigured()
+    const useBrowserFallback = isBrowserRecognitionSupported()
+
+    userInitiatedRecordingRef.current = true
+
     // Try backend transcription first (Deepgram)
     if (useBackendTranscription) {
       try {
@@ -48,8 +51,10 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
         mediaRecorder.onstop = async () => {
           stream.getTracks().forEach(track => track.stop())
           const durationMs = Date.now() - recordingStartedAtRef.current
+          const userInitiated = userInitiatedRecordingRef.current
+          userInitiatedRecordingRef.current = false
           if (chunksRef.current.length === 0 || durationMs < 1500) {
-            toast.info('Segure o botão por pelo menos 1-2 segundos enquanto fala.')
+            if (userInitiated) toast.info('Segure o botão por pelo menos 1-2 segundos enquanto fala.')
             return
           }
           const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' })
@@ -58,9 +63,9 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
           try {
             const result = await transcribeAudio(audioBlob, { language })
             if (result.text?.trim()) onTranscript(result.text.trim())
-            else if (durationMs >= 1500) toast.info('Nenhuma fala detectada. Tente falar mais perto do microfone.')
+            else if (userInitiated && durationMs >= 1500) toast.info('Nenhuma fala detectada. Tente falar mais perto do microfone.')
           } catch (e) {
-            toast.error(e instanceof Error ? e.message.slice(0, 80) : 'Falha na transcrição.')
+            if (userInitiated) toast.error(e instanceof Error ? e.message.slice(0, 80) : 'Falha na transcrição.')
           } finally {
             setIsTranscribing(false)
           }
@@ -70,6 +75,7 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
         mediaRecorder.start(250)
         setIsRecording(true)
       } catch {
+        userInitiatedRecordingRef.current = false
         toast.error('Não foi possível acessar o microfone. Verifique as permissões.')
       }
       return
@@ -80,6 +86,7 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
       try {
         const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
         if (!SpeechRecognition) {
+          userInitiatedRecordingRef.current = false
           toast.error('Reconhecimento de voz não disponível neste navegador.')
           return
         }
@@ -105,12 +112,14 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
           if (isListeningRef.current) {
             try { recognition.start() } catch { /* already started */ }
           } else {
-            // Finished - deliver transcript (only show "no speech" if user held long enough)
+            // Finished - deliver transcript (only show "no speech" if user explicitly recorded)
+            const userInitiated = userInitiatedRecordingRef.current
+            userInitiatedRecordingRef.current = false
             const durationMs = Date.now() - recordingStartedAtRef.current
             const text = transcripts.join(' ').trim()
             if (text) {
               onTranscript(text)
-            } else if (durationMs >= 1500) {
+            } else if (userInitiated && durationMs >= 1500) {
               toast.info('Nenhuma fala detectada. Tente falar mais perto do microfone.')
             }
             setIsTranscribing(false)
@@ -131,11 +140,13 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
         recognition.start()
         setIsRecording(true)
       } catch {
+        userInitiatedRecordingRef.current = false
         toast.error('Reconhecimento de voz não disponível.')
       }
       return
     }
 
+    userInitiatedRecordingRef.current = false
     toast.error('Reconhecimento de voz não disponível neste navegador.')
   }, [language, onTranscript])
 
@@ -157,6 +168,7 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
       return
     }
 
+    userInitiatedRecordingRef.current = false
     setIsRecording(false)
   }, [])
 
