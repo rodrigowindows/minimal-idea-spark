@@ -30,6 +30,17 @@ export default function NWPrompts() {
   const [toDate, setToDate] = useState('')
   const [page, setPage] = useState(1)
 
+  // Debug logging to understand loading state in production
+  useEffect(() => {
+    console.info('[NightWorker][Prompts] state', {
+      isConnected,
+      isLoading,
+      isFetching,
+      isError,
+      dataCount: data?.length ?? 0,
+    })
+  }, [data?.length, isConnected, isLoading, isFetching, isError])
+
   const filtered = useMemo(() => {
     return (data || []).filter((item) => {
       if (statusFilter !== 'all' && item.status !== statusFilter) return false

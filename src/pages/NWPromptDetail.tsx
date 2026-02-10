@@ -19,6 +19,19 @@ export default function NWPromptDetail() {
   const { data, isLoading, isError, error, refetch, isFetching } = usePromptStatusQuery(id)
   const resend = useCreatePromptMutation()
 
+  useEffect(() => {
+    console.info('[NightWorker][PromptDetail] state', {
+      id,
+      isConnected,
+      isLoading,
+      isFetching,
+      isError,
+      hasData: !!data,
+      status: data?.status,
+      error: error ? String(error) : null,
+    })
+  }, [id, isConnected, isLoading, isFetching, isError, !!data, data?.status, error])
+
   const handleCopy = (text?: string | null) => {
     if (!text) return
     navigator.clipboard.writeText(text)

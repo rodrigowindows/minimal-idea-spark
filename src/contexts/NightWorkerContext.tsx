@@ -141,6 +141,7 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
           }
           if (!response.ok) {
             const text = await response.text()
+            console.error('[NightWorker] API error', { url, status: response.status, body: text })
             throw new ApiError(text || response.statusText, response.status)
           }
           const contentType = response.headers.get('content-type') || ''
@@ -150,6 +151,7 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
               ? await response.json()
               : await response.text()
           setLastError(null)
+          console.debug('[NightWorker] API success', { url, status: response.status })
           return data as T
         } catch (err) {
           error = err
@@ -159,6 +161,7 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
           await new Promise((resolve) => setTimeout(resolve, Math.min(4000, 250 * 2 ** attempt)))
         }
       }
+      console.error('[NightWorker] API fetch failed', { url, error })
       throw error
     },
     [config.baseUrl, config.token]

@@ -36,7 +36,7 @@ export function useHealthQuery() {
 }
 
 export function usePromptsQuery(pollMs = 15000) {
-  const { apiFetch, isConnected } = useNightWorker()
+  const { apiFetch } = useNightWorker()
   return useQuery<PromptItem[]>({
     queryKey: PROMPTS_KEY,
     queryFn: async () => {
@@ -66,12 +66,13 @@ export function usePromptsQuery(pollMs = 15000) {
     },
     refetchInterval: pollMs,
     staleTime: 3000,
-    enabled: isConnected,
+    onSuccess: (items) => console.info('[NightWorker] fetched prompts', { count: items.length }),
+    onError: (err) => console.error('[NightWorker] prompts error', err),
   })
 }
 
 export function usePromptStatusQuery(id?: string) {
-  const { apiFetch, isConnected } = useNightWorker()
+  const { apiFetch } = useNightWorker()
   return useQuery<PromptItem>({
     queryKey: ['nightworker', 'prompt', id],
     queryFn: async () => {
@@ -92,12 +93,14 @@ export function usePromptStatusQuery(id?: string) {
         filename: raw.filename,
       } satisfies PromptItem
     },
-    enabled: Boolean(id) && isConnected,
+    enabled: Boolean(id),
     refetchInterval: (query) => {
       const d = query.state.data
       return d?.status === 'pending' ? 5000 : false
     },
     staleTime: 2000,
+    onSuccess: (data) => console.info('[NightWorker] prompt status', { id: data.id, status: data.status }),
+    onError: (err) => console.error('[NightWorker] prompt status error', err),
   })
 }
 

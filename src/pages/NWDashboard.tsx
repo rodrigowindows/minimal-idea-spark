@@ -21,6 +21,16 @@ export default function NWDashboard() {
   const { config, isConnected } = useNightWorker()
   const navigate = useNavigate()
 
+  useEffect(() => {
+    console.info('[NightWorker][Dashboard] state', {
+      isConnected,
+      healthStatus: healthQuery.data?.status,
+      healthError: healthQuery.error ? String(healthQuery.error) : null,
+      promptsCount: promptsQuery.data?.length ?? 0,
+      promptsError: promptsQuery.error ? String(promptsQuery.error) : null,
+    })
+  }, [healthQuery.data?.status, healthQuery.error, promptsQuery.data?.length, promptsQuery.error, isConnected])
+
   const stats = useMemo(() => {
     const pending = promptsQuery.data?.filter((p) => p.status === 'pending').length ?? 0
     const failures = promptsQuery.data?.filter((p) => p.status === 'failed').length ?? 0
