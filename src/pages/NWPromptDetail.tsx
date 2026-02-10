@@ -19,10 +19,6 @@ export default function NWPromptDetail() {
   const { data, isLoading, isError, error, refetch, isFetching } = usePromptStatusQuery(id)
   const resend = useCreatePromptMutation()
 
-  useEffect(() => {
-    if (!isConnected) navigate('/connect')
-  }, [isConnected, navigate])
-
   const handleCopy = (text?: string | null) => {
     if (!text) return
     navigator.clipboard.writeText(text)

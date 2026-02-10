@@ -21,10 +21,6 @@ export default function NWDashboard() {
   const { config, isConnected } = useNightWorker()
   const navigate = useNavigate()
 
-  useEffect(() => {
-    if (!isConnected) navigate('/connect')
-  }, [isConnected, navigate])
-
   const stats = useMemo(() => {
     const pending = promptsQuery.data?.filter((p) => p.status === 'pending').length ?? 0
     const failures = promptsQuery.data?.filter((p) => p.status === 'failed').length ?? 0

@@ -155,7 +155,7 @@ function AppContent() {
           <Route path="/integrations" element={<Suspense fallback={<PageFallback />}><Integrations /></Suspense>} />
           <Route path="/workspace" element={<Suspense fallback={<PageFallback />}><Workspace /></Suspense>} />
 
-          {/* Night Worker pages */}
+          {/* Night Worker pages (support /nw/* and non-prefixed) */}
           <Route path="/nw" element={<Suspense fallback={<PageFallback />}><NWDashboard /></Suspense>} />
           <Route path="/nw/submit" element={<Suspense fallback={<PageFallback />}><NWSubmit /></Suspense>} />
           <Route path="/nw/prompts/:id" element={<Suspense fallback={<PageFallback />}><NWPromptDetail /></Suspense>} />
@@ -163,6 +163,13 @@ function AppContent() {
           <Route path="/nw/logs" element={<Suspense fallback={<PageFallback />}><NWLogs /></Suspense>} />
           <Route path="/nw/settings" element={<Suspense fallback={<PageFallback />}><NWSettings /></Suspense>} />
           <Route path="/nw/connect" element={<Suspense fallback={<PageFallback />}><NWConnect /></Suspense>} />
+
+          <Route path="/prompts" element={<Suspense fallback={<PageFallback />}><NWPrompts /></Suspense>} />
+          <Route path="/prompts/:id" element={<Suspense fallback={<PageFallback />}><NWPromptDetail /></Suspense>} />
+          <Route path="/submit" element={<Suspense fallback={<PageFallback />}><NWSubmit /></Suspense>} />
+          <Route path="/logs" element={<Suspense fallback={<PageFallback />}><NWLogs /></Suspense>} />
+          <Route path="/settings" element={<Suspense fallback={<PageFallback />}><NWSettings /></Suspense>} />
+          <Route path="/connect" element={<Suspense fallback={<PageFallback />}><NWConnect /></Suspense>} />
         </Route>
         <Route path="/invite/:token" element={<Suspense fallback={<PageFallback />}><AcceptInvite /></Suspense>} />
         <Route path="/shared/:token" element={<Suspense fallback={<PageFallback />}><SharedView /></Suspense>} />

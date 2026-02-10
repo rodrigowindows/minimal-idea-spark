@@ -30,10 +30,6 @@ export default function NWPrompts() {
   const [toDate, setToDate] = useState('')
   const [page, setPage] = useState(1)
 
-  useEffect(() => {
-    if (!isConnected) navigate('/connect')
-  }, [isConnected, navigate])
-
   const filtered = useMemo(() => {
     return (data || []).filter((item) => {
       if (statusFilter !== 'all' && item.status !== statusFilter) return false
