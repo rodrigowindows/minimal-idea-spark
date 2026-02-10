@@ -5,6 +5,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client'
+import { recordAIUsage, setRateLimited, isRateLimited, getFriendlyAIError } from '@/lib/ai/usage-tracker'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -120,6 +121,10 @@ export const PROMPT_CATEGORIES = [
 // ---------------------------------------------------------------------------
 
 async function callEdgeFunction(functionName: string, body: Record<string, unknown>) {
+  if (isRateLimited()) {
+    throw new Error('Muitas requisições. Tente novamente em alguns minutos.')
+  }
+
   const { data: sessionData } = await supabase.auth.getSession()
   const token = sessionData?.session?.access_token
 
@@ -134,11 +139,18 @@ async function callEdgeFunction(functionName: string, body: Record<string, unkno
     body: JSON.stringify(body),
   })
 
-  if (!res.ok) {
-    const errorText = await res.text()
-    throw new Error(errorText || `Edge function error: ${res.status}`)
+  if (res.status === 429) {
+    const retryAfter = parseInt(res.headers.get('Retry-After') || '60', 10)
+    setRateLimited(retryAfter)
+    throw new Error('Muitas requisições. Tente novamente em alguns minutos.')
   }
 
+  if (!res.ok) {
+    const errorText = await res.text()
+    throw new Error(getFriendlyAIError(new Error(errorText || `HTTP ${res.status}`)))
+  }
+
+  recordAIUsage()
   return res.json()
 }
 

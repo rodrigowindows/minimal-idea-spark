@@ -8,6 +8,7 @@ Verificar antes de cada deploy:
 - [ ] Sem erros/avisos de a11y em fluxos principais (ex.: abrir Dashboard, Command Palette, gravar áudio)
 - [ ] Layout estável: sidebar + main sem overflow horizontal; mobile com header e bottom nav
 - [ ] Smoke manual: login → criar oportunidade → abrir Cmd+K → trocar tema
+- [ ] (Opcional) Rodar script: `scripts/pre-deploy.ps1`
 
 ## Smoke tests manuais (pós-deploy)
 

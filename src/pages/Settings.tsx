@@ -63,6 +63,7 @@ import { listApiKeys, createApiKey, revokeApiKey } from '@/lib/api/keys'
 import { listWebhooks, addWebhook, removeWebhook } from '@/lib/api/webhooks'
 import { Link } from 'react-router-dom'
 import { ShortcutSettings } from '@/components/settings/ShortcutSettings'
+import { getCurrentMonthCount, getAIPreferences, setAIPreferences, type AIPreferences } from '@/lib/ai/usage-tracker'
 import { useOnboarding } from '@/hooks/useOnboarding'
 import { loadDemoData, unloadDemoData } from '@/lib/demo-data'
 import {
@@ -103,6 +104,8 @@ export function Settings() {
   const [newWebhookUrl, setNewWebhookUrl] = useState('')
   const [tags, setTags] = useState(() => getAllTags())
   const { demoMode, resetTour, toggleDemoMode } = useOnboarding()
+  const [aiPrefs, setAiPrefs] = useState<AIPreferences>(() => getAIPreferences())
+  const aiMonthCount = getCurrentMonthCount()
   const [newDomainName, setNewDomainName] = useState('')
   const [newDomainColor, setNewDomainColor] = useState<string>(DEFAULT_DOMAIN_COLORS[0])
   const [newDomainTarget, setNewDomainTarget] = useState(20)
@@ -1030,10 +1033,58 @@ export function Settings() {
           </CardContent>
         </Card>
 
+        {/* Uso de AI */}
+        <Card className="rounded-xl">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Uso de AI
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Gerencie as features que usam inteligência artificial e veja o consumo mensal.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
+              <span className="text-sm text-muted-foreground">Chamadas este mês</span>
+              <Badge variant="secondary">{aiMonthCount}</Badge>
+            </div>
+
+            {([
+              { key: 'enableConsultant' as const, label: 'Consultant (RAG Chat)', desc: 'Chat inteligente com contexto das suas tarefas e metas' },
+              { key: 'enableContentGenerator' as const, label: 'Content Generator', desc: 'Geração e refinamento de textos com AI' },
+              { key: 'enableInsights' as const, label: 'Insights & Analytics', desc: 'Insights automáticos de produtividade' },
+              { key: 'enableImageGeneration' as const, label: 'Image Generation', desc: 'Geração de imagens com DALL-E' },
+              { key: 'enableAutomationSuggestions' as const, label: 'Sugestões de Automação', desc: 'Sugestões automáticas de workflows' },
+              { key: 'enableAssistant' as const, label: 'AI Assistant (Widget)', desc: 'Assistente flutuante com ações rápidas' },
+            ]).map((item) => (
+              <div key={item.key} className="flex items-center justify-between">
+                <div className="flex-1 pr-4">
+                  <p className="text-sm font-medium">{item.label}</p>
+                  <p className="text-xs text-muted-foreground">{item.desc}</p>
+                </div>
+                <Switch
+                  checked={aiPrefs[item.key]}
+                  onCheckedChange={(val) => {
+                    const updated = { ...aiPrefs, [item.key]: val }
+                    setAiPrefs(updated)
+                    setAIPreferences({ [item.key]: val })
+                    toast.success(t('common.saved'))
+                  }}
+                />
+              </div>
+            ))}
+
+            <Button variant="link" className="px-0 text-sm" asChild>
+              <Link to="/help">Ver detalhes de cada feature de AI</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Transcription History */}
         <TranscriptionHistory />
 
-        {/* About */}
+        {/* About + Support */}
         <Card className="rounded-xl lg:col-span-2">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -1041,10 +1092,24 @@ export function Settings() {
               {t('settings.aboutLifeOS')}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
               {t('settings.aboutDescription')} <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs">?</kbd> {t('settings.aboutShortcuts')}
             </p>
+            <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50">
+              <Button variant="outline" size="sm" className="gap-2" asChild>
+                <Link to="/help">
+                  <Info className="h-4 w-4" />
+                  Central de Ajuda
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" className="gap-2" asChild>
+                <a href="mailto:suporte@lifeos.app">
+                  <Mail className="h-4 w-4" />
+                  suporte@lifeos.app
+                </a>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

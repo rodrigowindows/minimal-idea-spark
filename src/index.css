@@ -95,12 +95,13 @@ All colors MUST be HSL.
 }
 
 @layer base {
+  /* Only sets default border-color; border-width stays 0 unless component adds it */
   * {
     @apply border-border;
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
 
   h1, h2, h3 {
@@ -156,11 +157,6 @@ body {
   body {
     overscroll-behavior-y: contain;
   }
-}
-
-/* Smooth scrolling for touch */
-* {
-  -webkit-tap-highlight-color: transparent;
 }
 
 /* Touch manipulation for interactive elements */
@@ -240,12 +236,86 @@ textarea:focus-visible,
   }
 }
 
-/* Minimum touch target size (WCAG 2.5.8 - 44x44px) */
+/* Minimum touch target size (WCAG 2.5.8 - 44x44px). Use .touch-target-auto to opt out when needed. */
 @media (pointer: coarse) {
-  button:not(.sr-only),
-  a:not(.sr-only),
-  [role="button"]:not(.sr-only) {
+  button:not(.sr-only):not(.touch-target-auto),
+  a:not(.sr-only):not(.touch-target-auto),
+  [role="button"]:not(.sr-only):not(.touch-target-auto) {
     min-height: 44px;
     min-width: 44px;
+  }
+}
+
+.touch-target-auto {
+  min-height: auto;
+  min-width: auto;
+}
+
+/* Print styles for Reports and War Room / Journal */
+@media print {
+  /* Hide non-printable elements */
+  .no-print,
+  nav,
+  aside,
+  header .no-print,
+  [data-radix-popper-content-wrapper],
+  .toaster {
+    display: none !important;
+  }
+
+  /* Reset body for print */
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+
+  /* Full width for print */
+  main,
+  .min-h-screen {
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: auto !important;
+  }
+
+  /* Cards: remove shadows, keep borders */
+  .card {
+    box-shadow: none !important;
+    border: 1px solid hsl(var(--border)) !important;
+    break-inside: avoid;
+  }
+
+  /* Report preview print optimization */
+  .report-preview {
+    break-inside: avoid;
+  }
+
+  .report-preview > * {
+    break-inside: avoid;
+  }
+
+  /* Chart containers: ensure they render */
+  .recharts-wrapper {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Links: show URL */
+  a[href]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Page setup */
+  @page {
+    margin: 1.5cm;
+    size: A4;
+  }
+
+  /* Show print-only elements */
+  .print\\:block {
+    display: block !important;
   }
 }

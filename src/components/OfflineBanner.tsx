@@ -37,11 +37,11 @@ export function OfflineBanner() {
   if (isOnline && !syncing) return null
   if (dismissed && isOnline) return null
 
-  // Syncing state
+  // Syncing state (fixed so it does not take flex space in AppLayout)
   if (isOnline && syncing) {
     return (
       <div
-        className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium bg-primary/10 text-primary"
+        className="fixed left-0 right-0 top-0 z-50 flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium bg-primary/10 text-primary"
         role="status"
         aria-live="polite"
       >
@@ -57,11 +57,11 @@ export function OfflineBanner() {
     )
   }
 
-  // Offline state
+  // Offline state (fixed so it does not take flex space in AppLayout)
   return (
     <div
       className={cn(
-        'flex items-center gap-3 px-4 py-2.5 text-sm',
+        'fixed left-0 right-0 top-0 z-50 flex items-center gap-3 px-4 py-2.5 text-sm',
         'bg-amber-500/90 text-amber-950 dark:bg-amber-600/90 dark:text-amber-50'
       )}
       role="alert"

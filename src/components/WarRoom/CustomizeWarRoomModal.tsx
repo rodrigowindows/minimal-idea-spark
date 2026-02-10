@@ -9,6 +9,13 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   DndContext,
   closestCenter,
   KeyboardSensor,
@@ -19,9 +26,9 @@ import {
 } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { useWarRoomLayout, WIDGET_IDS, type WidgetId } from '@/contexts/WarRoomLayoutContext'
+import { useWarRoomLayout, WIDGET_IDS, type WidgetId, type WidgetSize } from '@/contexts/WarRoomLayoutContext'
 import { useTranslation } from '@/contexts/LanguageContext'
-import { GripVertical } from 'lucide-react'
+import { GripVertical, Minimize2, Square, Maximize2 } from 'lucide-react'
 
 const WIDGET_LABELS: Record<WidgetId, string> = {
   'smart-capture': 'Smart Capture',
@@ -32,7 +39,22 @@ const WIDGET_LABELS: Record<WidgetId, string> = {
   'activity-heatmap': 'Activity Heatmap',
 }
 
-function SortableItem({ id, label, visible, onToggle }: { id: WidgetId; label: string; visible: boolean; onToggle: (v: boolean) => void }) {
+const SIZE_ICONS: Record<WidgetSize, typeof Minimize2> = {
+  compact: Minimize2,
+  normal: Square,
+  large: Maximize2,
+}
+
+interface SortableItemProps {
+  id: WidgetId
+  label: string
+  visible: boolean
+  size: WidgetSize
+  onToggle: (v: boolean) => void
+  onSizeChange: (s: WidgetSize) => void
+}
+
+function SortableItem({ id, label, visible, size, onToggle, onSizeChange }: SortableItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id })
 
   const style = {
@@ -50,8 +72,26 @@ function SortableItem({ id, label, visible, onToggle }: { id: WidgetId; label: s
         <GripVertical className="h-4 w-4 text-muted-foreground" />
       </button>
       <span className="flex-1 text-sm font-medium">{label}</span>
+      <Select value={size} onValueChange={(v) => onSizeChange(v as WidgetSize)}>
+        <SelectTrigger className="h-8 w-[110px]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {(['compact', 'normal', 'large'] as WidgetSize[]).map((s) => {
+            const Icon = SIZE_ICONS[s]
+            return (
+              <SelectItem key={s} value={s}>
+                <span className="flex items-center gap-1.5">
+                  <Icon className="h-3 w-3" />
+                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                </span>
+              </SelectItem>
+            )
+          })}
+        </SelectContent>
+      </Select>
       <div className="flex items-center gap-2">
-        <Label htmlFor={`vis-${id}`} className="text-xs text-muted-foreground">Show</Label>
+        <Label htmlFor={`vis-${id}`} className="text-xs text-muted-foreground sr-only">Show</Label>
         <Switch id={`vis-${id}`} checked={visible} onCheckedChange={onToggle} />
       </div>
     </div>
@@ -65,7 +105,7 @@ interface CustomizeWarRoomModalProps {
 
 export function CustomizeWarRoomModal({ open, onOpenChange }: CustomizeWarRoomModalProps) {
   const { t } = useTranslation()
-  const { layout, setOrder, setVisible, resetLayout } = useWarRoomLayout()
+  const { layout, setOrder, setVisible, setSize, resetLayout } = useWarRoomLayout()
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -84,12 +124,12 @@ export function CustomizeWarRoomModal({ open, onOpenChange }: CustomizeWarRoomMo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Customize War Room</DialogTitle>
+          <DialogTitle>{t('dashboard.customizeWarRoom')}</DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground">
-          Drag to reorder. Toggle visibility with the switch.
+          {t('dashboard.customizeDesc')}
         </p>
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={layout.order}>
@@ -100,7 +140,9 @@ export function CustomizeWarRoomModal({ open, onOpenChange }: CustomizeWarRoomMo
                   id={id}
                   label={WIDGET_LABELS[id] ?? id}
                   visible={layout.visible[id] ?? true}
+                  size={layout.sizes[id] ?? 'normal'}
                   onToggle={(v) => setVisible(id, v)}
+                  onSizeChange={(s) => setSize(id, s)}
                 />
               ))}
             </div>

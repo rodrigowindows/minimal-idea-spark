@@ -5,32 +5,23 @@ import { OpportunityRadar } from '@/components/war-room/OpportunityRadar'
 import { QuickJournal } from '@/components/war-room/QuickJournal'
 import { TimeBlockCalendar } from '@/components/time-blocking/TimeBlockCalendar'
 import { ActivityHeatmap } from '@/components/analytics/ActivityHeatmap'
+import { WidgetGrid } from '@/components/WarRoom/WidgetGrid'
 import { CustomizeWarRoomModal } from '@/components/WarRoom/CustomizeWarRoomModal'
 import { OnboardingChecklist } from '@/components/Onboarding/OnboardingChecklist'
 import { ContextualTip } from '@/components/Onboarding/ContextualTip'
 import { useLocalData } from '@/hooks/useLocalData'
 import { useXPSystem } from '@/hooks/useXPSystem'
 import { useTranslation } from '@/contexts/LanguageContext'
-import { useWarRoomLayout, type WidgetId } from '@/contexts/WarRoomLayoutContext'
+import type { WidgetId } from '@/contexts/WarRoomLayoutContext'
 import type { OpportunityTypeValue } from '@/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Flame, Target, Brain, SlidersHorizontal } from 'lucide-react'
 
-const WIDGET_COL_SPAN: Record<WidgetId, string> = {
-  'smart-capture': 'col-span-12',
-  'the-one-thing': 'lg:col-span-8',
-  'opportunity-radar': 'lg:col-span-4',
-  'time-blocking': 'lg:col-span-8',
-  'quick-journal': 'lg:col-span-4',
-  'activity-heatmap': 'lg:col-span-12',
-}
-
 export function Dashboard() {
   const { opportunities, domains, isLoading, addOpportunity } = useLocalData()
   const { level, levelTitle, streakDays, xpTotal, deepWorkMinutes } = useXPSystem()
   const { t } = useTranslation()
-  const { layout } = useWarRoomLayout()
   const [customizeOpen, setCustomizeOpen] = useState(false)
 
   const handleCapture = useCallback((data: { title: string; type: string; domain: string; strategicValue: number }) => {
@@ -58,6 +49,35 @@ export function Dashboard() {
     if (hour < 18) return t('dashboard.goodAfternoon')
     return t('dashboard.goodEvening')
   }
+
+  const renderWidget = useCallback((widgetId: WidgetId) => {
+    switch (widgetId) {
+      case 'smart-capture':
+        return null
+      case 'the-one-thing':
+        return (
+          <TheOneThing
+            opportunities={isLoading ? undefined : opportunities}
+            domains={isLoading ? undefined : domains}
+          />
+        )
+      case 'opportunity-radar':
+        return (
+          <OpportunityRadar
+            opportunities={isLoading ? undefined : opportunities}
+            domains={isLoading ? undefined : domains}
+          />
+        )
+      case 'time-blocking':
+        return <TimeBlockCalendar opportunities={isLoading ? undefined : opportunities} />
+      case 'quick-journal':
+        return <QuickJournal />
+      case 'activity-heatmap':
+        return <ActivityHeatmap />
+      default:
+        return null
+    }
+  }, [isLoading, opportunities, domains])
 
   return (
     <div className="min-h-screen p-6 md:p-8 lg:p-10">
@@ -95,33 +115,10 @@ export function Dashboard() {
         </div>
       </header>
 
-      <div id="main-content" className="grid gap-6 md:gap-8 lg:grid-cols-12">
-        {layout.order.map((widgetId) => {
-          if (!layout.visible[widgetId]) return null
-          const colSpan = WIDGET_COL_SPAN[widgetId] ?? 'lg:col-span-12'
-          return (
-            <div key={widgetId} className={colSpan}>
-              {widgetId === 'smart-capture' && null}
-              {widgetId === 'the-one-thing' && (
-                <TheOneThing
-                  opportunities={isLoading ? undefined : opportunities}
-                  domains={isLoading ? undefined : domains}
-                />
-              )}
-              {widgetId === 'opportunity-radar' && (
-                <OpportunityRadar
-                  opportunities={isLoading ? undefined : opportunities}
-                  domains={isLoading ? undefined : domains}
-                />
-              )}
-              {widgetId === 'time-blocking' && (
-                <TimeBlockCalendar opportunities={isLoading ? undefined : opportunities} />
-              )}
-              {widgetId === 'quick-journal' && <QuickJournal />}
-              {widgetId === 'activity-heatmap' && <ActivityHeatmap />}
-            </div>
-          )
-        })}
+      <div id="main-content">
+        <WidgetGrid>
+          {(widgetId) => renderWidget(widgetId)}
+        </WidgetGrid>
       </div>
 
       <div className="mt-8">

@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Sparkles, Brain, Wifi, WifiOff, RotateCcw, Trash2, AlertCircle } from 'lucide-react'
 import { ContextualTip } from '@/components/Onboarding/ContextualTip'
+import { AIFeatureInfo } from '@/components/AIFeatureInfo'
 import { useLocalData } from '@/hooks/useLocalData'
 import { useXPSystem } from '@/hooks/useXPSystem'
 import { useRagChat } from '@/hooks/useRagChat'
@@ -331,7 +332,10 @@ export function Consultant() {
           <Brain className="h-5 w-5 text-primary" />
         </div>
         <div className="flex-1">
-          <h1 className="text-xl font-bold tracking-tight">{t('consultant.title')}</h1>
+          <div className="flex items-center gap-1.5">
+            <h1 className="text-xl font-bold tracking-tight">{t('consultant.title')}</h1>
+            <AIFeatureInfo feature="rag" />
+          </div>
           <p className="text-sm text-muted-foreground">{t('consultant.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">

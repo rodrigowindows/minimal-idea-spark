@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client'
+import { recordAIUsage, setRateLimited, isRateLimited } from '@/lib/ai/usage-tracker'
 
 export type PriorityLevel = 'critical' | 'high' | 'medium' | 'low'
 export type PriorityStatus = 'active' | 'completed' | 'archived'
@@ -321,6 +322,8 @@ export async function addPriorityToDB(
 }
 
 export async function generatePriorityEmbedding(priorityId: string, text: string) {
+  if (isRateLimited()) throw new Error('Muitas requisições. Tente novamente em alguns minutos.')
+
   const response = await fetch(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-embedding`,
     {
@@ -333,6 +336,13 @@ export async function generatePriorityEmbedding(priorityId: string, text: string
     }
   )
 
+  if (response.status === 429) {
+    const retryAfter = parseInt(response.headers.get('Retry-After') || '60', 10)
+    setRateLimited(retryAfter)
+    throw new Error('Muitas requisições. Tente novamente em alguns minutos.')
+  }
+
+  recordAIUsage()
   const { embedding } = await response.json()
   await (supabase as any)
     .from('user_priorities')
@@ -346,6 +356,7 @@ export async function suggestActionsFromAPI(
   priorities: Priority[],
 ): Promise<string[]> {
   if (priorities.length === 0) return []
+  if (isRateLimited()) throw new Error('Muitas requisições. Tente novamente em alguns minutos.')
 
   const response = await fetch(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rag-priority`,
@@ -359,11 +370,20 @@ export async function suggestActionsFromAPI(
     }
   )
 
+  if (response.status === 429) {
+    const retryAfter = parseInt(response.headers.get('Retry-After') || '60', 10)
+    setRateLimited(retryAfter)
+    throw new Error('Muitas requisições. Tente novamente em alguns minutos.')
+  }
+
+  recordAIUsage()
   const data = await response.json()
   return data.suggestions || []
 }
 
 export async function reevaluatePrioritiesViaAPI(userId: string, priorities: Priority[]): Promise<void> {
+  if (isRateLimited()) throw new Error('Muitas requisições. Tente novamente em alguns minutos.')
+
   const response = await fetch(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rag-priority`,
     {
@@ -376,6 +396,13 @@ export async function reevaluatePrioritiesViaAPI(userId: string, priorities: Pri
     }
   )
 
+  if (response.status === 429) {
+    const retryAfter = parseInt(response.headers.get('Retry-After') || '60', 10)
+    setRateLimited(retryAfter)
+    throw new Error('Muitas requisições. Tente novamente em alguns minutos.')
+  }
+
+  recordAIUsage()
   const { updated_priorities } = await response.json()
   for (const priority of updated_priorities) {
     await (supabase as any)

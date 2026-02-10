@@ -19,7 +19,6 @@ import { NotificationCenter } from '@/components/NotificationCenter'
 import { CollaborativeCursor } from '@/components/CollaborativeCursor'
 import { useRealtime } from '@/contexts/RealtimeContext'
 import { SkipLink } from '@/components/SkipLink'
-import { useOnlineStatus } from '@/hooks/useOnlineStatus'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { KeyboardShortcutsHelp } from '@/components/layout/KeyboardShortcutsHelp'
 import { SyncStatusIndicator } from '@/components/SyncStatusIndicator'
@@ -38,11 +37,10 @@ export function AppLayout() {
   const isMobile = !useMediaQuery('(min-width: 768px)')
   const [mobileOpen, setMobileOpen] = useState(false)
   const { presences, currentUserId, isConnected } = useRealtime()
-  const isOnline = useOnlineStatus()
   useKeyboardShortcuts()
 
   return (
-    <div className="relative flex h-screen flex-col overflow-hidden bg-background md:flex-row">
+    <div className="relative flex h-screen overflow-hidden bg-background">
       <SkipLink />
       <AriaLiveRegion />
       <OfflineBanner />
@@ -54,12 +52,10 @@ export function AppLayout() {
         }}
       />
 
-      {/* Collaborative cursors overlay */}
       {isConnected && !deepWorkMode && (
         <CollaborativeCursor presences={presences} currentUserId={currentUserId} />
       )}
 
-      {/* Mobile sidebar (Sheet drawer) */}
       {isMobile && !deepWorkMode && (
         <>
           <header className="fixed top-0 left-0 right-0 z-40 flex h-14 items-center justify-between border-b border-border/50 bg-sidebar/95 backdrop-blur-md px-3" role="banner" aria-label={t('layout.mobileHeader') || 'Mobile header'}>
@@ -86,59 +82,42 @@ export function AppLayout() {
             <div className="flex items-center gap-1">
               <SyncStatusIndicator className="shrink-0" />
               <NotificationCenter />
-              <PresenceIndicator
-                presences={presences}
-                currentUserId={currentUserId}
-                maxDisplay={3}
-              />
+              <PresenceIndicator presences={presences} currentUserId={currentUserId} maxDisplay={3} />
             </div>
           </header>
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetContent side="left" className="w-64 p-0" id="mobile-sidebar">
               <SheetTitle className="sr-only">{t('layout.navigation')}</SheetTitle>
-              <Sidebar
-                collapsed={false}
-                onToggle={() => setMobileOpen(false)}
-              />
+              <Sidebar collapsed={false} onToggle={() => setMobileOpen(false)} />
             </SheetContent>
           </Sheet>
         </>
       )}
 
-      {/* Layout: sidebar + main in one flex row so they don't get squeezed by other nodes */}
-      <div className="flex min-h-0 flex-1 basis-0 flex-row overflow-hidden">
-        {/* Desktop sidebar */}
-        {!isMobile && !deepWorkMode && (
-          <Sidebar collapsed={!sidebarOpen} onToggle={toggleSidebar} />
-        )}
+      {!isMobile && !deepWorkMode && (
+        <Sidebar collapsed={!sidebarOpen} onToggle={toggleSidebar} />
+      )}
 
-        {/* Main content area */}
-        <main
-          id="main-content"
-          tabIndex={-1}
-          role="main"
-          aria-label={t('layout.mainContent') || 'Main content'}
-          className={cn(
-            'min-w-0 flex-1 overflow-y-auto overflow-x-hidden transition-all duration-300 ease-in-out',
-            isMobile && !deepWorkMode && 'pt-14 pb-16',
-            deepWorkMode && 'bg-background/95'
-          )}
-        >
-        {/* Sync bar + Presence indicator bar for desktop */}
+      <main
+        id="main-content"
+        tabIndex={-1}
+        role="main"
+        aria-label={t('layout.mainContent') || 'Main content'}
+        className={cn(
+          'min-w-0 flex-1 overflow-y-auto overflow-x-hidden transition-all duration-300 ease-in-out',
+          isMobile && !deepWorkMode && 'pt-14 pb-16',
+          deepWorkMode && 'bg-background/95'
+        )}
+      >
         {!isMobile && !deepWorkMode && (
           <div className="sticky top-0 z-30 flex items-center justify-end gap-2 px-4 py-2 bg-background/80 backdrop-blur-sm border-b border-border/30">
             <SyncStatusIndicator showBar className="mr-auto" />
             {presences.filter(p => p.user_id !== currentUserId).length > 0 && (
-              <PresenceIndicator
-                presences={presences}
-                currentUserId={currentUserId}
-                maxDisplay={5}
-              />
+              <PresenceIndicator presences={presences} currentUserId={currentUserId} maxDisplay={5} />
             )}
           </div>
         )}
 
-        {/* Deep Work Mode overlay gradient */}
         {deepWorkMode && (
           <div className="pointer-events-none fixed inset-0 z-10 bg-gradient-to-b from-background/80 via-transparent to-background/80" aria-hidden="true" />
         )}
@@ -149,9 +128,7 @@ export function AppLayout() {
           </ErrorBoundary>
         </div>
       </main>
-      </div>
 
-      {/* Mobile bottom nav with PWA features */}
       {isMobile && !deepWorkMode && <MobileNav />}
 
       <CommandPalette />

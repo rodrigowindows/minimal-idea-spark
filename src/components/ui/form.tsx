@@ -1,3 +1,8 @@
+/**
+ * Form components (React Hook Form + Radix Label).
+ * Use <Form> with useForm(), then <FormField> + <FormItem> + <FormControl> + <FormMessage> per field.
+ * Labels and errors are wired for a11y (aria-describedby, aria-invalid). See Settings or InviteMembers for examples.
+ */
 import * as React from "react";
 import * as LabelPrimitive from "@radix-ui/react-label";
 import { Slot } from "@radix-ui/react-slot";
@@ -17,6 +22,7 @@ type FormFieldContextValue<
 
 const FormFieldContext = React.createContext<FormFieldContextValue>({} as FormFieldContextValue);
 
+/** RHF Controller wrapper; use with FormItem + FormControl + FormMessage for label + input + error. */
 const FormField = <
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,

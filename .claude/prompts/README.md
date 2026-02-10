@@ -88,3 +88,7 @@ Lista de prompts para implementar ou melhorar funcionalidades no **Minimal Idea 
 - Use a seção **Arquivos esperados** como referência do que criar ou alterar.
 
 Os arquivos `.txt` nesta pasta são duplicatas ou rascunhos; priorize os `.md` com o mesmo número.
+
+## Verificação pós-implementação
+
+Após implementar os prompts, use a **quadruple check** em `docs/QUADRUPLE_CHECK.md`: estrutura (Check 1), CSS/layout (Check 2), a11y/erros (Check 3), consistência de código (Check 4).

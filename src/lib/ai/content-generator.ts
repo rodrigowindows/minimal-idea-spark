@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { recordAIUsage, setRateLimited, isRateLimited, getFriendlyAIError } from '@/lib/ai/usage-tracker';
 
 export interface ContentGenerationOptions {
   prompt: string;
@@ -28,6 +29,10 @@ async function getAuthHeaders() {
 }
 
 async function callGenerateContent(body: Record<string, unknown>): Promise<any> {
+  if (isRateLimited()) {
+    throw new Error('Muitas requisições. Tente novamente em alguns minutos.');
+  }
+
   const response = await fetch(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-content`,
     {
@@ -37,11 +42,18 @@ async function callGenerateContent(body: Record<string, unknown>): Promise<any> 
     }
   );
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || 'Content generation failed');
+  if (response.status === 429) {
+    const retryAfter = parseInt(response.headers.get('Retry-After') || '60', 10);
+    setRateLimited(retryAfter);
+    throw new Error('Muitas requisições. Tente novamente em alguns minutos.');
   }
 
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(getFriendlyAIError(new Error(errorData.error || `HTTP ${response.status}`)));
+  }
+
+  recordAIUsage();
   return response.json();
 }
 

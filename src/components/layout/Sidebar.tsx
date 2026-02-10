@@ -121,7 +121,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       id="main-nav"
       aria-label={collapsed ? 'Canvas - Navigation (collapsed)' : 'Canvas - Navigation'}
       className={cn(
-        'flex h-screen flex-col bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out',
+        'flex h-full min-h-screen flex-shrink-0 flex-col bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out',
         collapsed ? 'w-16' : 'w-64'
       )}
     >

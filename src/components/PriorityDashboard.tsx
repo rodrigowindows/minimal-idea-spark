@@ -42,6 +42,7 @@ import {
   Shield,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { AIFeatureInfo } from '@/components/AIFeatureInfo'
 import { usePriorities } from '@/hooks/usePriorities'
 import { useLocalData } from '@/hooks/useLocalData'
 import type { Priority, PriorityLevel, PriorityCategory, KeyResult, PriorityInsight } from '@/lib/rag/priority-context'
@@ -139,7 +140,10 @@ export function PriorityDashboard() {
               <Crosshair className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Priority Command Center</h1>
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-2xl font-bold tracking-tight">Priority Command Center</h1>
+                <AIFeatureInfo feature="priorities" />
+              </div>
               <p className="text-sm text-muted-foreground">RAG-powered objective tracking with AI prioritization</p>
             </div>
           </div>

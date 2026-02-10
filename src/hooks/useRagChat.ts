@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import type { ContextSource } from '@/types'
+import { recordAIUsage, setRateLimited, isRateLimited, getFriendlyAIError } from '@/lib/ai/usage-tracker'
 
 interface RagSource {
   title: string
@@ -54,6 +55,10 @@ export function useRagChat() {
     }))
 
     try {
+      if (isRateLimited()) {
+        throw new Error('Muitas requisições. Tente novamente em alguns minutos.')
+      }
+
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
 
@@ -77,10 +82,18 @@ export function useRagChat() {
         signal: controller.signal,
       })
 
+      if (response.status === 429) {
+        const retryAfter = parseInt(response.headers.get('Retry-After') || '60', 10)
+        setRateLimited(retryAfter)
+        throw new Error('Muitas requisições. Tente novamente em alguns minutos.')
+      }
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.error || `HTTP ${response.status}`)
       }
+
+      recordAIUsage()
 
       const contentType = response.headers.get('Content-Type') || ''
 
@@ -181,7 +194,7 @@ export function useRagChat() {
         return null
       }
 
-      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      const errorMsg = getFriendlyAIError(err)
       setState(prev => ({
         ...prev,
         isStreaming: false,

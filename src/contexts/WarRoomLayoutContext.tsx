@@ -13,24 +13,32 @@ export const WIDGET_IDS = [
 
 export type WidgetId = (typeof WIDGET_IDS)[number]
 
+export type WidgetSize = 'compact' | 'normal' | 'large'
+
 export interface WarRoomLayout {
   order: WidgetId[]
   visible: Record<WidgetId, boolean>
+  sizes: Record<WidgetId, WidgetSize>
 }
 
 const defaultLayout: WarRoomLayout = {
   order: [...WIDGET_IDS],
   visible: WIDGET_IDS.reduce((acc, id) => ({ ...acc, [id]: true }), {} as Record<WidgetId, boolean>),
+  sizes: WIDGET_IDS.reduce((acc, id) => ({ ...acc, [id]: 'normal' as WidgetSize }), {} as Record<WidgetId, WidgetSize>),
 }
 
 function loadLayout(): WarRoomLayout {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
-      const parsed = JSON.parse(raw) as WarRoomLayout
-      const order = (parsed.order ?? defaultLayout.order).filter((id) => WIDGET_IDS.includes(id))
+      const parsed = JSON.parse(raw) as Partial<WarRoomLayout>
+      // Merge with defaults so new widgets added in the future auto-appear
+      const knownOrder = (parsed.order ?? []).filter((id) => WIDGET_IDS.includes(id))
+      const missing = WIDGET_IDS.filter((id) => !knownOrder.includes(id))
+      const order = [...knownOrder, ...missing]
       const visible = { ...defaultLayout.visible, ...parsed.visible }
-      return { order, visible }
+      const sizes = { ...defaultLayout.sizes, ...parsed.sizes }
+      return { order, visible, sizes }
     }
   } catch { /* ignore */ }
   return defaultLayout
@@ -46,6 +54,7 @@ interface WarRoomLayoutContextValue {
   layout: WarRoomLayout
   setOrder: (order: WidgetId[]) => void
   setVisible: (id: WidgetId, visible: boolean) => void
+  setSize: (id: WidgetId, size: WidgetSize) => void
   resetLayout: () => void
 }
 
@@ -70,12 +79,20 @@ export function WarRoomLayoutProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
+  const setSize = useCallback((id: WidgetId, size: WidgetSize) => {
+    setLayout((prev) => {
+      const next = { ...prev, sizes: { ...prev.sizes, [id]: size } }
+      saveLayout(next)
+      return next
+    })
+  }, [])
+
   const resetLayout = useCallback(() => {
     saveLayout(defaultLayout)
     setLayout(defaultLayout)
   }, [])
 
-  const value = useMemo(() => ({ layout, setOrder, setVisible, resetLayout }), [layout, setOrder, setVisible, resetLayout])
+  const value = useMemo(() => ({ layout, setOrder, setVisible, setSize, resetLayout }), [layout, setOrder, setVisible, setSize, resetLayout])
 
   return (
     <Context.Provider value={value}>

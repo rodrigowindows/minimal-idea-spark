@@ -64,6 +64,9 @@ export function VirtualList<T>({
             return (
               <div
                 key={getItemKey(item, index)}
+                role="listitem"
+                aria-posinset={index + 1}
+                aria-setsize={items.length}
                 style={{ height: itemHeight }}
                 className="flex items-center"
               >

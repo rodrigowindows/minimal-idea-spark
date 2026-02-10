@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ImageGenerator } from '@/components/ImageGeneration/Generator'
 import { ImageGallery } from '@/components/ImageGeneration/Gallery'
 import { Sparkles, ImageIcon } from 'lucide-react'
+import { AIFeatureInfo } from '@/components/AIFeatureInfo'
 
 export function ImageGenerationPage() {
   const [activeTab, setActiveTab] = useState('generate')
@@ -13,6 +14,7 @@ export function ImageGenerationPage() {
         <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
           <ImageIcon className="h-6 w-6 text-primary" />
           AI Image Generation
+          <AIFeatureInfo feature="images" />
         </h1>
         <p className="text-muted-foreground mt-1">
           Generate, edit, and manage images using DALL-E. Create variations, upscale, and remove backgrounds.
