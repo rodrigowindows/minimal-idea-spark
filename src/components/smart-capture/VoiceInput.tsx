@@ -58,7 +58,7 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
           try {
             const result = await transcribeAudio(audioBlob, { language })
             if (result.text?.trim()) onTranscript(result.text.trim())
-            else toast.info('Nenhuma fala detectada. Tente falar mais perto do microfone.')
+            else if (durationMs >= 1500) toast.info('Nenhuma fala detectada. Tente falar mais perto do microfone.')
           } catch (e) {
             toast.error(e instanceof Error ? e.message.slice(0, 80) : 'Falha na transcrição.')
           } finally {
@@ -98,16 +98,19 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
           }
         }
 
+        recordingStartedAtRef.current = Date.now()
+
         // Auto-restart on silence timeout
         recognition.onend = () => {
           if (isListeningRef.current) {
             try { recognition.start() } catch { /* already started */ }
           } else {
-            // Finished - deliver transcript
+            // Finished - deliver transcript (only show "no speech" if user held long enough)
+            const durationMs = Date.now() - recordingStartedAtRef.current
             const text = transcripts.join(' ').trim()
             if (text) {
               onTranscript(text)
-            } else {
+            } else if (durationMs >= 1500) {
               toast.info('Nenhuma fala detectada. Tente falar mais perto do microfone.')
             }
             setIsTranscribing(false)

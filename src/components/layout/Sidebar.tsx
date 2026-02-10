@@ -124,7 +124,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       aria-label={collapsed ? 'Canvas - Navigation (collapsed)' : 'Canvas - Navigation'}
       className={cn(
         'flex h-full min-h-screen flex-shrink-0 flex-col bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out',
-        collapsed ? 'w-16' : 'w-64'
+        collapsed ? 'w-[var(--sidebar-width-collapsed)]' : 'w-[var(--sidebar-width-expanded)]'
       )}
     >
       {/* Brand + Notification Bell + Language Toggle */}
@@ -177,22 +177,26 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             >
               <span>{t('nav.sectionRecent')}</span>
             </button>
-            {recentPages.slice(0, 3).map((p) => (
-              <NavLink
-                key={p.path + p.timestamp}
-                to={p.path}
-                end={p.path === '/'}
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition-colors',
-                    'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                    isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-muted-foreground'
-                  )
-                }
-              >
-                <span className="truncate">{p.label}</span>
-              </NavLink>
-            ))}
+            {recentPages.slice(0, 3).map((p) => {
+              const item = navItems.find((n) => n.to === p.path || (p.path.startsWith(n.to + '/') && n.to !== '/'))
+              const label = item ? t(item.labelKey) : p.label
+              return (
+                <NavLink
+                  key={p.path + p.timestamp}
+                  to={p.path}
+                  end={p.path === '/'}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition-colors',
+                      'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                      isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-muted-foreground'
+                    )
+                  }
+                >
+                  <span className="truncate">{label}</span>
+                </NavLink>
+              )
+            })}
           </div>
         )}
         {SIDEBAR_SECTIONS.map((section) => {
