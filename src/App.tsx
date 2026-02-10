@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { DeepWorkOverlay } from "@/components/deep-work/DeepWorkOverlay";
 import { ConfettiEffect } from "@/components/gamification/ConfettiEffect";
@@ -19,7 +19,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { WarRoomLayoutProvider } from "@/contexts/WarRoomLayoutContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { RealtimeProvider } from "@/contexts/RealtimeContext";
-import { NightWorkerProvider } from "@/contexts/NightWorkerContext";
+import { NightWorkerProvider, useNightWorker } from "@/contexts/NightWorkerContext";
 import { ShortcutProvider } from "@/contexts/ShortcutContext";
 import { NetworkStatusProvider } from "@/contexts/NetworkStatusContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -65,6 +65,8 @@ const queryClient = new QueryClient({
 function AppContent() {
   const { levelUpTriggered } = useAppContext();
   const [tourForceOpen, setTourForceOpen] = useState(false);
+  const navigate = useNavigate();
+  const { lastError } = useNightWorker();
   useNotificationGenerator();
 
   useEffect(() => {
@@ -81,6 +83,12 @@ function AppContent() {
     // Populate IndexedDB offline cache on initial load (best-effort)
     refreshCacheFromServer().catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (lastError === 'auth') {
+      navigate('/connect');
+    }
+  }, [lastError, navigate]);
 
   const handleStartTour = () => {
     setTourForceOpen(true);

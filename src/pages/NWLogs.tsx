@@ -56,6 +56,7 @@ export default function NWLogs() {
       return true
     })
   }, [buffer, level, query, worker])
+  const lastTimestamp = buffer.length ? buffer[buffer.length - 1].timestamp : null
 
   return (
     <div className="px-4 pb-10 md:px-8">
@@ -164,13 +165,18 @@ export default function NWLogs() {
               <LogLine key={`${line.timestamp}-${idx}`} entry={line} />
             ))}
           </div>
-          <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-            <span>
-              Total no buffer: {buffer.length} · Filtrado: {filtered.length}
-            </span>
-            <span>
-              Auto-scroll {autoScroll ? 'ligado' : 'desligado'} · {paused ? 'Pausado' : 'Em tempo real'}
-            </span>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <span className={`h-2.5 w-2.5 rounded-full ${isConnected ? 'bg-emerald-400' : 'bg-red-500'}`} aria-hidden />
+              <span>{isConnected ? 'Conectado' : 'Desconectado'}</span>
+              <span>· Buffer: {buffer.length}</span>
+              <span>· Filtrado: {filtered.length}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span>Auto-scroll {autoScroll ? 'ligado' : 'desligado'}</span>
+              <span>· {paused ? 'Pausado' : 'Tempo real'}</span>
+              {lastTimestamp && <span>· Último update: {formatTime(lastTimestamp)}</span>}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -181,13 +187,14 @@ export default function NWLogs() {
 function LogLine({ entry }: { entry: LogEntry }) {
   const levelColor =
     entry.level === 'ERROR' ? 'text-red-400' : entry.level === 'WARN' ? 'text-amber-300' : 'text-slate-100'
-  const workerColor = entry.worker.toLowerCase().includes('claude') ? 'text-purple-300' : 'text-blue-300'
+  const workerLabel = entry.worker || 'Worker'
+  const workerColor = workerLabel.toLowerCase().includes('claude') ? 'text-purple-300' : 'text-blue-300'
   const time = formatTime(entry.timestamp)
   return (
     <div className="group flex items-start gap-2 rounded-md px-2 py-1 transition-colors hover:bg-white/5">
       <span className="text-slate-500">[{time}]</span>
       <span className={`${levelColor} font-semibold min-w-[52px] text-right`}>{entry.level}</span>
-      <span className={`${workerColor} font-semibold`}>[{entry.worker}]</span>
+      <span className={`${workerColor} font-semibold`}>[{workerLabel}]</span>
       <span className="text-slate-100">{entry.message}</span>
     </div>
   )

@@ -1,6 +1,10 @@
 {
   "nav": {
     "dashboard": "Panel",
+    "submit": "Enviar Prompt",
+    "prompts": "Prompts",
+    "logs": "Logs",
+    "connect": "Conectar",
     "consultant": "Consultor",
     "opportunities": "Oportunidades",
     "journal": "Diario",
@@ -65,7 +69,11 @@
     "help": "Ayuda",
     "import": "Importar",
     "reports": "Informes",
-    "integrations": "Integraciones"
+    "integrations": "Integraciones",
+    "submit": "Enviar Prompt",
+    "prompts": "Prompts",
+    "logs": "Logs",
+    "connect": "Conectar"
   },
   "notFound": {
     "title": "Página no encontrada",
