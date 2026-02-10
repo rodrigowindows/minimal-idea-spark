@@ -53,8 +53,11 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
+import { useTranslation } from 'react-i18next'
+import { EmptyState } from '@/components/EmptyState'
 
 export function VersionHistoryPage() {
+  const { t } = useTranslation()
   // State
   const [entityType, setEntityType] = useState<string>('journal')
   const [entityId, setEntityId] = useState<string>('default')
@@ -521,11 +524,12 @@ export function VersionHistoryPage() {
             </CardHeader>
             <CardContent>
               {trackedEntities.length === 0 ? (
-                <div className="py-12 text-center text-muted-foreground">
-                  <Package className="h-8 w-8 mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">No tracked entities yet</p>
-                  <p className="text-xs mt-1">Create a snapshot to start tracking.</p>
-                </div>
+                <EmptyState
+                  icon={Package}
+                  title={t('emptyStates.versionHistory')}
+                  actionLabel={t('emptyStates.versionHistoryAction')}
+                  onAction={() => setShowCreate(true)}
+                />
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {trackedEntities.map(ent => (

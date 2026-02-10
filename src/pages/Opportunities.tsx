@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback, useEffect, memo } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence, useMotionValue, useTransform, type PanInfo } from 'framer-motion'
 import { useLocalData } from '@/hooks/useLocalData'
 import { Card, CardContent } from '@/components/ui/card'
@@ -16,6 +16,8 @@ import { useXPSystem } from '@/hooks/useXPSystem'
 import { useAppContext } from '@/contexts/AppContext'
 import { OpportunityDialog } from '@/components/opportunities/OpportunityDialog'
 import { EmptyState } from '@/components/EmptyState'
+import { SearchEmptyState } from '@/components/SearchEmptyState'
+import { useTranslation } from 'react-i18next'
 import { VirtualList } from '@/components/VirtualList'
 import { TagFilter } from '@/components/tags/TagFilter'
 import { TagBadge } from '@/components/tags/TagBadge'
@@ -43,6 +45,7 @@ import {
 import { toast } from 'sonner'
 
 export function Opportunities() {
+  const { t } = useTranslation()
   const { id: opportunityId } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const {
@@ -74,6 +77,31 @@ export function Opportunities() {
       setDialogOpen(true)
     }
   }, [opportunityId, opportunities])
+
+  // Quick-add from bookmarklet: /opportunities?quickadd=1&title=...&description=...
+  const [searchParams] = useSearchParams()
+  useEffect(() => {
+    if (searchParams.get('quickadd') === '1') {
+      const title = searchParams.get('title') || ''
+      const description = searchParams.get('description') || ''
+      if (title || description) {
+        addOpportunity({
+          title: title || 'New idea',
+          description: description || null,
+          type: 'action',
+          status: 'backlog',
+          domain_id: domains?.[0]?.id ?? null,
+          priority: 5,
+          strategic_value: 5,
+        })
+        toast.success(`Idea added: "${title || 'New idea'}"`)
+      } else {
+        setEditingOpp(null)
+        setDialogOpen(true)
+      }
+      navigate('/opportunities', { replace: true })
+    }
+  }, [searchParams])
 
   const domainMap = useMemo(() => {
     if (!domains) return new Map<string, LifeDomain>()
@@ -304,12 +332,24 @@ export function Opportunities() {
                 ))}
               </div>
             ) : filteredOpportunities.length === 0 ? (
-              <EmptyState
-                icon={Target}
-                title={searchQuery || selectedStatus !== 'All' ? 'No opportunities match your filters.' : 'No opportunities yet. Create one!'}
-                actionLabel={searchQuery || selectedStatus !== 'All' ? undefined : 'New opportunity'}
-                onAction={searchQuery || selectedStatus !== 'All' ? undefined : () => { setEditingOpp(null); setDialogOpen(true) }}
-              />
+              searchQuery ? (
+                <SearchEmptyState
+                  query={searchQuery}
+                  onClearFilters={() => { setSearchQuery(''); setSelectedStatus('All'); setSelectedTagId(null); setDueFilter('all') }}
+                />
+              ) : selectedStatus !== 'All' || selectedTagId || dueFilter !== 'all' ? (
+                <SearchEmptyState
+                  query={selectedStatus !== 'All' ? selectedStatus : ''}
+                  onClearFilters={() => { setSelectedStatus('All'); setSelectedTagId(null); setDueFilter('all') }}
+                />
+              ) : (
+                <EmptyState
+                  icon={Target}
+                  title={t('emptyStates.opportunities')}
+                  actionLabel={t('emptyStates.opportunitiesAction')}
+                  onAction={() => { setEditingOpp(null); setDialogOpen(true) }}
+                />
+              )
             ) : filteredOpportunities.length > 30 ? (
               <VirtualList
                 items={filteredOpportunities}

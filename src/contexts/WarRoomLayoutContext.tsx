@@ -9,6 +9,7 @@ export const WIDGET_IDS = [
   'time-blocking',
   'quick-journal',
   'activity-heatmap',
+  'goals-okr',
 ] as const
 
 export type WidgetId = (typeof WIDGET_IDS)[number]

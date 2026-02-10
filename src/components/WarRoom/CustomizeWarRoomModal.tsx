@@ -37,6 +37,7 @@ const WIDGET_LABELS: Record<WidgetId, string> = {
   'time-blocking': 'Time Blocking',
   'quick-journal': 'Quick Journal',
   'activity-heatmap': 'Activity Heatmap',
+  'goals-okr': 'Metas & OKRs',
 }
 
 const SIZE_ICONS: Record<WidgetSize, typeof Minimize2> = {

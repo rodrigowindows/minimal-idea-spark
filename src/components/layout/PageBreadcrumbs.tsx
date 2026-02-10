@@ -40,7 +40,10 @@ export function PageBreadcrumbs({ items, className }: PageBreadcrumbsProps) {
   )
 }
 
-/** Build breadcrumb from current pathname. Path segments map to i18n keys breadcrumbs.pathKey or fallback to segment. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+
+/** Build breadcrumb from current pathname. Path segments map to i18n keys breadcrumbs.<segment> or fallback to segment. */
 export function useBreadcrumbFromPath(): BreadcrumbItem[] {
   const { pathname } = useLocation()
   const { t } = useTranslation()
@@ -51,10 +54,22 @@ export function useBreadcrumbFromPath(): BreadcrumbItem[] {
   const items: BreadcrumbItem[] = [{ label: t('nav.dashboard'), href: '/' }]
   let acc = ''
   for (let i = 0; i < segments.length; i++) {
-    acc += `/${segments[i]}`
-    const key = `breadcrumbs.${segments[i]}`
-    const label = t(key) !== key ? t(key) : segments[i]
-    items.push({ label, href: i === segments.length - 1 ? undefined : acc })
+    const seg = segments[i]
+    acc += `/${seg}`
+    const isLast = i === segments.length - 1
+
+    // Skip UUID params in breadcrumb display but keep them in the path
+    if (UUID_RE.test(seg)) continue
+
+    // Format date params nicely
+    if (DATE_RE.test(seg)) {
+      items.push({ label: seg, href: isLast ? undefined : acc })
+      continue
+    }
+
+    const key = `breadcrumbs.${seg}`
+    const label = t(key) !== key ? t(key) : seg.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+    items.push({ label, href: isLast ? undefined : acc })
   }
   return items
 }

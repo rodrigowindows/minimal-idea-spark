@@ -75,6 +75,17 @@ export interface Habit {
   completions: string[] // dates of completions (ISO date strings)
 }
 
+export type OKRCycle = 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'S1' | 'S2' | 'annual' | 'custom'
+
+export interface KeyResult {
+  id: string
+  title: string
+  target_value: number
+  current_value: number
+  unit: string // e.g., '%', 'items', 'hours'
+  linked_opportunity_ids: string[]
+}
+
 export interface Goal {
   id: string
   user_id: string
@@ -82,8 +93,13 @@ export interface Goal {
   description: string
   domain_id: string | null
   target_date: string
+  start_date: string
   progress: number // 0-100
   milestones: { id: string; title: string; done: boolean }[]
+  key_results: KeyResult[]
+  cycle: OKRCycle
+  status: 'active' | 'completed' | 'cancelled'
+  final_score?: number // 0-100, set when goal is completed/cancelled
   created_at: string
 }
 
@@ -259,9 +275,13 @@ export function useLocalData() {
     setHabits(prev => prev.filter(h => h.id !== id))
   }, [])
 
-  // ---- Goal CRUD ----
+  // ---- Goal / OKR CRUD ----
   const addGoal = useCallback((data: Omit<Goal, 'id' | 'user_id' | 'created_at'>) => {
     const newGoal: Goal = {
+      key_results: [],
+      cycle: 'custom',
+      status: 'active',
+      start_date: new Date().toISOString().split('T')[0],
       ...data,
       id: `goal-${Date.now()}`,
       user_id: userId,
@@ -292,6 +312,80 @@ export function useLocalData() {
         ? Math.round((doneMilestones / milestones.length) * 100)
         : g.progress
       return { ...g, milestones, progress }
+    }))
+  }, [])
+
+  const addKeyResult = useCallback((goalId: string, kr: Omit<KeyResult, 'id' | 'linked_opportunity_ids'>) => {
+    setGoals(prev => prev.map(g => {
+      if (g.id !== goalId) return g
+      const newKR: KeyResult = {
+        ...kr,
+        id: `kr-${Date.now()}`,
+        linked_opportunity_ids: [],
+      }
+      return { ...g, key_results: [...g.key_results, newKR] }
+    }))
+  }, [])
+
+  const updateKeyResult = useCallback((goalId: string, krId: string, data: Partial<KeyResult>) => {
+    setGoals(prev => prev.map(g => {
+      if (g.id !== goalId) return g
+      const key_results = g.key_results.map(kr =>
+        kr.id === krId ? { ...kr, ...data } : kr
+      )
+      return { ...g, key_results }
+    }))
+  }, [])
+
+  const deleteKeyResult = useCallback((goalId: string, krId: string) => {
+    setGoals(prev => prev.map(g => {
+      if (g.id !== goalId) return g
+      return { ...g, key_results: g.key_results.filter(kr => kr.id !== krId) }
+    }))
+  }, [])
+
+  const linkOpportunityToKeyResult = useCallback((goalId: string, krId: string, opportunityId: string) => {
+    setGoals(prev => prev.map(g => {
+      if (g.id !== goalId) return g
+      const key_results = g.key_results.map(kr => {
+        if (kr.id !== krId) return kr
+        if (kr.linked_opportunity_ids.includes(opportunityId)) return kr
+        return { ...kr, linked_opportunity_ids: [...kr.linked_opportunity_ids, opportunityId] }
+      })
+      return { ...g, key_results }
+    }))
+    // Also set goal_id on the opportunity
+    updateOpportunity(opportunityId, { goal_id: goalId })
+  }, [updateOpportunity])
+
+  const unlinkOpportunityFromKeyResult = useCallback((goalId: string, krId: string, opportunityId: string) => {
+    setGoals(prev => prev.map(g => {
+      if (g.id !== goalId) return g
+      const key_results = g.key_results.map(kr => {
+        if (kr.id !== krId) return kr
+        return { ...kr, linked_opportunity_ids: kr.linked_opportunity_ids.filter(id => id !== opportunityId) }
+      })
+      return { ...g, key_results }
+    }))
+  }, [])
+
+  const completeGoal = useCallback((goalId: string) => {
+    setGoals(prev => prev.map(g => {
+      if (g.id !== goalId) return g
+      const krProgress = g.key_results.length > 0
+        ? g.key_results.reduce((sum, kr) => sum + Math.min(100, Math.round((kr.current_value / Math.max(kr.target_value, 1)) * 100)), 0) / g.key_results.length
+        : g.progress
+      return { ...g, status: 'completed', progress: 100, final_score: Math.round(krProgress) }
+    }))
+  }, [])
+
+  const cancelGoal = useCallback((goalId: string) => {
+    setGoals(prev => prev.map(g => {
+      if (g.id !== goalId) return g
+      const krProgress = g.key_results.length > 0
+        ? g.key_results.reduce((sum, kr) => sum + Math.min(100, Math.round((kr.current_value / Math.max(kr.target_value, 1)) * 100)), 0) / g.key_results.length
+        : g.progress
+      return { ...g, status: 'cancelled', final_score: Math.round(krProgress) }
     }))
   }, [])
 
@@ -409,11 +503,18 @@ export function useLocalData() {
     toggleHabitCompletion,
     deleteHabit,
 
-    // Goal actions
+    // Goal / OKR actions
     addGoal,
     updateGoal,
     toggleMilestone,
     deleteGoal,
+    addKeyResult,
+    updateKeyResult,
+    deleteKeyResult,
+    linkOpportunityToKeyResult,
+    unlinkOpportunityFromKeyResult,
+    completeGoal,
+    cancelGoal,
 
     // Weekly target actions
     weeklyTargets,

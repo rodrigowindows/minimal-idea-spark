@@ -1,7 +1,6 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AnimatePresence } from 'framer-motion'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -20,29 +19,44 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useLocalData } from '@/hooks/useLocalData'
+import type { OKRCycle } from '@/hooks/useLocalData'
 import { toast } from 'sonner'
 import {
   Flag,
   Plus,
+  Archive,
+  TrendingUp,
 } from 'lucide-react'
 import { VoiceInput } from '@/components/smart-capture/VoiceInput'
 import { EmptyState } from '@/components/EmptyState'
-import { getOpportunitiesForGoal } from '@/lib/goals/goal-service'
 import { GoalCard } from '@/components/Goals/GoalCard'
-import { format } from 'date-fns'
+import { getCurrentCycle, getCycleLabel, filterGoalsByCycle } from '@/lib/goals/goal-service'
+
+const ALL_CYCLES: (OKRCycle | 'all')[] = ['all', 'Q1', 'Q2', 'Q3', 'Q4', 'S1', 'S2', 'annual', 'custom']
 
 export function Goals() {
   const { t } = useTranslation()
-  const { goals, domains, opportunities, addGoal, updateGoal, toggleMilestone, deleteGoal } = useLocalData()
+  const {
+    goals, domains, opportunities,
+    addGoal, updateGoal, toggleMilestone, deleteGoal,
+    addKeyResult, updateKeyResult, deleteKeyResult,
+    linkOpportunityToKeyResult, unlinkOpportunityFromKeyResult,
+    completeGoal, cancelGoal,
+  } = useLocalData()
   const [showNew, setShowNew] = useState(false)
   const [expandedGoal, setExpandedGoal] = useState<string | null>(null)
+  const [selectedCycle, setSelectedCycle] = useState<OKRCycle | 'all'>('all')
+  const [showHistory, setShowHistory] = useState(false)
 
   // New goal form state
   const [newTitle, setNewTitle] = useState('')
   const [newDescription, setNewDescription] = useState('')
   const [newDomainId, setNewDomainId] = useState<string>('')
   const [newTargetDate, setNewTargetDate] = useState('')
+  const [newStartDate, setNewStartDate] = useState(new Date().toISOString().split('T')[0])
+  const [newCycle, setNewCycle] = useState<OKRCycle>(getCurrentCycle())
   const [newMilestones, setNewMilestones] = useState<string[]>([''])
 
   function handleCreateGoal(e: React.FormEvent) {
@@ -52,25 +66,37 @@ export function Goals() {
     addGoal({
       title: newTitle.trim(),
       description: newDescription.trim(),
-      domain_id: newDomainId || null,
+      domain_id: newDomainId && newDomainId !== 'none' ? newDomainId : null,
+      start_date: newStartDate || new Date().toISOString().split('T')[0],
       target_date: newTargetDate || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       progress: 0,
       milestones: newMilestones
         .filter(m => m.trim())
         .map((m, i) => ({ id: `ms-${Date.now()}-${i}`, title: m.trim(), done: false })),
+      key_results: [],
+      cycle: newCycle,
+      status: 'active',
     })
 
     setNewTitle('')
     setNewDescription('')
     setNewDomainId('')
     setNewTargetDate('')
+    setNewStartDate(new Date().toISOString().split('T')[0])
+    setNewCycle(getCurrentCycle())
     setNewMilestones([''])
     setShowNew(false)
     toast.success(t('goals.goalCreated'))
   }
 
-  const activeGoals = goals.filter(g => g.progress < 100)
-  const completedGoals = goals.filter(g => g.progress >= 100)
+  const filteredGoals = useMemo(() => {
+    return filterGoalsByCycle(goals, selectedCycle)
+  }, [goals, selectedCycle])
+
+  const activeGoals = filteredGoals.filter(g => g.status === 'active')
+  const completedGoals = filteredGoals.filter(g => g.status === 'completed')
+  const cancelledGoals = filteredGoals.filter(g => g.status === 'cancelled')
+  const historyGoals = [...completedGoals, ...cancelledGoals]
 
   return (
     <div className="min-h-screen p-4 md:p-6 lg:p-8">
@@ -80,16 +106,43 @@ export function Goals() {
             <Flag className="h-6 w-6 text-primary" />
             <h1 className="text-2xl font-bold tracking-tight">{t('goals.title')}</h1>
           </div>
-          <Button onClick={() => setShowNew(true)} className="gap-2">
-            <Plus className="h-4 w-4" />{t('goals.newGoal')}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={showHistory ? 'secondary' : 'outline'}
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setShowHistory(!showHistory)}
+            >
+              <Archive className="h-4 w-4" />
+              {t('goals.history')}
+              {historyGoals.length > 0 && (
+                <span className="ml-1 rounded-full bg-muted px-1.5 text-xs">{historyGoals.length}</span>
+              )}
+            </Button>
+            <Button onClick={() => setShowNew(true)} className="gap-2">
+              <Plus className="h-4 w-4" />{t('goals.newGoal')}
+            </Button>
+          </div>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
           {t('goals.description')}
         </p>
+
+        {/* Cycle filter */}
+        <div className="mt-4">
+          <Tabs value={selectedCycle} onValueChange={(v) => setSelectedCycle(v as OKRCycle | 'all')}>
+            <TabsList className="flex-wrap h-auto gap-1">
+              {ALL_CYCLES.map(c => (
+                <TabsTrigger key={c} value={c} className="text-xs px-3 py-1.5">
+                  {c === 'all' ? t('goals.allCycles') : getCycleLabel(c)}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
       </header>
 
-      {goals.length === 0 ? (
+      {filteredGoals.length === 0 ? (
         <EmptyState
           icon={Flag}
           title={t('emptyStates.goals')}
@@ -98,16 +151,21 @@ export function Goals() {
         />
       ) : (
         <div className="space-y-6">
+          {/* Active Goals */}
           {activeGoals.length > 0 && (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold">{t('goals.activeGoals')}</h2>
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-semibold">{t('goals.activeGoals')}</h2>
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">{activeGoals.length}</span>
+              </div>
               <AnimatePresence>
                 {activeGoals.map((goal) => (
                   <GoalCard
                     key={goal.id}
                     goal={goal}
                     domains={domains}
-                    linkedCount={getOpportunitiesForGoal(opportunities ?? [], goal.id).length}
+                    opportunities={opportunities ?? []}
                     expanded={expandedGoal === goal.id}
                     onToggleExpand={() => setExpandedGoal(expandedGoal === goal.id ? null : goal.id)}
                     onToggleMilestone={(milestoneId) => toggleMilestone(goal.id, milestoneId)}
@@ -115,21 +173,39 @@ export function Goals() {
                       deleteGoal(goal.id)
                       toast.success(t('goals.goalDeleted'))
                     }}
+                    onAddKeyResult={(kr) => addKeyResult(goal.id, kr)}
+                    onUpdateKeyResult={(krId, data) => updateKeyResult(goal.id, krId, data)}
+                    onDeleteKeyResult={(krId) => deleteKeyResult(goal.id, krId)}
+                    onLinkOpportunity={(krId, oppId) => linkOpportunityToKeyResult(goal.id, krId, oppId)}
+                    onUnlinkOpportunity={(krId, oppId) => unlinkOpportunityFromKeyResult(goal.id, krId, oppId)}
+                    onComplete={() => {
+                      completeGoal(goal.id)
+                      toast.success(t('goals.goalCompleted'))
+                    }}
+                    onCancel={() => {
+                      cancelGoal(goal.id)
+                      toast.success(t('goals.goalCancelled'))
+                    }}
                   />
                 ))}
               </AnimatePresence>
             </div>
           )}
 
-          {completedGoals.length > 0 && (
+          {/* History (completed + cancelled) */}
+          {showHistory && historyGoals.length > 0 && (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-green-400">{t('goals.completedGoals')}</h2>
-              {completedGoals.map((goal) => (
+              <div className="flex items-center gap-2">
+                <Archive className="h-5 w-5 text-muted-foreground" />
+                <h2 className="text-lg font-semibold text-muted-foreground">{t('goals.history')}</h2>
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">{historyGoals.length}</span>
+              </div>
+              {historyGoals.map((goal) => (
                 <GoalCard
                   key={goal.id}
                   goal={goal}
                   domains={domains}
-                  linkedCount={getOpportunitiesForGoal(opportunities ?? [], goal.id).length}
+                  opportunities={opportunities ?? []}
                   expanded={expandedGoal === goal.id}
                   onToggleExpand={() => setExpandedGoal(expandedGoal === goal.id ? null : goal.id)}
                   onToggleMilestone={(milestoneId) => toggleMilestone(goal.id, milestoneId)}
@@ -137,6 +213,13 @@ export function Goals() {
                     deleteGoal(goal.id)
                     toast.success(t('goals.goalDeleted'))
                   }}
+                  onAddKeyResult={(kr) => addKeyResult(goal.id, kr)}
+                  onUpdateKeyResult={(krId, data) => updateKeyResult(goal.id, krId, data)}
+                  onDeleteKeyResult={(krId) => deleteKeyResult(goal.id, krId)}
+                  onLinkOpportunity={(krId, oppId) => linkOpportunityToKeyResult(goal.id, krId, oppId)}
+                  onUnlinkOpportunity={(krId, oppId) => unlinkOpportunityFromKeyResult(goal.id, krId, oppId)}
+                  onComplete={() => completeGoal(goal.id)}
+                  onCancel={() => cancelGoal(goal.id)}
                 />
               ))}
             </div>
@@ -146,7 +229,7 @@ export function Goals() {
 
       {/* New goal dialog */}
       <Dialog open={showNew} onOpenChange={setShowNew}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t('goals.newGoal')}</DialogTitle>
           </DialogHeader>
@@ -195,6 +278,27 @@ export function Goals() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{t('goals.cycle')}</Label>
+                <Select value={newCycle} onValueChange={(v) => setNewCycle(v as OKRCycle)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(['Q1', 'Q2', 'Q3', 'Q4', 'S1', 'S2', 'annual', 'custom'] as OKRCycle[]).map(c => (
+                      <SelectItem key={c} value={c}>{getCycleLabel(c)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{t('goals.startDate')}</Label>
+                <Input
+                  type="date"
+                  value={newStartDate}
+                  onChange={(e) => setNewStartDate(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label>{t('goals.targetDate')}</Label>

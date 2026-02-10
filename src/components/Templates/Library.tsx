@@ -21,6 +21,7 @@ import {
   Search,
   Plus,
   FileText,
+  FileStack,
   Pencil,
   Trash2,
   Copy,
@@ -33,6 +34,8 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
+import { EmptyState } from '@/components/EmptyState'
+import { SearchEmptyState } from '@/components/SearchEmptyState'
 
 interface TemplatesLibraryProps {
   onEdit?: (template: Template) => void
@@ -145,21 +148,19 @@ export function TemplatesLibrary({ onEdit, onCreateNew }: TemplatesLibraryProps)
 
       {/* Template grid */}
       {filtered.length === 0 ? (
-        <Card className="py-12">
-          <CardContent className="text-center">
-            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" aria-hidden />
-            <h3 className="text-lg font-semibold">{t('templatesPage.noTemplatesFound')}</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              {templates.length === 0 ? t('templatesPage.createFirstOrBrowse') : t('templatesPage.tryAdjustingSearch')}
-            </p>
-            {onCreateNew && templates.length === 0 && (
-              <Button onClick={onCreateNew} className="mt-4 gap-2">
-                <Plus className="h-4 w-4" />
-                {t('templatesPage.createTemplate')}
-              </Button>
-            )}
-          </CardContent>
-        </Card>
+        templates.length === 0 ? (
+          <EmptyState
+            icon={FileStack}
+            title={t('emptyStates.templates')}
+            actionLabel={t('emptyStates.templatesAction')}
+            onAction={onCreateNew}
+          />
+        ) : (
+          <SearchEmptyState
+            query={search || category}
+            onClearFilters={() => { setSearch(''); setCategory('all') }}
+          />
+        )
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map(t => (

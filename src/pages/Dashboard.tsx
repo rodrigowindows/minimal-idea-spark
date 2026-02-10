@@ -5,6 +5,7 @@ import { OpportunityRadar } from '@/components/war-room/OpportunityRadar'
 import { QuickJournal } from '@/components/war-room/QuickJournal'
 import { TimeBlockCalendar } from '@/components/time-blocking/TimeBlockCalendar'
 import { ActivityHeatmap } from '@/components/analytics/ActivityHeatmap'
+import { GoalsWidget } from '@/components/war-room/GoalsWidget'
 import { WidgetGrid } from '@/components/WarRoom/WidgetGrid'
 import { CustomizeWarRoomModal } from '@/components/WarRoom/CustomizeWarRoomModal'
 import { OnboardingChecklist } from '@/components/Onboarding/OnboardingChecklist'
@@ -74,6 +75,8 @@ export function Dashboard() {
         return <QuickJournal />
       case 'activity-heatmap':
         return <ActivityHeatmap />
+      case 'goals-okr':
+        return <GoalsWidget />
       default:
         return null
     }

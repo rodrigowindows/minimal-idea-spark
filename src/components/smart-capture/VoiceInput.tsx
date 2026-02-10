@@ -49,6 +49,9 @@ const LANG_MAP: Record<string, string> = { 'pt-BR': 'pt-BR', en: 'en-US', es: 'e
 export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: VoiceInputProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [isTranscribing, setIsTranscribing] = useState(false)
+  const isRecordingRef = useRef(false)
+  const isTranscribingRef = useRef(false)
+  const languageRef = useRef<SupportedLanguage>(language)
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null)
   const isListeningRef = useRef(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -60,17 +63,29 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
   const sessionCounterRef = useRef(0)
   const activeSessionRef = useRef<number | null>(null)
 
+  useEffect(() => {
+    isRecordingRef.current = isRecording
+  }, [isRecording])
+
+  useEffect(() => {
+    isTranscribingRef.current = isTranscribing
+  }, [isTranscribing])
+
+  useEffect(() => {
+    languageRef.current = language
+  }, [language])
+
   const log = useCallback((event: string, data?: Record<string, unknown>) => {
     console.info('[VoiceInput]', {
       event,
       session: activeSessionRef.current,
       engine: activeEngineRef.current,
-      language,
-      isRecording,
-      isTranscribing,
+      language: languageRef.current,
+      isRecording: isRecordingRef.current,
+      isTranscribing: isTranscribingRef.current,
       ...(data ?? {}),
     })
-  }, [isRecording, isTranscribing, language])
+  }, [])
 
   const stopAndReleaseStream = useCallback(() => {
     if (!mediaStreamRef.current) return

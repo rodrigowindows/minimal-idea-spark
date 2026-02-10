@@ -46,10 +46,14 @@ import {
 } from '@/lib/storage/image-manager'
 import { createVariation, upscaleImage, removeBackground } from '@/lib/ai/image-generation'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
+import { EmptyState } from '@/components/EmptyState'
+import { SearchEmptyState } from '@/components/SearchEmptyState'
 
 type ViewMode = 'grid' | 'list'
 
 export function ImageGallery() {
+  const { t } = useTranslation()
   const [images, setImages] = useState(getStoredImages())
   const [searchQuery, setSearchQuery] = useState('')
   const [filterTag, setFilterTag] = useState<string>('all')
@@ -283,14 +287,17 @@ export function ImageGallery() {
 
           {/* Image grid / list */}
           {filteredImages.length === 0 ? (
-            <div className="text-center py-12">
-              <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
-              <p className="text-sm text-muted-foreground">
-                {images.length === 0
-                  ? 'No images yet. Generate some above!'
-                  : 'No images match your filters.'}
-              </p>
-            </div>
+            images.length === 0 ? (
+              <EmptyState
+                icon={ImageIcon}
+                title={t('emptyStates.images')}
+              />
+            ) : (
+              <SearchEmptyState
+                query={searchQuery || filterTag || filterModel}
+                onClearFilters={() => { setSearchQuery(''); setFilterTag('all'); setFilterModel('all'); setShowFavorites(false) }}
+              />
+            )
           ) : viewMode === 'grid' ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {filteredImages.map((img) => (

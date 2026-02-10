@@ -49,6 +49,11 @@ const BASE_COL_SPAN: Record<WidgetId, Record<WidgetSize, string>> = {
     normal: 'col-span-12',
     large: 'col-span-12',
   },
+  'goals-okr': {
+    compact: 'col-span-12 lg:col-span-4',
+    normal: 'col-span-12 lg:col-span-6',
+    large: 'col-span-12',
+  },
 }
 
 function getColSpan(widgetId: WidgetId, size: WidgetSize): string {

@@ -43,6 +43,7 @@ import type { AppNotification, NotificationType } from '@/lib/notifications/mana
 import { NotificationDigest } from '@/components/NotificationDigest'
 import { VirtualList } from '@/components/VirtualList'
 import { EmptyState } from '@/components/EmptyState'
+import { SearchEmptyState } from '@/components/SearchEmptyState'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 
@@ -317,7 +318,14 @@ export function NotificationsPage() {
 
         <TabsContent value="all">
           {filteredActive.length === 0 ? (
-            <EmptyState icon={Inbox} title={t('emptyStates.notifications')} />
+            (searchQuery || filterType !== 'all') ? (
+              <SearchEmptyState
+                query={searchQuery || filterType}
+                onClearFilters={() => { setSearchQuery(''); setFilterType('all') }}
+              />
+            ) : (
+              <EmptyState icon={Inbox} title={t('emptyStates.notifications')} />
+            )
           ) : filteredActive.length > 30 ? (
             <VirtualList
               items={filteredActive}
