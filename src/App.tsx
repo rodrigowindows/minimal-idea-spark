@@ -23,6 +23,7 @@ import { NightWorkerProvider, useNightWorker } from "@/contexts/NightWorkerConte
 import { ShortcutProvider } from "@/contexts/ShortcutContext";
 import { NetworkStatusProvider } from "@/contexts/NetworkStatusContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { PriorityDashboard } from "@/components/PriorityDashboard";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 import { Suspense, lazy, useEffect, useState } from "react";
@@ -32,9 +33,30 @@ import { createSyncProcessor } from "@/lib/pwa/sync-processor";
 import { supabase } from "@/integrations/supabase/client";
 import { refreshCacheFromServer } from "@/lib/offline/sync-manager";
 
-const AcceptInvite = lazy(() => import("@/pages/AcceptInvite").then((m) => ({ default: m.AcceptInvite })));
-const SharedView = lazy(() => import("@/pages/SharedView").then((m) => ({ default: m.SharedView })));
-const Auth = lazy(() => import("@/pages/Auth").then((m) => ({ default: m.Auth })));
+// Main pages
+const Dashboard = lazy(() => import("@/pages/Dashboard").then((m) => ({ default: m.Dashboard })));
+const Consultant = lazy(() => import("@/pages/Consultant").then((m) => ({ default: m.Consultant })));
+const Opportunities = lazy(() => import("@/pages/Opportunities").then((m) => ({ default: m.Opportunities })));
+const Journal = lazy(() => import("@/pages/Journal").then((m) => ({ default: m.Journal })));
+const Analytics = lazy(() => import("@/pages/Analytics").then((m) => ({ default: m.Analytics })));
+const Habits = lazy(() => import("@/pages/Habits").then((m) => ({ default: m.Habits })));
+const Goals = lazy(() => import("@/pages/Goals").then((m) => ({ default: m.Goals })));
+const CalendarPage = lazy(() => import("@/pages/CalendarPage").then((m) => ({ default: m.CalendarPage })));
+const WeeklyReview = lazy(() => import("@/pages/WeeklyReview").then((m) => ({ default: m.WeeklyReview })));
+const ContentGeneratorPage = lazy(() => import("@/pages/ContentGeneratorPage").then((m) => ({ default: m.ContentGeneratorPage })));
+const AutomationPage = lazy(() => import("@/pages/AutomationPage").then((m) => ({ default: m.AutomationPage })));
+const TemplatesPage = lazy(() => import("@/pages/TemplatesPage").then((m) => ({ default: m.TemplatesPage })));
+const ImageGenerationPage = lazy(() => import("@/pages/ImageGenerationPage").then((m) => ({ default: m.ImageGenerationPage })));
+const VersionHistoryPage = lazy(() => import("@/pages/VersionHistoryPage").then((m) => ({ default: m.VersionHistoryPage })));
+const NotificationsPage = lazy(() => import("@/pages/Notifications").then((m) => ({ default: m.NotificationsPage })));
+const Help = lazy(() => import("@/pages/Help").then((m) => ({ default: m.Help })));
+const ImportPage = lazy(() => import("@/pages/ImportPage").then((m) => ({ default: m.ImportPage })));
+const ReportsPage = lazy(() => import("@/pages/ReportsPage").then((m) => ({ default: m.ReportsPage })));
+const Integrations = lazy(() => import("@/pages/Integrations").then((m) => ({ default: m.Integrations })));
+const Workspace = lazy(() => import("@/pages/Workspace").then((m) => ({ default: m.Workspace })));
+const Settings = lazy(() => import("@/pages/Settings").then((m) => ({ default: m.Settings })));
+
+// Night Worker pages
 const NWDashboard = lazy(() => import("@/pages/NWDashboard"));
 const NWSubmit = lazy(() => import("@/pages/NWSubmit"));
 const NWPrompts = lazy(() => import("@/pages/NWPrompts"));
@@ -42,6 +64,11 @@ const NWPromptDetail = lazy(() => import("@/pages/NWPromptDetail"));
 const NWLogs = lazy(() => import("@/pages/NWLogs"));
 const NWSettings = lazy(() => import("@/pages/NWSettings"));
 const NWConnect = lazy(() => import("@/pages/NWConnect"));
+
+// Auth & shared pages
+const AcceptInvite = lazy(() => import("@/pages/AcceptInvite").then((m) => ({ default: m.AcceptInvite })));
+const SharedView = lazy(() => import("@/pages/SharedView").then((m) => ({ default: m.SharedView })));
+const Auth = lazy(() => import("@/pages/Auth").then((m) => ({ default: m.Auth })));
 
 const PageFallback = () => (
   <div className="flex min-h-[50vh] items-center justify-center" role="status" aria-label="Loading page">
@@ -102,13 +129,40 @@ function AppContent() {
     <>
       <Routes>
         <Route element={<AppLayout />}>
-          <Route path="/" element={<Suspense fallback={<PageFallback />}><NWDashboard /></Suspense>} />
-          <Route path="/submit" element={<Suspense fallback={<PageFallback />}><NWSubmit /></Suspense>} />
-          <Route path="/prompts/:id" element={<Suspense fallback={<PageFallback />}><NWPromptDetail /></Suspense>} />
-          <Route path="/prompts" element={<Suspense fallback={<PageFallback />}><NWPrompts /></Suspense>} />
-          <Route path="/logs" element={<Suspense fallback={<PageFallback />}><NWLogs /></Suspense>} />
-          <Route path="/settings" element={<Suspense fallback={<PageFallback />}><NWSettings /></Suspense>} />
-          <Route path="/connect" element={<Suspense fallback={<PageFallback />}><NWConnect /></Suspense>} />
+          {/* Main pages */}
+          <Route path="/" element={<Suspense fallback={<PageFallback />}><Dashboard /></Suspense>} />
+          <Route path="/consultant" element={<Suspense fallback={<PageFallback />}><ErrorBoundary><Consultant /></ErrorBoundary></Suspense>} />
+          <Route path="/opportunities/:id" element={<Suspense fallback={<PageFallback />}><Opportunities /></Suspense>} />
+          <Route path="/opportunities" element={<Suspense fallback={<PageFallback />}><Opportunities /></Suspense>} />
+          <Route path="/journal/:date" element={<Suspense fallback={<PageFallback />}><Journal /></Suspense>} />
+          <Route path="/journal" element={<Suspense fallback={<PageFallback />}><Journal /></Suspense>} />
+          <Route path="/analytics" element={<Suspense fallback={<PageFallback />}><Analytics /></Suspense>} />
+          <Route path="/habits" element={<Suspense fallback={<PageFallback />}><Habits /></Suspense>} />
+          <Route path="/goals" element={<Suspense fallback={<PageFallback />}><Goals /></Suspense>} />
+          <Route path="/calendar" element={<Suspense fallback={<PageFallback />}><CalendarPage /></Suspense>} />
+          <Route path="/priorities" element={<PriorityDashboard userId="" />} />
+          <Route path="/weekly-review" element={<Suspense fallback={<PageFallback />}><WeeklyReview /></Suspense>} />
+          <Route path="/content-generator" element={<Suspense fallback={<PageFallback />}><ContentGeneratorPage /></Suspense>} />
+          <Route path="/automation" element={<Suspense fallback={<PageFallback />}><ErrorBoundary><AutomationPage /></ErrorBoundary></Suspense>} />
+          <Route path="/templates" element={<Suspense fallback={<PageFallback />}><TemplatesPage /></Suspense>} />
+          <Route path="/images" element={<Suspense fallback={<PageFallback />}><ImageGenerationPage /></Suspense>} />
+          <Route path="/version-history" element={<Suspense fallback={<PageFallback />}><VersionHistoryPage /></Suspense>} />
+          <Route path="/notifications" element={<Suspense fallback={<PageFallback />}><NotificationsPage /></Suspense>} />
+          <Route path="/settings" element={<Suspense fallback={<PageFallback />}><Settings /></Suspense>} />
+          <Route path="/help" element={<Suspense fallback={<PageFallback />}><Help /></Suspense>} />
+          <Route path="/import" element={<Suspense fallback={<PageFallback />}><ImportPage /></Suspense>} />
+          <Route path="/reports" element={<Suspense fallback={<PageFallback />}><ReportsPage /></Suspense>} />
+          <Route path="/integrations" element={<Suspense fallback={<PageFallback />}><Integrations /></Suspense>} />
+          <Route path="/workspace" element={<Suspense fallback={<PageFallback />}><Workspace /></Suspense>} />
+
+          {/* Night Worker pages */}
+          <Route path="/nw" element={<Suspense fallback={<PageFallback />}><NWDashboard /></Suspense>} />
+          <Route path="/nw/submit" element={<Suspense fallback={<PageFallback />}><NWSubmit /></Suspense>} />
+          <Route path="/nw/prompts/:id" element={<Suspense fallback={<PageFallback />}><NWPromptDetail /></Suspense>} />
+          <Route path="/nw/prompts" element={<Suspense fallback={<PageFallback />}><NWPrompts /></Suspense>} />
+          <Route path="/nw/logs" element={<Suspense fallback={<PageFallback />}><NWLogs /></Suspense>} />
+          <Route path="/nw/settings" element={<Suspense fallback={<PageFallback />}><NWSettings /></Suspense>} />
+          <Route path="/nw/connect" element={<Suspense fallback={<PageFallback />}><NWConnect /></Suspense>} />
         </Route>
         <Route path="/invite/:token" element={<Suspense fallback={<PageFallback />}><AcceptInvite /></Suspense>} />
         <Route path="/shared/:token" element={<Suspense fallback={<PageFallback />}><SharedView /></Suspense>} />
