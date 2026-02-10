@@ -18,20 +18,21 @@ interface VoiceInputProps {
 }
 
 const useBackendTranscription = isTranscriptionConfigured()
-const useBrowserFallback = !useBackendTranscription && isBrowserRecognitionSupported()
-
-/** Minimum recording duration (ms) before we send to transcription. Shorter = "hold longer" message. */
-const MIN_RECORDING_MS = 1500
+const useBrowserFallback = isBrowserRecognitionSupported()
 
 export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: VoiceInputProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [isTranscribing, setIsTranscribing] = useState(false)
+  const recognitionRef = useRef<any>(null)
+  const isListeningRef = useRef(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
-  const browserRecognizerRef = useRef<ReturnType<typeof createBrowserRecognizer> | null>(null)
   const recordingStartedAtRef = useRef<number>(0)
 
+  const langMap: Record<string, string> = { 'pt-BR': 'pt-BR', en: 'en-US', es: 'es-ES' }
+
   const startRecording = useCallback(async () => {
+    // Try backend transcription first (Deepgram)
     if (useBackendTranscription) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -40,109 +41,121 @@ export function VoiceInput({ onTranscript, disabled, language = 'pt-BR' }: Voice
             ? 'audio/webm;codecs=opus'
             : 'audio/webm',
         })
-
         chunksRef.current = []
-
         mediaRecorder.ondataavailable = (e) => {
-          if (e.data.size > 0) {
-            chunksRef.current.push(e.data)
-          }
+          if (e.data.size > 0) chunksRef.current.push(e.data)
         }
-
         mediaRecorder.onstop = async () => {
           stream.getTracks().forEach(track => track.stop())
-
           const durationMs = Date.now() - recordingStartedAtRef.current
-          if (chunksRef.current.length === 0) return
-          if (durationMs < MIN_RECORDING_MS) {
-            toast.info('Hold the button for at least 1–2 seconds while you speak.')
+          if (chunksRef.current.length === 0 || durationMs < 1500) {
+            toast.info('Segure o botão por pelo menos 1-2 segundos enquanto fala.')
             return
           }
-
           const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' })
           chunksRef.current = []
-
           setIsTranscribing(true)
           try {
             const result = await transcribeAudio(audioBlob, { language })
-            if (result.text?.trim()) {
-              onTranscript(result.text.trim())
-            } else {
-              toast.info('No speech detected. Try speaking closer to the mic.')
-            }
+            if (result.text?.trim()) onTranscript(result.text.trim())
+            else toast.info('Nenhuma fala detectada. Tente falar mais perto do microfone.')
           } catch (e) {
-            const msg = e instanceof Error ? e.message : 'Transcription failed.'
-            if (msg.includes('not configured') || msg.includes('VITE_DEEPGRAM')) {
-              toast.error(
-                'Audio not configured. Add VITE_DEEPGRAM_API_KEY to .env and restart the dev server.'
-              )
-            } else {
-              toast.error(msg.slice(0, 80))
-            }
+            toast.error(e instanceof Error ? e.message.slice(0, 80) : 'Falha na transcrição.')
           } finally {
             setIsTranscribing(false)
           }
         }
-
         mediaRecorderRef.current = mediaRecorder
         recordingStartedAtRef.current = Date.now()
         mediaRecorder.start(250)
         setIsRecording(true)
       } catch {
-        toast.error('Could not access microphone. Check permissions.')
+        toast.error('Não foi possível acessar o microfone. Verifique as permissões.')
       }
       return
     }
 
+    // Browser SpeechRecognition fallback (Chrome/Edge/Safari)
     if (useBrowserFallback) {
       try {
-        const recognizer = createBrowserRecognizer(language)
-        browserRecognizerRef.current = recognizer
-        recognizer.start()
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+        if (!SpeechRecognition) {
+          toast.error('Reconhecimento de voz não disponível neste navegador.')
+          return
+        }
+        const recognition = new SpeechRecognition()
+        recognition.continuous = true
+        recognition.interimResults = true
+        recognition.lang = langMap[language] || 'pt-BR'
+
+        const transcripts: string[] = []
+
+        recognition.onresult = (event: any) => {
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            if (event.results[i].isFinal) {
+              transcripts.push(event.results[i][0].transcript.trim())
+            }
+          }
+        }
+
+        // Auto-restart on silence timeout
+        recognition.onend = () => {
+          if (isListeningRef.current) {
+            try { recognition.start() } catch { /* already started */ }
+          } else {
+            // Finished - deliver transcript
+            const text = transcripts.join(' ').trim()
+            if (text) {
+              onTranscript(text)
+            } else {
+              toast.info('Nenhuma fala detectada. Tente falar mais perto do microfone.')
+            }
+            setIsTranscribing(false)
+          }
+        }
+
+        recognition.onerror = (event: any) => {
+          if (event.error === 'not-allowed') {
+            toast.error('Permissão do microfone negada.')
+            isListeningRef.current = false
+            setIsRecording(false)
+          }
+          // 'no-speech' is normal - onend will handle restart
+        }
+
+        recognitionRef.current = recognition
+        isListeningRef.current = true
+        recognition.start()
         setIsRecording(true)
       } catch {
-        toast.error('Voice input not available in this browser.')
+        toast.error('Reconhecimento de voz não disponível.')
       }
       return
     }
 
-    toast.error(
-      'Audio not configured. Set VITE_DEEPGRAM_API_KEY in .env, or use Chrome/Edge/Safari for browser voice.'
-    )
+    toast.error('Reconhecimento de voz não disponível neste navegador.')
   }, [language, onTranscript])
 
   const stopRecording = useCallback(() => {
+    // Stop backend recording
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop()
       setIsRecording(false)
       return
     }
 
-    const recognizer = browserRecognizerRef.current
-    if (recognizer && useBrowserFallback) {
-      browserRecognizerRef.current = null
+    // Stop browser recognition
+    if (recognitionRef.current) {
+      isListeningRef.current = false
       setIsRecording(false)
       setIsTranscribing(true)
-      recognizer
-        .stop()
-        .then(({ text }) => {
-          if (text?.trim()) {
-            onTranscript(text.trim())
-          } else {
-            toast.info('No speech detected. Try speaking closer to the mic.')
-          }
-        })
-        .catch(() => {
-          toast.error('Voice recognition failed.')
-        })
-        .finally(() => {
-          setIsTranscribing(false)
-        })
+      recognitionRef.current.stop()
+      recognitionRef.current = null
       return
     }
 
     setIsRecording(false)
-  }, [onTranscript])
+  }, [])
 
   const busy = isRecording || isTranscribing
 
