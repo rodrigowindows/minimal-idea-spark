@@ -40,7 +40,7 @@ export function ImportPreview({ preview }: ImportPreviewProps) {
             </div>
             <div className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2">
               <span className="text-muted-foreground">Journal</span>
-              <Badge variant="secondary">{summary.journalEntries}</Badge>
+              <Badge variant="secondary">{summary.journal}</Badge>
             </div>
             <div className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2">
               <span className="text-muted-foreground">Metas</span>
@@ -48,7 +48,7 @@ export function ImportPreview({ preview }: ImportPreviewProps) {
             </div>
             <div className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2">
               <span className="text-muted-foreground">Notas</span>
-              <Badge variant="secondary">{summary.notes}</Badge>
+              <Badge variant="secondary">{summary.templates}</Badge>
             </div>
           </div>
         )}
