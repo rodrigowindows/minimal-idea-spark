@@ -35,6 +35,11 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
+// Fallbacks para evitar ReferenceError se o build não resolver os ícones (ex.: deploy cache antigo)
+const IconSparkles = typeof Sparkles !== 'undefined' ? Sparkles : LayoutDashboard
+const IconStar = typeof Star !== 'undefined' ? Star : LayoutDashboard
+const IconX = typeof X !== 'undefined' ? X : ChevronDown
+
 interface SidebarProps {
   collapsed: boolean
   onToggle: () => void
@@ -119,7 +124,7 @@ function SidebarNavItem({ item, collapsed, isFavorite, onToggleFavorite }: Sideb
         aria-label={isFavorite ? t('nav.removeFavorite') : t('nav.addFavorite')}
         className="ml-1 rounded-md p-1 text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <Star
+        <IconStar
           className={cn('h-4 w-4', isFavorite && 'fill-current text-amber-400')}
           aria-hidden="true"
         />
@@ -199,7 +204,7 @@ function SidebarNavItem({ item, collapsed, isFavorite, onToggleFavorite }: Sideb
               aria-label={isFavorite ? t('nav.removeFavorite') : t('nav.addFavorite')}
               className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted"
             >
-              <Star className={cn('h-4 w-4', isFavorite && 'fill-current text-amber-400')} aria-hidden="true" />
+              <IconStar className={cn('h-4 w-4', isFavorite && 'fill-current text-amber-400')} aria-hidden="true" />
             </button>
           )}
         </div>
@@ -460,7 +465,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                           className="rounded-md p-1 text-[11px] font-semibold text-muted-foreground hover:bg-muted"
                           aria-label={t('nav.clearRecent')}
                         >
-                          <X className="h-3 w-3" aria-hidden="true" />
+                          <IconX className="h-3 w-3" aria-hidden="true" />
                         </button>
                         <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', !open && '-rotate-90')} aria-hidden="true" />
                       </div>

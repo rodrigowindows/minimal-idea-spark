@@ -24,12 +24,14 @@ function nameFromFilename(filename?: string): string {
 }
 
 export function useHealthQuery() {
-  const { apiFetch, config } = useNightWorker()
+  const { apiFetch, config, isConnected } = useNightWorker()
   return useQuery<HealthResponse>({
     queryKey: ['nightworker', 'health', config.baseUrl],
     queryFn: () => apiFetch<HealthResponse>('/health', { skipAuth: true }),
     refetchInterval: 10000,
     staleTime: 5000,
+    // Só chama quando já tem token (evita GET localhost:5555/health em deploy e ERR_CONNECTION_REFUSED)
+    enabled: isConnected,
   })
 }
 
