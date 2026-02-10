@@ -26,7 +26,7 @@ All colors MUST be HSL.
     --muted: 210 20% 94%;
     --muted-foreground: 220 10% 50%;
 
-    --accent: 220 90% 56%;
+    --accent: 268 72% 52%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
@@ -56,6 +56,7 @@ All colors MUST be HSL.
 
     --sidebar-width-expanded: 16rem;
     --sidebar-width-collapsed: 4rem;
+    color-scheme: light;
   }
 
   .dark {
@@ -77,8 +78,8 @@ All colors MUST be HSL.
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 268 72% 58%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
@@ -96,6 +97,7 @@ All colors MUST be HSL.
     --sidebar-ring: 217.2 91.2% 59.8%;
     --sidebar-width-expanded: 16rem;
     --sidebar-width-collapsed: 4rem;
+    color-scheme: dark;
   }
 }
 
@@ -177,13 +179,22 @@ nav {
 
 /* Focus visible for keyboard navigation (WCAG 2.1 AA) */
 :focus {
-  outline: none;
-}
-:focus-visible {
   outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
   border-radius: var(--radius);
   transition: outline-offset 0.1s ease;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: var(--radius);
+  box-shadow: 0 0 0 4px hsl(var(--ring) / 0.15);
 }
 
 /* Enhanced focus for interactive elements */
@@ -241,10 +252,9 @@ textarea:focus-visible,
   }
 }
 
-/* Minimum touch target size (WCAG 2.5.8 - 44x44px). Use .touch-target-auto to opt out when needed. */
+/* Minimum touch target size (WCAG 2.5.8 - 44x44px) for button-like elements. Use .touch-target-auto to opt out when needed. */
 @media (pointer: coarse) {
   button:not(.sr-only):not(.touch-target-auto),
-  a:not(.sr-only):not(.touch-target-auto),
   [role="button"]:not(.sr-only):not(.touch-target-auto) {
     min-height: 44px;
     min-width: 44px;

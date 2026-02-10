@@ -59,7 +59,7 @@ export function QuickJournal() {
             placeholder="How's your day going? What's on your mind..."
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="min-h-[80px] resize-none pr-20"
+            className="min-h-[80px] resize-none pr-32"
           />
           <div className="absolute right-1 top-1 flex items-center gap-0.5">
             <VoiceInput
