@@ -188,6 +188,39 @@ export function notifySystem(title: string, body: string) {
   })
 }
 
+export function notifyJournalReminder() {
+  if (isInQuietHours()) return
+  const key = `journal_reminder:${new Date().toISOString().slice(0, 10)}`
+  if (isDuplicate('habit_reminder', key)) return
+  addNotification({
+    title: 'Journal Reminder',
+    body: "You haven't written in your journal today. Take a moment to reflect on your day!",
+    channel: 'in_app',
+    priority: 8,
+    type: 'habit_reminder',
+    groupKey: key,
+    snoozedUntil: null,
+    actionUrl: '/journal',
+    icon: 'book-open',
+  })
+}
+
+export function notifyOpportunityOverdue(title: string, dueDate: string) {
+  if (isInQuietHours()) return
+  const key = `overdue:${title}:${dueDate}`
+  if (isDuplicate('task_due', key)) return
+  addNotification({
+    title: 'Overdue Task',
+    body: `"${title}" was due on ${dueDate}`,
+    channel: 'in_app',
+    priority: 25,
+    type: 'task_due',
+    groupKey: key,
+    snoozedUntil: null,
+    icon: 'alert-circle',
+  })
+}
+
 /**
  * Generate contextual notifications based on current time and app state.
  * Call this periodically (e.g., every 5 minutes) to produce proactive alerts.
@@ -197,6 +230,9 @@ export function generateContextualNotifications(context: {
   streakDays?: number
   upcomingEvents?: { title: string; startTime: string }[]
   habitsToday?: { name: string; completed: boolean }[]
+  hasJournalToday?: boolean
+  overdueOpportunities?: { title: string; dueDate: string }[]
+  dueTodayOpportunities?: { title: string }[]
 }) {
   if (isInQuietHours()) return
 
@@ -231,5 +267,24 @@ export function generateContextualNotifications(context: {
   // Streak alert
   if (context.streakDays && context.streakDays > 0 && context.streakDays % 7 === 0) {
     notifyStreak(context.streakDays)
+  }
+
+  // Journal daily reminder (evening)
+  if (hour >= 18 && hour < 22 && context.hasJournalToday === false) {
+    notifyJournalReminder()
+  }
+
+  // Overdue opportunity alerts
+  if (context.overdueOpportunities) {
+    for (const opp of context.overdueOpportunities.slice(0, 3)) {
+      notifyOpportunityOverdue(opp.title, opp.dueDate)
+    }
+  }
+
+  // Due today alerts
+  if (context.dueTodayOpportunities && hour >= 8 && hour < 12) {
+    for (const opp of context.dueTodayOpportunities.slice(0, 3)) {
+      notifyTaskDue(opp.title, 'today', '/opportunities')
+    }
   }
 }

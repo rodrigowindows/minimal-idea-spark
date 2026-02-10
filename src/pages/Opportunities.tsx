@@ -23,6 +23,7 @@ import { getTagsForOpportunity, setTagsForOpportunity, getAllTags } from '@/lib/
 import { EisenhowerMatrix } from '@/components/opportunities/EisenhowerMatrix'
 import { KanbanBoard } from '@/components/opportunities/KanbanBoard'
 import { ContextualTip } from '@/components/Onboarding/ContextualTip'
+import { syncOpportunityDeadlineToCalendar } from '@/lib/notifications/deadline-calendar-sync'
 import {
   Target,
   Search,
@@ -35,6 +36,9 @@ import {
   Grid3X3,
   List,
   Columns3,
+  Clock,
+  CalendarClock,
+  Bell,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -139,15 +143,35 @@ export function Opportunities() {
   const handleSave = useCallback((data: Omit<Opportunity, 'id' | 'user_id' | 'created_at' | 'domain'>, tagIds?: string[]) => {
     if (editingOpp) {
       updateOpportunity(editingOpp.id, data)
+      // Sync deadline to calendar
+      syncOpportunityDeadlineToCalendar({
+        id: editingOpp.id,
+        title: data.title,
+        description: data.description,
+        due_date: data.due_date,
+        domain_color: data.domain_id ? domainMap.get(data.domain_id)?.color_theme : undefined,
+      })
       toast.success('Opportunity updated!')
     } else {
       const newOpp = addOpportunity(data)
-      if (newOpp && tagIds?.length) setTagsForOpportunity(newOpp.id, tagIds)
+      if (newOpp) {
+        if (tagIds?.length) setTagsForOpportunity(newOpp.id, tagIds)
+        // Sync deadline to calendar for new opportunity
+        if (data.due_date) {
+          syncOpportunityDeadlineToCalendar({
+            id: newOpp.id,
+            title: data.title,
+            description: data.description,
+            due_date: data.due_date,
+            domain_color: data.domain_id ? domainMap.get(data.domain_id)?.color_theme : undefined,
+          })
+        }
+      }
       addXP(5)
       toast.success('Opportunity created! +5 XP')
     }
     setEditingOpp(null)
-  }, [editingOpp, updateOpportunity, addOpportunity, addXP])
+  }, [editingOpp, updateOpportunity, addOpportunity, addXP, domainMap])
 
   const handleDelete = useCallback((opp: Opportunity) => {
     deleteOpportunity(opp.id)
@@ -418,8 +442,42 @@ const SwipeableCard = memo(function SwipeableCard({
                   ))}
                 </div>
                 <span className="text-[10px] text-amber-400 font-medium">{xpReward} XP</span>
-                {opp.due_date && opp.due_date.slice(0, 10) < new Date().toISOString().slice(0, 10) && (
-                  <Badge variant="destructive" className="text-xs">Overdue</Badge>
+                {opp.due_date && (() => {
+                  const due = opp.due_date.slice(0, 10)
+                  const todayStr = new Date().toISOString().slice(0, 10)
+                  const weekEnd = new Date()
+                  weekEnd.setDate(weekEnd.getDate() + 7)
+                  const weekEndStr = weekEnd.toISOString().slice(0, 10)
+                  if (opp.status === 'done') {
+                    return (
+                      <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                        <CalendarClock className="h-3 w-3" />{due}
+                      </span>
+                    )
+                  }
+                  if (due < todayStr) {
+                    return <Badge variant="destructive" className="gap-1 text-xs"><Clock className="h-3 w-3" />Overdue</Badge>
+                  }
+                  if (due === todayStr) {
+                    return <Badge className="gap-1 bg-amber-500 text-xs text-white hover:bg-amber-600"><Clock className="h-3 w-3" />Due today</Badge>
+                  }
+                  if (due <= weekEndStr) {
+                    return (
+                      <span className="flex items-center gap-1 text-[10px] text-amber-500 font-medium">
+                        <CalendarClock className="h-3 w-3" />Due {due}
+                      </span>
+                    )
+                  }
+                  return (
+                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <CalendarClock className="h-3 w-3" />{due}
+                    </span>
+                  )
+                })()}
+                {opp.reminder_at && (
+                  <span className="text-[10px] text-blue-400" title={`Reminder: ${new Date(opp.reminder_at).toLocaleString()}`}>
+                    <Bell className="inline h-3 w-3" />
+                  </span>
                 )}
               </div>
             </div>

@@ -64,10 +64,29 @@ export function useNotificationGenerator() {
         const xpRaw = localStorage.getItem('minimal_idea_spark_xp_state')
         const xpState = xpRaw ? JSON.parse(xpRaw) : {}
 
+        // Check journal entries for today
+        const logsRaw = localStorage.getItem('lifeos_daily_logs')
+        const logs = logsRaw ? JSON.parse(logsRaw) : []
+        const today = new Date().toISOString().slice(0, 10)
+        const hasJournalToday = logs.some((l: any) => l.log_date?.slice(0, 10) === today)
+
+        // Check overdue and due today opportunities
+        const oppsRaw = localStorage.getItem('lifeos_opportunities')
+        const opps = oppsRaw ? JSON.parse(oppsRaw) : []
+        const overdueOpportunities = opps
+          .filter((o: any) => o.due_date && o.status !== 'done' && o.due_date.slice(0, 10) < today)
+          .map((o: any) => ({ title: o.title, dueDate: o.due_date.slice(0, 10) }))
+        const dueTodayOpportunities = opps
+          .filter((o: any) => o.due_date && o.status !== 'done' && o.due_date.slice(0, 10) === today)
+          .map((o: any) => ({ title: o.title }))
+
         generateContextualNotifications({
           streakDays: xpState.streakDays || 0,
           habitsToday,
           upcomingEvents,
+          hasJournalToday,
+          overdueOpportunities,
+          dueTodayOpportunities,
         })
 
         refresh()

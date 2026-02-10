@@ -97,6 +97,15 @@ export function Settings() {
   const [remindersEnabled, setRemindersEnabled] = useState(() => {
     try { return localStorage.getItem('lifeos_reminders_enabled') !== 'false' } catch { return true }
   })
+  const [journalReminderEnabled, setJournalReminderEnabled] = useState(() => {
+    try { return localStorage.getItem('lifeos_journal_reminder_enabled') !== 'false' } catch { return true }
+  })
+  const [advanceReminderDays, setAdvanceReminderDays] = useState(() => {
+    try { return parseInt(localStorage.getItem('lifeos_reminder_advance_days') ?? '1', 10) } catch { return 1 }
+  })
+  const [calendarSyncEnabled, setCalendarSyncEnabled] = useState(() => {
+    try { return localStorage.getItem('lifeos_calendar_sync_deadlines') !== 'false' } catch { return true }
+  })
   const [digestFreq, setDigestFreq] = useState<DigestFrequency>(() => getDigestFrequency())
   const [apiKeys] = useState(() => listApiKeys())
   const [webhooks] = useState(() => listWebhooks())
@@ -320,7 +329,7 @@ export function Settings() {
             </CardTitle>
             <p className="text-sm text-muted-foreground">{t('settings.remindersDescription')}</p>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <Label htmlFor="reminders-toggle" className="text-sm font-medium">{t('settings.remindersInApp')}</Label>
               <Switch
@@ -332,6 +341,63 @@ export function Settings() {
                   toast.success(t('common.saved'))
                 }}
               />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="journal-reminder-toggle" className="text-sm font-medium">Journal daily reminder</Label>
+                <p className="text-xs text-muted-foreground">Get reminded to write in your journal every evening</p>
+              </div>
+              <Switch
+                id="journal-reminder-toggle"
+                checked={journalReminderEnabled}
+                onCheckedChange={(v) => {
+                  setJournalReminderEnabled(v)
+                  localStorage.setItem('lifeos_journal_reminder_enabled', String(v))
+                  toast.success(t('common.saved'))
+                }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="calendar-sync-toggle" className="text-sm font-medium">Sync deadlines to calendar</Label>
+                <p className="text-xs text-muted-foreground">Auto-create calendar events for opportunity due dates</p>
+              </div>
+              <Switch
+                id="calendar-sync-toggle"
+                checked={calendarSyncEnabled}
+                onCheckedChange={(v) => {
+                  setCalendarSyncEnabled(v)
+                  localStorage.setItem('lifeos_calendar_sync_deadlines', String(v))
+                  toast.success(t('common.saved'))
+                }}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Advance reminder (days before due)</Label>
+              <p className="text-xs text-muted-foreground">Get notified this many days before a task is due</p>
+              <Select
+                value={String(advanceReminderDays)}
+                onValueChange={(v) => {
+                  const days = parseInt(v, 10)
+                  setAdvanceReminderDays(days)
+                  localStorage.setItem('lifeos_reminder_advance_days', String(days))
+                  toast.success(t('common.saved'))
+                }}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Same day only</SelectItem>
+                  <SelectItem value="1">1 day before</SelectItem>
+                  <SelectItem value="2">2 days before</SelectItem>
+                  <SelectItem value="3">3 days before</SelectItem>
+                  <SelectItem value="7">1 week before</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>

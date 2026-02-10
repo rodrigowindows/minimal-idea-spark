@@ -169,6 +169,13 @@ export async function transcribeAudio(
   const url = `${DEEPGRAM_API}?${params.toString()}`;
 
   const contentType = audioBlob.type || 'audio/webm';
+  console.info('[audio-transcription] request-start', {
+    url,
+    language,
+    model,
+    contentType,
+    blobSize: audioBlob.size,
+  });
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -176,6 +183,10 @@ export async function transcribeAudio(
       'Content-Type': contentType,
     },
     body: audioBlob,
+  });
+  console.info('[audio-transcription] response', {
+    status: response.status,
+    ok: response.ok,
   });
 
   if (!response.ok) {
@@ -188,6 +199,11 @@ export async function transcribeAudio(
     } catch {
       if (errorText) message = errorText.slice(0, 200);
     }
+    console.error('[audio-transcription] request-failed', {
+      status: response.status,
+      message,
+      errorText: errorText?.slice(0, 300),
+    });
     throw new Error(message);
   }
 
@@ -195,6 +211,11 @@ export async function transcribeAudio(
   const transcript =
     result?.results?.channels?.[0]?.alternatives?.[0]?.transcript ?? '';
   const duration = result?.metadata?.duration;
+  console.info('[audio-transcription] request-success', {
+    transcriptLength: typeof transcript === 'string' ? transcript.length : String(transcript).length,
+    duration,
+    language: langConfig.code,
+  });
   return {
     text: typeof transcript === 'string' ? transcript.trim() : String(transcript).trim(),
     language: langConfig.code,

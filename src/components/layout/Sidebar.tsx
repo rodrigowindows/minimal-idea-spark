@@ -166,7 +166,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         <XPProgressBar compact={collapsed} />
       </div>
 
-      {/* Navigation with sections and recent */}
+      {/* Navigation with sections */}
       <nav className="flex-1 space-y-1 overflow-y-auto p-2" aria-label="Main navigation">
         {SIDEBAR_SECTIONS.map((section) => {
           const open = isSectionOpen(section.sectionKey)

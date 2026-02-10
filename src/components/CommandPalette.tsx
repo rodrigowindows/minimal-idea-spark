@@ -259,7 +259,7 @@ export function CommandPalette() {
                       close()
                     }}
                   >
-                    {p.label}
+                    {p.labelKey ? t(p.labelKey) : (p.label || p.path)}
                   </button>
                 ))}
                 <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground">

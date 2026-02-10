@@ -170,6 +170,30 @@ export function OpportunityDialog({
                 value={reminderAt ? reminderAt.slice(0, 16) : ''}
                 onChange={(e) => setReminderAt(e.target.value ? new Date(e.target.value).toISOString() : '')}
               />
+              {dueDate && (
+                <div className="flex flex-wrap gap-1">
+                  {[
+                    { label: '1h before', hours: 1 },
+                    { label: '1 day before', hours: 24 },
+                    { label: '3 days before', hours: 72 },
+                    { label: '1 week before', hours: 168 },
+                  ].map((preset) => {
+                    const dueDateObj = new Date(dueDate + 'T09:00:00')
+                    const reminderDate = new Date(dueDateObj.getTime() - preset.hours * 60 * 60 * 1000)
+                    if (reminderDate <= new Date()) return null
+                    return (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        className="rounded-md bg-secondary px-2 py-0.5 text-[10px] text-secondary-foreground hover:bg-secondary/80 transition-colors"
+                        onClick={() => setReminderAt(reminderDate.toISOString())}
+                      >
+                        {preset.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           </div>
           {goals.length > 0 && (
