@@ -121,6 +121,15 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
       const { skipAuth = false, retry = 3, headers, ...rest } = options || {}
       const base = sanitizeBaseUrl(config.baseUrl || DEFAULT_BASE_URL)
       const url = path.startsWith('http') ? path : `${base}/${path.replace(/^\//, '')}`
+
+      console.log('[apiFetch] Starting request', {
+        path,
+        url,
+        hasToken: !!config.token,
+        skipAuth,
+        baseUrl: config.baseUrl
+      })
+
       const mergedHeaders = new Headers(headers || {})
       if (!mergedHeaders.has('Content-Type') && rest.body && !(rest.body instanceof FormData)) {
         mergedHeaders.set('Content-Type', 'application/json')
@@ -134,7 +143,15 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
 
       while (attempt < retry) {
         try {
+          console.log(`[apiFetch] Attempt ${attempt + 1}/${retry} to ${url}`)
           const response = await fetch(url, { ...rest, headers: mergedHeaders })
+
+          console.log(`[apiFetch] Response received`, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: Object.fromEntries(response.headers.entries())
+          })
+
           if (response.status === 401) {
             setLastError('auth')
             throw new ApiError('Unauthorized', 401)
@@ -151,17 +168,20 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
               ? await response.json()
               : await response.text()
           setLastError(null)
-          console.debug('[NightWorker] API success', { url, status: response.status })
+          console.log('[NightWorker] ✓ API success', { url, status: response.status, dataType: typeof data })
           return data as T
         } catch (err) {
           error = err
+          console.error(`[apiFetch] Attempt ${attempt + 1} failed:`, err)
           attempt += 1
           if (err instanceof DOMException && err.name === 'AbortError') break
           if (attempt >= retry) break
-          await new Promise((resolve) => setTimeout(resolve, Math.min(4000, 250 * 2 ** attempt)))
+          const delay = Math.min(4000, 250 * 2 ** attempt)
+          console.log(`[apiFetch] Retrying in ${delay}ms...`)
+          await new Promise((resolve) => setTimeout(resolve, delay))
         }
       }
-      console.error('[NightWorker] API fetch failed', { url, error })
+      console.error('[NightWorker] ✗ API fetch failed after all retries', { url, error })
       throw error
     },
     [config.baseUrl, config.token]

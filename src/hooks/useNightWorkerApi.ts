@@ -36,38 +36,61 @@ export function useHealthQuery() {
 }
 
 export function usePromptsQuery(pollMs = 15000) {
-  const { apiFetch } = useNightWorker()
+  const { apiFetch, isConnected, config } = useNightWorker()
+
+  console.log('[usePromptsQuery] Hook called', {
+    isConnected,
+    baseUrl: config.baseUrl,
+    pollMs
+  })
+
   return useQuery<PromptItem[]>({
     queryKey: PROMPTS_KEY,
     queryFn: async () => {
-      // The API may return { total, providers, prompts: [...] } or a plain array
-      const raw = await apiFetch<PromptsListResponse | PromptItem[]>('/prompts')
+      console.log('[usePromptsQuery] Starting fetch to /prompts')
 
-      // Handle wrapped response
-      const items = Array.isArray(raw) ? raw : (raw as PromptsListResponse).prompts ?? []
+      try {
+        // The API may return { total, providers, prompts: [...] } or a plain array
+        const raw = await apiFetch<PromptsListResponse | PromptItem[]>('/prompts')
 
-      return items.map((item: any) => ({
-        id: item.id,
-        name: item.name || nameFromFilename(item.filename),
-        provider: item.provider,
-        status: item.status,
-        content: item.content,
-        target_folder: item.target_folder,
-        created_at: item.created_at,
-        updated_at: item.updated_at,
-        result_path: item.result_path ?? item.path ?? null,
-        result_content: item.result_content ?? item.result ?? null,
-        error: item.error ?? null,
-        attempts: item.attempts,
-        next_retry_at: item.next_retry_at,
-        filename: item.filename,
-        has_result: item.has_result ?? (item.result != null),
-      } satisfies PromptItem))
+        console.log('[usePromptsQuery] Raw response:', raw)
+
+        // Handle wrapped response
+        const items = Array.isArray(raw) ? raw : (raw as PromptsListResponse).prompts ?? []
+
+        console.log('[usePromptsQuery] Parsed items count:', items.length)
+
+        const mapped = items.map((item: any) => ({
+          id: item.id,
+          name: item.name || nameFromFilename(item.filename),
+          provider: item.provider,
+          status: item.status,
+          content: item.content,
+          target_folder: item.target_folder,
+          created_at: item.created_at,
+          updated_at: item.updated_at,
+          result_path: item.result_path ?? item.path ?? null,
+          result_content: item.result_content ?? item.result ?? null,
+          error: item.error ?? null,
+          attempts: item.attempts,
+          next_retry_at: item.next_retry_at,
+          filename: item.filename,
+          has_result: item.has_result ?? (item.result != null),
+        } satisfies PromptItem))
+
+        console.log('[usePromptsQuery] Mapped items:', mapped)
+
+        return mapped
+      } catch (error) {
+        console.error('[usePromptsQuery] Error fetching prompts:', error)
+        throw error
+      }
     },
+    enabled: isConnected,
     refetchInterval: pollMs,
     staleTime: 3000,
-    onSuccess: (items) => console.info('[NightWorker] fetched prompts', { count: items.length }),
-    onError: (err) => console.error('[NightWorker] prompts error', err),
+    onSuccess: (items) => console.info('[NightWorker] ✓ fetched prompts', { count: items.length }),
+    onError: (err) => console.error('[NightWorker] ✗ prompts error', err),
   })
 }
 
