@@ -127,7 +127,12 @@ export default function NWPrompts() {
         <div>
           <p className="text-xs uppercase tracking-[0.1em] text-blue-200">Fila de prompts</p>
           <h1 className="text-3xl font-bold text-foreground">Prompts</h1>
-          <p className="text-sm text-muted-foreground">Filtro por status, provider, data e busca por nome.</p>
+          <p className="text-sm text-muted-foreground">
+            Filtro por status, provider, data e busca por nome.
+            <span className="ml-2 text-[11px] text-muted-foreground/80">
+              Base: {config.baseUrl}
+            </span>
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => refetch()}>

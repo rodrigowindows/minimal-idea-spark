@@ -95,17 +95,24 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
     (import.meta.env.VITE_SUPABASE_URL
       ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/nightworker-prompts`
       : undefined)
+  const envBaseUrl = import.meta.env.VITE_NIGHTWORKER_API_URL as string | undefined
+  const envToken = import.meta.env.VITE_NW_ANON_TOKEN as string | undefined
 
   useEffect(() => {
-    console.info('[NightWorker] Provider init', { baseUrl: config.baseUrl, suggestedSupabase })
-    // Auto-migrate legacy base URL to Supabase edge if available
-    if (
-      suggestedSupabase &&
-      config.baseUrl.includes('coder-ai.workfaraway.com')
-    ) {
-      console.info('[NightWorker] Switching baseUrl to Supabase edge function', { newBase: suggestedSupabase })
-      setConfigState((prev) => ({ ...prev, baseUrl: sanitizeBaseUrl(suggestedSupabase) }))
-    }
+    console.info('[NightWorker] Provider init', { baseUrl: config.baseUrl, suggestedSupabase, envBaseUrl, hasEnvToken: !!envToken })
+
+    setConfigState((prev) => {
+      let nextBase = prev.baseUrl
+      // Priority 1: explicit env base URL
+      if (envBaseUrl) nextBase = sanitizeBaseUrl(envBaseUrl)
+      // Priority 2: auto-migrate legacy default to Supabase edge if available
+      else if (suggestedSupabase && prev.baseUrl.includes('coder-ai.workfaraway.com')) {
+        nextBase = sanitizeBaseUrl(suggestedSupabase)
+      }
+
+      const nextToken = prev.token ?? envToken ?? null
+      return { ...prev, baseUrl: nextBase, token: nextToken }
+    })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // run once
 
