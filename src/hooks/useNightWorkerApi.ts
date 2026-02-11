@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNightWorker, ApiError } from '@/contexts/NightWorkerContext'
 import type {
@@ -44,7 +44,7 @@ export function usePromptsQuery(pollMs = 15000) {
     pollMs
   })
 
-  return useQuery<PromptItem[]>({
+  const query = useQuery<PromptItem[]>({
     queryKey: PROMPTS_KEY,
     queryFn: async () => {
       console.log('[usePromptsQuery] Starting fetch to /prompts')
@@ -89,9 +89,17 @@ export function usePromptsQuery(pollMs = 15000) {
     enabled: isConnected,
     refetchInterval: pollMs,
     staleTime: 3000,
-    onSuccess: (items) => console.info('[NightWorker] ✓ fetched prompts', { count: items.length }),
-    onError: (err) => console.error('[NightWorker] ✗ prompts error', err),
   })
+
+  useEffect(() => {
+    if (query.data) console.info('[NightWorker] ✓ fetched prompts', { count: query.data.length })
+  }, [query.data])
+
+  useEffect(() => {
+    if (query.error) console.error('[NightWorker] ✗ prompts error', query.error)
+  }, [query.error])
+
+  return query
 }
 
 export function usePromptStatusQuery(id?: string) {
@@ -122,8 +130,6 @@ export function usePromptStatusQuery(id?: string) {
       return d?.status === 'pending' ? 5000 : false
     },
     staleTime: 2000,
-    onSuccess: (data) => console.info('[NightWorker] prompt status', { id: data.id, status: data.status }),
-    onError: (err) => console.error('[NightWorker] prompt status error', err),
   })
 }
 

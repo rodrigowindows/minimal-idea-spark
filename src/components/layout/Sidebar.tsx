@@ -600,11 +600,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                                       <span className={cn(
                                         'h-1.5 w-1.5 rounded-full shrink-0',
                                         prompt.status === 'pending' ? 'bg-amber-400' :
-                                        prompt.status === 'processing' ? 'bg-blue-400' :
-                                        prompt.status === 'completed' ? 'bg-green-400' :
-                                        'bg-red-400'
+                                        prompt.status === 'done' ? 'bg-green-400' :
+                                        prompt.status === 'failed' ? 'bg-red-400' :
+                                        'bg-blue-400'
                                       )} />
-                                      <span className="truncate">{prompt.title || `Prompt #${prompt.id.slice(0, 8)}`}</span>
+                                      <span className="truncate">{prompt.name || `Prompt #${prompt.id.slice(0, 8)}`}</span>
                                     </NavLink>
                                   </li>
                                 ))}
