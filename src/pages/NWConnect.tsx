@@ -11,7 +11,10 @@ import { CheckCircle2, Eye, EyeOff, Link2, Loader2, Lock, XCircle } from 'lucide
 
 export default function NWConnect() {
   const { config, setConfig, setToken } = useNightWorker()
-  const [baseUrl, setBaseUrl] = useState(config.baseUrl || 'http://localhost:5555')
+  const suggested = (import.meta.env.VITE_SUPABASE_URL
+    ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/nightworker-prompts`
+    : 'http://localhost:5555')
+  const [baseUrl, setBaseUrl] = useState(config.baseUrl || suggested)
   const [token, setTokenInput] = useState(config.token || '')
   const [showToken, setShowToken] = useState(false)
   const [testing, setTesting] = useState(false)
@@ -95,11 +98,11 @@ export default function NWConnect() {
                 id="baseUrl"
                 value={baseUrl}
                 onChange={(e) => { setBaseUrl(e.target.value); setTestResult('idle') }}
-                placeholder="http://localhost:5555"
+                placeholder={suggested}
                 required
                 className="bg-background/70"
               />
-              <p className="text-xs text-muted-foreground">Default: http://localhost:5555</p>
+              <p className="text-xs text-muted-foreground">Sugestão: {suggested}</p>
             </div>
 
             <div className="space-y-2">
