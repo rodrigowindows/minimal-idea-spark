@@ -25,12 +25,6 @@ export default function NWSettings() {
     toast.success('Configurações salvas')
   }
 
-  const generateToken = () => {
-    const token = crypto.randomUUID()
-    setLocalConfig((prev) => ({ ...prev, token }))
-    setToken(token)
-  }
-
   return (
     <div className="px-4 pb-16 md:px-8">
       <div className="mb-4 flex items-center justify-between gap-3">
@@ -73,9 +67,13 @@ export default function NWSettings() {
                   </Button>
                 </div>
               </div>
-              <Button variant="outline" size="sm" className="gap-2" onClick={generateToken}>
-                <KeyRound className="h-4 w-4" /> Gerar novo token
-              </Button>
+              <p className="text-xs text-yellow-400/80 flex items-start gap-1.5 rounded-md border border-yellow-500/20 bg-yellow-500/5 p-2">
+                <Shield className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                <span>
+                  Use o token <strong>anon</strong> do Supabase (<code className="text-xs">VITE_SUPABASE_PUBLISHABLE_KEY</code>).
+                  Não gere tokens aleatórios — eles causarão erro 500.
+                </span>
+              </p>
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">

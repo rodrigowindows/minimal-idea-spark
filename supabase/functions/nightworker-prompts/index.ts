@@ -156,9 +156,30 @@ serve(async (req) => {
       resp = json({ error: 'Not Found' }, 404, { requestId: rid })
     }
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unexpected error'
-    log('error', 'unhandled_error', { rid, error: message })
-    resp = json({ error: message }, 500, { requestId: rid })
+    // Enhanced error handling: extract message from Error or object with message property
+    let message = 'Unexpected error'
+    let status = 500
+
+    if (err instanceof Error) {
+      message = err.message
+    } else if (typeof err === 'object' && err !== null) {
+      const errObj = err as Record<string, unknown>
+      message = String(errObj.message || errObj.msg || 'Unexpected error')
+
+      // Map common Supabase auth errors to 401
+      const msgLower = message.toLowerCase()
+      if (msgLower.includes('jwt') || msgLower.includes('invalid') && msgLower.includes('token')
+          || msgLower.includes('unauthorized') || msgLower.includes('auth')) {
+        status = 401
+        log('warn', 'auth_error', { rid, error: message, errorObject: JSON.stringify(err).slice(0, 500) })
+      } else {
+        log('error', 'unhandled_error', { rid, error: message, errorObject: JSON.stringify(err).slice(0, 500) })
+      }
+    } else {
+      log('error', 'unhandled_error', { rid, error: message, rawError: String(err) })
+    }
+
+    resp = json({ error: message }, status, { requestId: rid })
   }
 
   // --- Observability: emit request metric ---
