@@ -41,13 +41,8 @@ export default function NWPrompts() {
     })
   }, [data?.length, isConnected, isLoading, isFetching, isError])
 
-  // Redirect to connect page if not authenticated
-  useEffect(() => {
-    if (!isConnected) {
-      console.log('[NWPrompts] Not connected, redirecting to /nw/connect')
-      navigate('/nw/connect', { replace: true })
-    }
-  }, [isConnected, navigate])
+  // No redirect check - allow page to work regardless of isConnected state
+  // (removed to prevent infinite loops when token is not configured)
 
   const filtered = useMemo(() => {
     return (data || []).filter((item) => {

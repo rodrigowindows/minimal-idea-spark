@@ -35,9 +35,8 @@ export default function NWSubmit() {
     defaultValues: { provider: 'codex', name: '', target_folder: 'C:\\\\code\\\\meu-projeto', content: '' },
   })
 
-  useEffect(() => {
-    if (!isConnected) navigate('/connect')
-  }, [isConnected, navigate])
+  // No redirect check - allow page to work regardless of isConnected state
+  // (removed to prevent infinite loops when token is not configured)
 
   const onSubmit = async (values: FormValues) => {
     try {

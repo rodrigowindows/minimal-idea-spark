@@ -29,9 +29,8 @@ export default function NWLogs() {
   )
   const logsUnavailable = isError && error instanceof ApiError && error.status === 404
 
-  useEffect(() => {
-    if (!isConnected) navigate('/nw/connect')
-  }, [isConnected, navigate])
+  // No redirect check - allow page to work regardless of isConnected state
+  // (removed to prevent infinite loops when token is not configured)
 
   useEffect(() => {
     if (!data) return
