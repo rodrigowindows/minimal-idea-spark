@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useNightWorker } from '@/contexts/NightWorkerContext'
 import { toast } from 'sonner'
 import { CheckCircle2, Eye, EyeOff, Link2, Loader2, Lock, XCircle } from 'lucide-react'
@@ -90,16 +91,25 @@ export default function NWConnect() {
 
   return (
     <div className="flex min-h-[70vh] items-center justify-center px-4 py-10">
+      {config.baseUrl.includes('supabase.co') && (
+        <Alert className="absolute top-20 left-1/2 -translate-x-1/2 w-auto max-w-2xl border-emerald-500/40 bg-emerald-500/10 text-emerald-100">
+          <CheckCircle2 className="h-4 w-4" />
+          <AlertTitle>Já conectado automaticamente</AlertTitle>
+          <AlertDescription>
+            Usando Supabase edge: {config.baseUrl.split('/functions')[0]}
+          </AlertDescription>
+        </Alert>
+      )}
       <Card className="w-full max-w-2xl border border-blue-500/30 bg-card/70 shadow-2xl shadow-blue-500/20">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-2xl font-bold text-foreground">Conectar ao Night Worker</CardTitle>
+              <CardTitle className="text-2xl font-bold text-foreground">Configurar Servidor Externo</CardTitle>
               <CardDescription>
-                Informe a URL da API e o token Bearer para começar.
+                O Supabase edge já está conectado automaticamente.
                 <br />
                 <span className="text-xs text-muted-foreground">
-                  Frontend usa token anon; workers precisam de service-role key.
+                  Use esta página apenas para conectar em servidor externo (ex: coder-ai.workfaraway.com).
                 </span>
               </CardDescription>
             </div>

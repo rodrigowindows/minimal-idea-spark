@@ -106,11 +106,25 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
   const envToken = import.meta.env.VITE_NW_ANON_TOKEN as string | undefined
 
   useEffect(() => {
-    console.info('[NightWorker] Provider init', { baseUrl: config.baseUrl, suggestedSupabase: SUGGESTED_SUPABASE, envBaseUrl: ENV_BASE_URL, hasEnvToken: !!envToken })
+    console.info('[NightWorker] Provider init', {
+      baseUrl: config.baseUrl,
+      suggestedSupabase: SUGGESTED_SUPABASE,
+      envBaseUrl: ENV_BASE_URL,
+      defaultBaseUrl: DEFAULT_BASE_URL,
+      hasEnvToken: !!envToken,
+      VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
+      VITE_NIGHTWORKER_API_URL: import.meta.env.VITE_NIGHTWORKER_API_URL
+    })
 
     setConfigState((prev) => {
       const nextBase = migrateBaseUrl(prev.baseUrl)
       const nextToken = prev.token ?? envToken ?? null
+      console.info('[NightWorker] After migration', {
+        prevBase: prev.baseUrl,
+        nextBase,
+        prevToken: prev.token ? '***' : null,
+        nextToken: nextToken ? '***' : null
+      })
       return { ...prev, baseUrl: nextBase, token: nextToken }
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
