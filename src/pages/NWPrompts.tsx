@@ -137,62 +137,65 @@ export default function NWPrompts() {
         </div>
       </div>
 
-      <Card className="border border-white/10 bg-card/70 backdrop-blur">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Filter className="h-4 w-4" /> Filtros</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            {(['all', 'pending', 'done', 'failed'] as const).map((status) => (
-              <Badge
-                key={status}
-                variant="outline"
-                className={`cursor-pointer rounded-full px-3 py-1 text-xs font-semibold ${
-                  statusFilter === status ? 'border-blue-500/60 bg-blue-500/10 text-blue-100' : 'border-border/60 text-muted-foreground'
-                }`}
-                onClick={() => { setStatusFilter(status); setPage(1) }}
-              >
-                {status === 'all' ? 'Todos' : status === 'pending' ? 'Pendentes' : status === 'done' ? 'Concluídos' : 'Falhas'}
-              </Badge>
-            ))}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {(['all', 'codex', 'claude'] as const).map((p) => (
-              <Badge
-                key={p}
-                variant="outline"
-                className={`cursor-pointer rounded-full px-3 py-1 text-xs font-semibold ${
-                  providerFilter === p ? 'border-blue-500/60 bg-blue-500/10 text-blue-100' : 'border-border/60 text-muted-foreground'
-                }`}
-                onClick={() => { setProviderFilter(p); setPage(1) }}
-              >
-                {p === 'all' ? 'Todos' : p === 'codex' ? 'Codex' : 'Claude'}
-              </Badge>
-            ))}
-          </div>
+      {/* Barra de filtros no topo para acesso rápido */}
+      <div className="sticky top-14 z-20 mb-4 flex flex-wrap gap-3 rounded-xl border border-border/60 bg-background/85 px-3 py-2 backdrop-blur">
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Status</span>
+          {(['all', 'pending', 'done', 'failed'] as const).map((status) => (
+            <Badge
+              key={status}
+              variant="outline"
+              className={`cursor-pointer rounded-full px-3 py-1 text-xs font-semibold ${
+                statusFilter === status ? 'border-blue-500/60 bg-blue-500/10 text-blue-100' : 'border-border/60 text-muted-foreground'
+              }`}
+              onClick={() => { setStatusFilter(status); setPage(1) }}
+            >
+              {status === 'all' ? 'Todos' : status === 'pending' ? 'Pendentes' : status === 'done' ? 'Concluídos' : 'Falhas'}
+            </Badge>
+          ))}
+        </div>
 
-          <div className="grid gap-3 md:grid-cols-4">
-            <div className="relative md:col-span-2">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome"
-                value={query}
-                onChange={(e) => { setQuery(e.target.value); setPage(1) }}
-                className="pl-10 bg-background/60"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <Input type="date" value={fromDate} onChange={(e) => { setFromDate(e.target.value); setPage(1) }} className="bg-background/60" />
-              <span className="text-xs text-muted-foreground">até</span>
-              <Input type="date" value={toDate} onChange={(e) => { setToDate(e.target.value); setPage(1) }} className="bg-background/60" />
-            </div>
-            <div className="flex justify-end">
-              <Button variant="ghost" onClick={handleClear}>Limpar filtros</Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        <div className="flex items-center gap-2">
+          <span className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Provider</span>
+          {(['all', 'codex', 'claude'] as const).map((p) => (
+            <Badge
+              key={p}
+              variant="outline"
+              className={`cursor-pointer rounded-full px-3 py-1 text-xs font-semibold ${
+                providerFilter === p ? 'border-blue-500/60 bg-blue-500/10 text-blue-100' : 'border-border/60 text-muted-foreground'
+              }`}
+              onClick={() => { setProviderFilter(p); setPage(1) }}
+            >
+              {p === 'all' ? 'Todos' : p === 'codex' ? 'Codex' : 'Claude'}
+            </Badge>
+          ))}
+        </div>
+
+        <div className="relative flex-1 min-w-[180px] max-w-sm">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome"
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setPage(1) }}
+            className="pl-10 bg-background/60"
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <Input type="date" value={fromDate} onChange={(e) => { setFromDate(e.target.value); setPage(1) }} className="bg-background/60" />
+          <span className="text-xs text-muted-foreground">até</span>
+          <Input type="date" value={toDate} onChange={(e) => { setToDate(e.target.value); setPage(1) }} className="bg-background/60" />
+        </div>
+
+        <div className="flex items-center gap-2 ml-auto">
+          <Button variant="ghost" size="sm" onClick={handleClear}>Limpar</Button>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
+      </div>
 
       <Card className="mt-4 border border-white/10 bg-card/70 backdrop-blur">
         <CardHeader>
