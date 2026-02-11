@@ -68,6 +68,15 @@ function isValidUUID(s: string): boolean {
   return UUID_RE.test(s)
 }
 
+// --- PATCH authorization: only service-role may update prompts (worker contract) ---
+function isServiceRole(req: Request): boolean {
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  if (!serviceKey) return false
+  const auth = req.headers.get('Authorization') ?? ''
+  const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : ''
+  return token.length > 0 && token === serviceKey
+}
+
 serve(async (req) => {
   const start = Date.now()
   // Prefer client-provided request-id for correlation, fall back to server-generated
@@ -96,7 +105,9 @@ serve(async (req) => {
 
   let resp: Response
   try {
-    if (req.method === 'GET' && (route === '/' || route === '/prompts')) {
+    if (req.method === 'GET' && route === '/health') {
+      resp = handleHealth(rid)
+    } else if (req.method === 'GET' && (route === '/' || route === '/prompts')) {
       resp = await handleList(supabase, url, rid)
     } else if (req.method === 'GET' && route.startsWith('/prompts/')) {
       const id = route.split('/')[2]
@@ -119,11 +130,15 @@ serve(async (req) => {
         else resp = resp!
       }
     } else if (req.method === 'PATCH' && route.startsWith('/prompts/')) {
-      const id = route.split('/')[2]
-      if (!isValidUUID(id)) {
-        resp = json({ error: 'Invalid prompt ID format' }, 400, { requestId: rid })
+      if (!isServiceRole(req)) {
+        log('warn', 'patch_forbidden', { rid, msg: 'PATCH requires Bearer service-role' })
+        resp = json({ error: 'Forbidden: PATCH is allowed only with service-role token' }, 403, { requestId: rid })
       } else {
-        const raw = await readBody(req, rid)
+        const id = route.split('/')[2]
+        if (!isValidUUID(id)) {
+          resp = json({ error: 'Invalid prompt ID format' }, 400, { requestId: rid })
+        } else {
+          const raw = await readBody(req, rid)
         if (raw.err) { resp = raw.err } else {
           let body: Record<string, unknown>
           try {
@@ -134,6 +149,7 @@ serve(async (req) => {
           }
           if (body) resp = await handleUpdate(supabase, id, body, rid)
           else resp = resp!
+        }
         }
       }
     } else {
@@ -167,6 +183,20 @@ async function readBody(req: Request, rid: string): Promise<{ body: string | nul
   }
   const body = new TextDecoder().decode(buf)
   return { body }
+}
+
+function handleHealth(rid: string) {
+  log('info', 'health', { rid })
+  return json(
+    {
+      status: 'ok',
+      version: 'edge',
+      providers: [...VALID_PROVIDERS],
+      workers: [],
+    },
+    200,
+    { requestId: rid, cache: true }
+  )
 }
 
 async function handleList(supabase: any, url: URL, rid: string) {

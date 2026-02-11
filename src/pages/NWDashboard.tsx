@@ -9,7 +9,7 @@ import { WorkerCard } from '@/components/night-worker/WorkerCard'
 import { StatusBadge } from '@/components/night-worker/StatusBadge'
 import { ProviderBadge } from '@/components/night-worker/ProviderBadge'
 import { useHealthQuery, usePromptsQuery } from '@/hooks/useNightWorkerApi'
-import { useNightWorker } from '@/contexts/NightWorkerContext'
+import { ApiError, useNightWorker } from '@/contexts/NightWorkerContext'
 import { isToday, parseISO } from 'date-fns'
 import { AlertCircle, CheckCircle2, Clock3, Cpu, Settings2 } from 'lucide-react'
 import type { HealthResponse, PromptItem } from '@/types/night-worker'
@@ -20,6 +20,7 @@ export default function NWDashboard() {
   const promptsQuery = usePromptsQuery(10000)
   const { config, isConnected } = useNightWorker()
   const navigate = useNavigate()
+  const isHealthNotFound = healthQuery.error instanceof ApiError && healthQuery.error.status === 404
 
   useEffect(() => {
     console.info('[NightWorker][Dashboard] state', {
@@ -79,7 +80,7 @@ export default function NWDashboard() {
           </AlertDescription>
         </Alert>
       )}
-      {healthQuery.isError && (
+      {healthQuery.isError && !isHealthNotFound && (
         <Alert className="border-red-500/40 bg-red-500/10 text-red-100">
           <AlertTitle>Erro ao consultar /health</AlertTitle>
           <AlertDescription className="space-y-2">
@@ -93,7 +94,9 @@ export default function NWDashboard() {
         <div>
           <p className="text-xs uppercase tracking-[0.1em] text-blue-200">Night Worker</p>
           <h1 className="text-3xl font-bold text-foreground">Painel de Operações</h1>
-          <p className="text-sm text-muted-foreground">Monitoramento em tempo real dos workers Claude e Codex.</p>
+          <p className="text-sm text-muted-foreground">
+            API (edge) guarda prompts; workers Claude/Codex apenas leem pendentes e devolvem resultado.
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <Badge

@@ -1,151 +1,146 @@
-# Night Worker – Backend / Worker – Checklist e contrato
+# Night Worker — responsabilidades dos dois backends
 
-## Fonte de verdade
+Arquitetura enxuta com dois papéis bem separados:
+- **Backend A — API/edge**: única fonte de verdade para prompts e eventos (Supabase function `nightworker-prompts` OU servidor externo).
+- **Backend B — Worker/poller**: consome prompts pendentes de um provider, processa e devolve resultado via PATCH. Não lê nem grava em disco local para decidir o que processar.
 
-- **Única fonte de prompts:** edge function Supabase `nightworker-prompts` (GET/POST/PATCH).
-- O worker **não** deve usar pastas locais como fonte de prompts; apenas a API.
+## Cenários de deploy
 
----
+### 1. Supabase edge + worker local (recomendado para dev/prod pequena)
 
-## API (edge function)
+- **Backend A**: Supabase edge function `nightworker-prompts` (já deployado com `supabase functions deploy`)
+- **Backend B**: Worker roda via cron/systemd na máquina local (ou VM/Docker)
+- **Config frontend**: `VITE_SUPABASE_URL` (auto-deriva para `/functions/v1/nightworker-prompts`)
+- **Config worker**: `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` no `.env`
+- **Vantagens**: RLS nativo, sem manutenção de servidor, escalável até ~100k req/mês
+- **Limitações**: Cold start (~200ms), sem `/logs` detalhados na edge (frontend degrada gracefully)
 
-| Endpoint | Método | Descrição | Autorização |
-|----------|--------|-----------|-------------|
-| `/prompts` | GET | Lista com filtros: `status`, `provider`, `from`, `to`, `limit`, `offset` | Bearer (anon ou service-role) |
-| `/prompts/{id}` | GET | Detalhe + eventos | Bearer |
-| `/prompts` | POST | Criar: `{ provider, name, content, target_folder? }` | Bearer (usuários criam) |
-| `/prompts/{id}` | PATCH | Atualizar: `status`, `result_content`, `result_path`, `error`, `attempts`, `next_retry_at`, `content`, `target_folder`; opcional: `event_type`, `event_message` | Bearer (**service-role** para worker) |
+### 2. Servidor externo + workers distribuídos (produção escalável)
 
-- Resposta GET lista: `{ total: number, prompts: array }`.
-- Resposta GET por id: objeto do prompt + `events: array`.
-- Resposta POST: `{ id: string }`.
-- Resposta PATCH: `{ id: string, status: string }`.
+- **Backend A**: API Node.js/Go/Python em `coder-ai.workfaraway.com` (implementa mesmo contrato HTTP)
+  - Deve replicar validação, RLS-like auth, observabilidade da edge function
+  - Endpoint `/logs` opcional (frontend trata 404)
+- **Backend B**: Workers distribuídos (Docker/K8s, múltiplas réplicas)
+- **Config frontend**: `VITE_NIGHTWORKER_API_URL=https://coder-ai.workfaraway.com`
+- **Config worker**: `NIGHTWORKER_API_URL` + `SUPABASE_SERVICE_ROLE_KEY` (ou chave equivalente do servidor externo)
+- **Vantagens**: Sem cold start, logs customizados, controle total sobre infra
+- **Limitações**: Precisa replicar RLS/auth manualmente, mais complexo de operar
 
----
+### 3. Edge-only (sem processamento automático)
 
-## Lista de ajustes concretos no worker
+- **Backend A**: Edge function
+- **Backend B**: Não roda (prompts ficam `pending` até PATCH manual via script)
+- **Útil para**: Teste, demo, ou fluxo onde PATCH é feito por outro sistema (ex.: webhook externo)
+- **Config**: Apenas `VITE_SUPABASE_URL` no frontend
 
-- **Fonte única:** Não ler de pastas locais; usar apenas `GET /prompts?status=pending&provider=<provider>` (e opcionalmente `from`/`to`/`limit`).
-- **Auth em todas as chamadas:** Sempre enviar header `Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>` (variável de ambiente).
-- **Payload de conclusão (PATCH):** Enviar exatamente `status: 'done'`, `result_content` e/ou `result_path`, `attempts` (número), e opcionalmente `event_type: 'done'`, `event_message` (string).
-- **Payload de falha (PATCH):** Enviar `status: 'failed'`, `error` (string), `attempts`, `next_retry_at` (ISO ou null), e opcionalmente `event_type: 'failed'`, `event_message`.
-- **Pré-processamento (opcional):** Se o worker alterar conteúdo antes de processar, fazer PATCH com `content` e/ou `target_folder` antes do PATCH final de conclusão/falha.
-- **Retentativas:** Em falha de rede ou resposta 5xx no PATCH, retentar com backoff exponencial (ex.: 1s, 2s, 4s) e jitter; não retentar 4xx (exceto 429 se aplicável); tratar 409 como “já processado” (sucesso lógico).
-- **Logs:** Para cada request, logar método, path e (opcional) request_id; para cada response, logar status e latência; em erro, logar mensagem e id do prompt.
+## Contrato da API (Backend A)
 
----
+| Endpoint | Método | Uso | Autorização |
+|----------|--------|-----|-------------|
+| `/health` | GET | Saúde da API (edge); resposta mínima `{ status, version?, providers? }`. Sem auth. | Nenhuma |
+| `/prompts` | GET | Lista com filtros `status`, `provider`, `from`, `to`, `limit`, `offset` | Bearer (anon ou service-role) |
+| `/prompts/{id}` | GET | Detalhe + `events[]` | Bearer |
+| `/prompts` | POST | Criar `{ provider, name, content, target_folder? }` | Bearer (anon/usuários) |
+| `/prompts/{id}` | PATCH | Atualizar `status`, `result_content`, `result_path`, `error`, `attempts`, `next_retry_at`, etc. | **Apenas Bearer service-role** (403 se anon/outro token) |
 
-## Checklist de verificação
+Respostas padrão:
+- GET `/health`: `{ status: "ok", version?: "edge", providers?: string[] }`
+- GET lista: `{ total, prompts: [...] }`
+- GET por id: prompt + `events`
+- POST: `{ id }`
+- PATCH: `{ id, status }` — ou `403 Forbidden` se o token não for service-role.
 
-- [ ] **GET pendentes:** Worker chama `GET /prompts?status=pending&provider=<provider>` e não lê de pasta local.
-- [ ] **PATCH done:** Worker envia PATCH com `status=done`, `result_content`/`result_path`, `attempts`, `event_type=done`, `event_message` (opcional).
-- [ ] **PATCH failed:** Worker envia PATCH com `status=failed`, `error`, `attempts`, `next_retry_at`.
-- [ ] **Auth header:** Todas as chamadas usam `Authorization: Bearer <service-role-key>`.
-- [ ] **Payload e tipos:** Campos obrigatórios presentes; tipos corretos (string/number/ISO string ou null).
-- [ ] **Backoff/retry:** Retentativas em 5xx/timeout; 409 tratado como sucesso.
-- [ ] **Logs:** Request (método, path) e response (status, latência) logados para diagnóstico.
+## Responsabilidades por backend
 
----
+### Backend A (API/edge function)
+- Valida e persiste prompts; não processa.
+- Expõe `GET /health` (sem auth) para conectividade e painel edge-only.
+- Aplica filtros e paginação; fornece eventos.
+- GET/POST aceitam Bearer anon (ou service-role). **PATCH é enforced**: apenas `Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>` é aceito; caso contrário retorna 403.
+- Não expõe `/logs`; o painel degrada com segurança quando o endpoint não existe.
+- Loga request/response e erros (já implementado em `supabase/functions/nightworker-prompts/index.ts`).
 
-## Ajustes feitos no repositório
+### Backend B (worker/poller)
+- Loop: `GET /prompts?status=pending&provider=<provider>&limit=N`.
+- Para cada prompt:
+  1) Processa.
+  2) `PATCH /prompts/{id}` com `status=done`, `result_content/result_path`, `attempts`, `event_type=done`, `event_message` opcional.
+  3) Em falha de negócio: `status=failed`, `error`, `attempts`, `next_retry_at`, `event_type=failed`.
+- Não lê pastas locais como fonte de prompts; só a API.
+- Retentativas em erro de rede/5xx com backoff exponencial e jitter; não retentar 4xx (exceto 429). Tratar 409 como “já processado”.
+- Logar método, caminho, status e latência em cada request/response.
 
-### Edge function (`supabase/functions/nightworker-prompts/index.ts`)
+## Checklists
 
-- Log de cada request: `method`, `route`, `path`.
-- GET lista: log de `status`, `provider`, `total`.
-- POST: log de `id`, `provider`, `name` após criar.
-- GET por id: em erro PGRST116 (row not found) retorna 404 com `{ error: "Prompt not found" }`.
-- PATCH: em erro PGRST116 retorna 404; log de erro em falha e log de sucesso com `id`, `status`.
+**API (A):**
+- [ ] Retorna 404 para IDs inexistentes.
+- [ ] Logs estruturados com `method`, `route`, `rid`, `status`.
+- [ ] `Cache-Control` curto (já 5s) e CORS liberado.
 
-### Frontend
+**Worker (B):**
+- [ ] GET pendentes com filtro de provider e limit.
+- [ ] PATCH `done` envia `status`, `result_content/ result_path`, `attempts`, `event_type=done`.
+- [ ] PATCH `failed` envia `status`, `error`, `attempts`, `next_retry_at`, `event_type=failed`.
+- [ ] Header `Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>` em todas.
+- [ ] Backoff em 5xx/timeout; 409 tratado como idempotência.
+- [ ] Logs de request/response com latência.
 
-- **usePromptStatusQuery:** passou a usar `GET /prompts/{id}` em vez de `GET /prompts/{id}/status` (contrato da API).
+## Variáveis de ambiente
 
-### Worker de exemplo
+| Variável | Quem usa | Obrigatório | Valor típico |
+|----------|---------|-------------|--------------|
+| `SUPABASE_URL` | A e B | Sim | `https://<project>.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | B | Sim | chave service-role do projeto |
+| `VITE_SUPABASE_URL` | Frontend | Sim | mesmo `SUPABASE_URL` |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Frontend | Sim | anon/public key |
+| `VITE_NIGHTWORKER_API_URL` | Frontend / B (opcional) | Não | override da URL; default é `$SUPABASE_URL/functions/v1/nightworker-prompts` |
+| `VITE_NW_ANON_TOKEN` | Frontend (opcional) | Não | anon token para auto-login |
 
-- **scripts/nightworker-worker-example.ts:** exemplo em Node/TS que:
-  - Busca pendentes com `GET /prompts?status=pending&provider=<provider>`.
-  - Usa `Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>`.
-  - Marca conclusão com PATCH `status=done`, `result_content`, `event_type=done`.
-  - Marca falha com PATCH `status=failed`, `error`, `attempts`, `next_retry_at`, `event_type=failed`.
-  - Faz até 3 retentativas com backoff no PATCH.
-  - Loga request e response.
+## Fluxo de validação rápida (já pronto em scripts)
 
----
+- **E2E completo (API + worker simulado):** `node --env-file=.env --experimental-strip-types scripts/qa-nightworker-e2e-flow.ts`
+- **Somente API (forma leve):** `node scripts/qa-nightworker-api.ts`
+  - Ambos leem `BASE_URL` = `VITE_NIGHTWORKER_API_URL` ou `$VITE_SUPABASE_URL/functions/v1/nightworker-prompts` e usam TOKEN do env.
 
-## Variáveis de ambiente (worker)
-
-| Variável | Obrigatório | Uso |
-|----------|-------------|-----|
-| `SUPABASE_URL` | Sim | Base do projeto (ex.: `https://xxx.supabase.co`) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Sim (para o worker) | Token para PATCH e acesso total |
-| `NIGHTWORKER_API_URL` | Opcional | Override da URL da API (default: `$SUPABASE_URL/functions/v1/nightworker-prompts`) |
-
----
-
-## Exemplo: GET pendentes + PATCH conclusão
-
-### Node (fetch)
+## Snippet do worker (Node)
 
 ```ts
 const BASE = process.env.SUPABASE_URL + '/functions/v1/nightworker-prompts'
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
-const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${KEY}` }
+const H = { 'Content-Type': 'application/json', Authorization: `Bearer ${KEY}` }
 
-// 1) Buscar pendentes
-const res = await fetch(`${BASE}/prompts?status=pending&provider=codex&limit=10`, { headers })
+// Buscar pendentes
+const res = await fetch(`${BASE}/prompts?status=pending&provider=codex&limit=5`, { headers: H })
 const { prompts } = await res.json()
 
-// 2) Concluir um
-const id = prompts[0]?.id
+// Concluir primeiro
+const id = prompts?.[0]?.id
 if (id) {
   await fetch(`${BASE}/prompts/${id}`, {
     method: 'PATCH',
-    headers,
+    headers: H,
     body: JSON.stringify({
       status: 'done',
-      result_content: 'Resultado aqui',
+      result_content: 'resultado ok',
       attempts: 1,
       event_type: 'done',
-      event_message: 'Processed',
+      event_message: 'worker simulated',
     }),
   })
 }
 ```
 
-### Python (requests)
+## Onde cada coisa mora neste repo
+- API/edge: `supabase/functions/nightworker-prompts/index.ts`
+- Worker exemplo: `scripts/nightworker-worker-example.ts`
+- QA: `scripts/qa-nightworker-e2e-flow.ts` (end-to-end) e `scripts/qa-nightworker-api.ts` (API only)
+- Painel/frontend: hooks em `src/hooks/useNightWorkerApi.ts`, contexto em `src/contexts/NightWorkerContext.tsx`
 
-```python
-import os
-import requests
+## Status atual (implementado)
 
-BASE = os.environ.get("SUPABASE_URL", "") + "/functions/v1/nightworker-prompts"
-KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-HEADERS = {"Content-Type": "application/json", "Authorization": f"Bearer {KEY}"}
-
-# 1) Buscar pendentes
-r = requests.get(f"{BASE}/prompts", params={"status": "pending", "provider": "codex", "limit": 10}, headers=HEADERS)
-data = r.json()
-prompts = data.get("prompts", [])
-
-# 2) Concluir um
-if prompts:
-    pid = prompts[0]["id"]
-    requests.patch(
-        f"{BASE}/prompts/{pid}",
-        headers=HEADERS,
-        json={
-            "status": "done",
-            "result_content": "Resultado aqui",
-            "attempts": 1,
-            "event_type": "done",
-            "event_message": "Processed",
-        },
-    )
-```
-
-### Rodar o worker completo (Node, com retry e logs)
-
-```bash
-node --env-file=.env --experimental-strip-types scripts/nightworker-worker-example.ts codex
-```
+- `GET /health` está disponível na edge (`nightworker-prompts`) e retorna payload mínimo para o painel.
+- `/logs` pode não existir em deploy edge-only. O frontend degrada gracefully (mostra aviso e continua funcional).
+- **`PATCH /prompts/{id}` está protegido por dupla camada**:
+  1. **Edge function**: valida `isServiceRole()` e retorna 403 se token não for service-role
+  2. **RLS (Postgres)**: policy de UPDATE permite apenas `service_role`
+  3. Defense in depth: mesmo se edge function for bypassada, RLS bloqueia no DB

@@ -24,6 +24,33 @@ Open [http://localhost:8080](http://localhost:8080). Data is mock by default.
 
 Depois rode as migrations em `supabase/migrations/` se usar Supabase.
 
+### Night Worker (opcional)
+
+Sistema de processamento assíncrono de prompts com arquitetura de dois backends:
+
+- **Backend A (API)**: Supabase edge function (padrão) OU servidor externo (ex.: `coder-ai.workfaraway.com`)
+  - API CRUD para prompts (`GET/POST/PATCH /prompts`)
+  - Fonte de verdade; não processa, apenas persiste
+- **Backend B (Worker)**: Script Node.js/Python/Go que consome API e processa prompts (chama LLM/CLI)
+  - Busca pendentes, processa, devolve resultado via PATCH
+  - Roda via cron, Docker, systemd (separado do frontend)
+
+**Configuração:**
+
+1. **Supabase edge (padrão)**: nada a fazer, deriva automaticamente de `VITE_SUPABASE_URL`
+2. **Servidor externo**: definir `VITE_NIGHTWORKER_API_URL=https://seu-servidor.com` no `.env`
+3. **Primeiro acesso**: ir em `/nw/connect`, digitar URL + token Bearer (anon para frontend, service-role para workers)
+
+**Scripts disponíveis:**
+
+```sh
+npm run qa:nightworker                          # Testa API completa (GET/POST/PATCH)
+node scripts/nightworker-worker-example.ts      # Worker exemplo (requer SUPABASE_SERVICE_ROLE_KEY)
+node scripts/qa-nightworker-e2e-flow.ts         # E2E completo (create → patch → list)
+```
+
+Ver [docs/NIGHTWORKER_BACKEND_CHECKLIST.md](docs/NIGHTWORKER_BACKEND_CHECKLIST.md) para detalhes técnicos.
+
 ## Tests
 
 Unit tests (Vitest), E2E (Playwright in `e2e/`), and CI (`.github/workflows/test.yml`). Accessibility: SkipLink, focus-visible, and `prefers-reduced-motion` in `src/index.css`.

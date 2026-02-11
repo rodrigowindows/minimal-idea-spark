@@ -37,7 +37,9 @@ export default function NWSettings() {
         <div>
           <p className="text-xs uppercase tracking-[0.1em] text-blue-200">Sistema</p>
           <h1 className="text-3xl font-bold text-foreground">Configurações</h1>
-          <p className="text-sm text-muted-foreground">API, workers e providers.</p>
+          <p className="text-sm text-muted-foreground">
+            API (edge) cria/lista prompts; workers executam e devolvem resultado para a mesma API.
+          </p>
         </div>
         <Badge variant="outline" className="rounded-full border-blue-500/40 bg-blue-500/10 text-blue-200">
           <Settings2 className="mr-1 h-4 w-4" /> Night Worker
@@ -48,7 +50,9 @@ export default function NWSettings() {
         <Card className="border border-white/10 bg-card/70 backdrop-blur">
           <CardHeader>
             <CardTitle>API</CardTitle>
-            <CardDescription>Token Bearer e porta da API.</CardDescription>
+            <CardDescription>
+              Edge Supabase que recebe/retorna prompts. O painel usa este token para criar/listar; o worker só lê e faz PATCH aqui.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -82,6 +86,9 @@ export default function NWSettings() {
                   onChange={(e) => setLocalConfig((p) => ({ ...p, baseUrl: e.target.value }))}
                   className="bg-background/60"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Endpoint da edge (`.../functions/v1/nightworker-prompts`). Painel cria/lista aqui; workers também consomem daqui.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>Porta</Label>
@@ -91,6 +98,7 @@ export default function NWSettings() {
                   onChange={(e) => setLocalConfig((p) => ({ ...p, port: Number(e.target.value) }))}
                   className="bg-background/60"
                 />
+                <p className="text-xs text-muted-foreground">Campo legado para rodar worker local; ignorado na edge.</p>
               </div>
             </div>
           </CardContent>
@@ -99,7 +107,9 @@ export default function NWSettings() {
         <Card className="border border-white/10 bg-card/70 backdrop-blur">
           <CardHeader>
             <CardTitle>Providers disponíveis</CardTitle>
-            <CardDescription>Registrados no worker.</CardDescription>
+            <CardDescription>
+              Providers que o worker aceita processar. Alterar aqui deve refletir no worker real (Backend B).
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
             {localConfig.providers.map((p) => (
@@ -151,7 +161,7 @@ function WorkerSettings({
       <CardHeader className="flex flex-row items-start justify-between gap-3">
         <div>
           <CardTitle>{title}</CardTitle>
-          <CardDescription>Janela, intervalos e limites.</CardDescription>
+          <CardDescription>Loop do worker (Backend B): polling, janela e limites de execução.</CardDescription>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Ativo</span>

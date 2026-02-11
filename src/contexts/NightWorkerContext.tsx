@@ -2,11 +2,12 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { NightWorkerConfig } from '@/types/night-worker'
 
 const STORAGE_KEY = 'nightworker_config_v1'
-const DEFAULT_BASE_URL =
-  (import.meta.env.VITE_NIGHTWORKER_API_URL as string | undefined)
-  || (import.meta.env.VITE_SUPABASE_URL
+const ENV_BASE_URL = (import.meta.env.VITE_NIGHTWORKER_API_URL as string | undefined)?.replace(/\/+$/, '')
+const SUGGESTED_SUPABASE =
+  (import.meta.env.VITE_SUPABASE_URL
     ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/nightworker-prompts`
-    : 'https://coder-ai.workfaraway.com')
+    : undefined)
+const DEFAULT_BASE_URL = ENV_BASE_URL || SUGGESTED_SUPABASE || 'https://coder-ai.workfaraway.com'
 
 export class ApiError extends Error {
   status?: number
@@ -61,6 +62,16 @@ const defaultConfig: NightWorkerConfig = {
   providers: ['claude_cli', 'codex_cli', 'openai_api'],
 }
 
+function migrateBaseUrl(url?: string) {
+  const current = sanitizeBaseUrl(url || DEFAULT_BASE_URL)
+  // Highest priority: explicit env override
+  if (ENV_BASE_URL) return sanitizeBaseUrl(ENV_BASE_URL)
+  // Legacy migration: only migrate localhost:5555 to Supabase (if available)
+  if (current.includes('localhost:5555')) return sanitizeBaseUrl(SUGGESTED_SUPABASE ?? DEFAULT_BASE_URL)
+  // Respect user's manual choice: if they saved coder-ai or any other URL, keep it
+  return current
+}
+
 function loadConfig(): NightWorkerConfig {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
@@ -69,6 +80,7 @@ function loadConfig(): NightWorkerConfig {
       return {
         ...defaultConfig,
         ...parsed,
+        baseUrl: migrateBaseUrl(parsed.baseUrl),
         workers: {
           claude: { ...defaultConfig.workers.claude, ...(parsed.workers?.claude || {}) },
           codex: { ...defaultConfig.workers.codex, ...(parsed.workers?.codex || {}) },
@@ -91,31 +103,13 @@ function sanitizeBaseUrl(url: string) {
 export function NightWorkerProvider({ children }: { children: ReactNode }) {
   const [config, setConfigState] = useState<NightWorkerConfig>(() => loadConfig())
   const [lastError, setLastError] = useState<string | null>(null)
-  const suggestedSupabase =
-    (import.meta.env.VITE_SUPABASE_URL
-      ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/nightworker-prompts`
-      : undefined)
-  const envBaseUrl = import.meta.env.VITE_NIGHTWORKER_API_URL as string | undefined
   const envToken = import.meta.env.VITE_NW_ANON_TOKEN as string | undefined
 
   useEffect(() => {
-    console.info('[NightWorker] Provider init', { baseUrl: config.baseUrl, suggestedSupabase, envBaseUrl, hasEnvToken: !!envToken })
+    console.info('[NightWorker] Provider init', { baseUrl: config.baseUrl, suggestedSupabase: SUGGESTED_SUPABASE, envBaseUrl: ENV_BASE_URL, hasEnvToken: !!envToken })
 
     setConfigState((prev) => {
-      const currentBase = sanitizeBaseUrl(prev.baseUrl || DEFAULT_BASE_URL)
-      let nextBase = currentBase
-
-      // Priority 1: explicit env base URL
-      if (envBaseUrl) nextBase = sanitizeBaseUrl(envBaseUrl)
-      // Priority 2: auto-migrate legacy default to Supabase edge if available
-      else if (suggestedSupabase && currentBase.includes('coder-ai.workfaraway.com')) {
-        nextBase = sanitizeBaseUrl(suggestedSupabase)
-      }
-      // Priority 3: migrate old localhost default to the hosted endpoint (or Supabase if provided)
-      else if (currentBase.includes('localhost:5555')) {
-        nextBase = sanitizeBaseUrl(suggestedSupabase ?? DEFAULT_BASE_URL)
-      }
-
+      const nextBase = migrateBaseUrl(prev.baseUrl)
       const nextToken = prev.token ?? envToken ?? null
       return { ...prev, baseUrl: nextBase, token: nextToken }
     })

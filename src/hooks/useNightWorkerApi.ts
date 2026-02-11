@@ -27,7 +27,22 @@ export function useHealthQuery() {
   const { apiFetch, config, isConnected } = useNightWorker()
   return useQuery<HealthResponse>({
     queryKey: ['nightworker', 'health', config.baseUrl],
-    queryFn: () => apiFetch<HealthResponse>('/health', { skipAuth: true }),
+    queryFn: async () => {
+      try {
+        return await apiFetch<HealthResponse>('/health', { skipAuth: true })
+      } catch (error) {
+        // Edge-only environments may not expose /health yet.
+        if (error instanceof ApiError && error.status === 404) {
+          return {
+            status: 'ok',
+            version: 'edge',
+            providers: [],
+            workers: [],
+          }
+        }
+        throw error
+      }
+    },
     refetchInterval: 10000,
     staleTime: 5000,
     // Só chama quando já tem token (evita GET localhost:5555/health em deploy e ERR_CONNECTION_REFUSED)
@@ -167,7 +182,10 @@ export function useLogsQuery(
     queryFn: () =>
       apiFetch<LogEntry[]>(`/logs${queryString ? `?${queryString}` : ''}`),
     enabled: (options?.enabled ?? true) && isConnected,
-    refetchInterval: options?.refetchInterval ?? 5000,
+    refetchInterval: (query) => {
+      if (query.state.error instanceof ApiError && query.state.error.status === 404) return false
+      return options?.refetchInterval ?? 5000
+    },
     retry: (failureCount, error) => {
       if (error instanceof ApiError && error.status === 404) return false
       return failureCount < 3

@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import { useNightWorker } from '@/contexts/NightWorkerContext'
 import { toast } from 'sonner'
 import { CheckCircle2, Eye, EyeOff, Link2, Loader2, Lock, XCircle } from 'lucide-react'
+
+type HealthInfo = { version?: string; providers?: string[] }
 
 export default function NWConnect() {
   const { config, setConfig, setToken } = useNightWorker()
@@ -35,29 +36,32 @@ export default function NWConnect() {
     const cleanUrl = baseUrl.replace(/\/+$/, '')
 
     try {
-      // Step 1: Test GET /health (no auth required)
-      const healthRes = await fetch(`${cleanUrl}/health`)
-      if (!healthRes.ok) {
-        setTestResult('health-fail')
-        toast.error('Falha na conexão', { description: `GET /health retornou ${healthRes.status}` })
-        setTesting(false)
-        return
+      // Step 1 (best-effort): /health can be absent in edge-only deployments.
+      let healthData: HealthInfo | null = null
+      try {
+        const healthRes = await fetch(`${cleanUrl}/health`)
+        if (healthRes.ok) {
+          healthData = await healthRes.json()
+        } else {
+          console.warn('[NWConnect] /health unavailable', { status: healthRes.status })
+        }
+      } catch (healthErr) {
+        console.warn('[NWConnect] /health request failed', healthErr)
       }
-      const healthData = await healthRes.json()
 
-      // Step 2: Test GET /prompts with auth token
+      // Step 2 (required): validate token against /prompts.
       const promptsRes = await fetch(`${cleanUrl}/prompts`, {
         headers: { Authorization: `Bearer ${token.trim()}` },
       })
-      if (promptsRes.status === 401) {
+      if (promptsRes.status === 401 || promptsRes.status === 403) {
         setTestResult('auth-fail')
-        toast.error('Token inválido', { description: 'GET /prompts retornou 401 Unauthorized.' })
+        toast.error('Token invalido', { description: `GET /prompts retornou ${promptsRes.status}.` })
         setTesting(false)
         return
       }
       if (!promptsRes.ok) {
-        setTestResult('auth-fail')
-        toast.error('Erro ao validar token', { description: `GET /prompts retornou ${promptsRes.status}` })
+        setTestResult('health-fail')
+        toast.error('Falha na conexao', { description: `GET /prompts retornou ${promptsRes.status}` })
         setTesting(false)
         return
       }
@@ -66,14 +70,18 @@ export default function NWConnect() {
       setTestResult('success')
       setConfig({ baseUrl: cleanUrl })
       setToken(token.trim())
+      const providerText =
+        healthData?.providers?.length
+          ? healthData.providers.join(', ')
+          : 'edge sem health detalhado'
       toast.success('Conectado com sucesso', {
-        description: `API v${healthData.version || '?'} — Providers: ${healthData.providers?.join(', ') || '?'}`,
+        description: `API v${healthData?.version || 'edge'} - Providers: ${providerText}`,
       })
       setTimeout(() => navigate('/'), 600)
-    } catch (err) {
+    } catch {
       setTestResult('health-fail')
-      toast.error('Não foi possível conectar', {
-        description: `Verifique se a API está rodando em ${cleanUrl}`,
+      toast.error('Nao foi possivel conectar', {
+        description: `Verifique se a API esta rodando em ${cleanUrl}`,
       })
     } finally {
       setTesting(false)
@@ -87,7 +95,13 @@ export default function NWConnect() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-2xl font-bold text-foreground">Conectar ao Night Worker</CardTitle>
-              <CardDescription>Informe a URL da API e o token Bearer para começar.</CardDescription>
+              <CardDescription>
+                Informe a URL da API e o token Bearer para começar.
+                <br />
+                <span className="text-xs text-muted-foreground">
+                  Frontend usa token anon; workers precisam de service-role key.
+                </span>
+              </CardDescription>
             </div>
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/15 text-blue-300">
               <Lock className="h-6 w-6" aria-hidden />
@@ -108,7 +122,7 @@ export default function NWConnect() {
                 required
                 className="bg-background/70"
               />
-              <p className="text-xs text-muted-foreground">Sugestão: {suggested}</p>
+              <p className="text-xs text-muted-foreground">Sugestao: {suggested}</p>
             </div>
 
             <div className="space-y-2">
@@ -134,7 +148,7 @@ export default function NWConnect() {
                   {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              <p className="text-xs text-muted-foreground">Seu token é salvo apenas no navegador (localStorage).</p>
+              <p className="text-xs text-muted-foreground">Seu token e salvo apenas no navegador (localStorage).</p>
             </div>
 
             {testResult !== 'idle' && (
@@ -149,9 +163,9 @@ export default function NWConnect() {
                 {testResult === 'health-fail' && <XCircle className="h-4 w-4 shrink-0" />}
                 {testResult === 'auth-fail' && <XCircle className="h-4 w-4 shrink-0" />}
                 <span>
-                  {testResult === 'success' && 'Conexão validada com sucesso!'}
-                  {testResult === 'health-fail' && 'Não foi possível conectar à API. Verifique a URL.'}
-                  {testResult === 'auth-fail' && 'Token inválido ou não autorizado.'}
+                  {testResult === 'success' && 'Conexao validada com sucesso!'}
+                  {testResult === 'health-fail' && 'Nao foi possivel conectar a API. Verifique a URL.'}
+                  {testResult === 'auth-fail' && 'Token invalido ou nao autorizado.'}
                 </span>
               </div>
             )}

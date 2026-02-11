@@ -79,7 +79,7 @@ export default function NWPrompts() {
 
   const handleResend = async (prompt: PromptItem) => {
     try {
-      const detail = await apiFetch<PromptItem>(`/prompts/${prompt.id}/status`)
+      const detail = await apiFetch<PromptItem>(`/prompts/${prompt.id}`)
       const content = detail.content || prompt.content
       if (!content) {
         toast.error('Não há conteúdo para reenviar.')

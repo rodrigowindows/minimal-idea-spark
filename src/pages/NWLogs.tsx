@@ -5,10 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { useLogsQuery } from '@/hooks/useNightWorkerApi'
-import { useNightWorker } from '@/contexts/NightWorkerContext'
+import { ApiError, useNightWorker } from '@/contexts/NightWorkerContext'
 import type { LogEntry } from '@/types/night-worker'
 import { Filter, Pause, Play, RefreshCw, Trash2, WifiOff } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 export default function NWLogs() {
   const { isConnected } = useNightWorker()
@@ -22,13 +23,14 @@ export default function NWLogs() {
   const [since, setSince] = useState<string | undefined>(undefined)
   const scrollRef = useRef<HTMLDivElement | null>(null)
 
-  const { data, refetch, isFetching } = useLogsQuery(
+  const { data, refetch, isFetching, error, isError } = useLogsQuery(
     { worker, level: level === 'ALL' ? undefined : level, lines: 120, since },
     { enabled: isConnected && !paused, refetchInterval: autoScroll ? 4000 : 8000 }
   )
+  const logsUnavailable = isError && error instanceof ApiError && error.status === 404
 
   useEffect(() => {
-    if (!isConnected) navigate('/connect')
+    if (!isConnected) navigate('/nw/connect')
   }, [isConnected, navigate])
 
   useEffect(() => {
@@ -75,6 +77,14 @@ export default function NWLogs() {
           </Badge>
         </div>
       </div>
+      {logsUnavailable && (
+        <Alert className="mb-4 border-amber-500/40 bg-amber-500/10 text-amber-100">
+          <AlertTitle>Endpoint /logs indisponivel</AlertTitle>
+          <AlertDescription>
+            Esta API edge nao expoe logs em tempo real. A tela continua funcional sem quebrar a experiencia.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Card className="border border-white/10 bg-card/70 backdrop-blur">
         <CardHeader className="flex flex-row items-start justify-between gap-3">
@@ -158,7 +168,12 @@ export default function NWLogs() {
             ref={scrollRef}
             className="font-mono text-xs leading-6 text-slate-100/90 max-h-[520px] overflow-auto rounded-lg border border-border/40 bg-[#0A0F1A] p-4 shadow-inner"
           >
-            {filtered.length === 0 && (
+            {logsUnavailable && (
+              <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-amber-200">
+                Logs não disponíveis neste backend (edge-only). Use um worker local para ver logs em tempo real.
+              </p>
+            )}
+            {!logsUnavailable && filtered.length === 0 && (
               <p className="text-muted-foreground">Nenhuma linha ainda.</p>
             )}
             {filtered.map((line, idx) => (
