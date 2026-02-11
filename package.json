@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
+    "qa:nightworker": "node --env-file=.env --experimental-strip-types scripts/qa-nightworker-api.ts",
     "predeploy:win": "powershell -ExecutionPolicy Bypass -File scripts/pre-deploy.ps1",
     "predeploy:unix": "bash scripts/pre-deploy.sh"
   },

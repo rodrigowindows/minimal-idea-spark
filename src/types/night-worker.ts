@@ -12,7 +12,7 @@ export interface PromptListItem {
   has_result: boolean;
 }
 
-/** Full prompt detail returned by GET /prompts/:id/status */
+/** Full prompt detail returned by GET /prompts/:id */
 export interface PromptDetail {
   id: string;
   provider: NightWorkerProvider;

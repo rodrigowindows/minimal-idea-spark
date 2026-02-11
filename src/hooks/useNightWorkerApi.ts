@@ -107,7 +107,7 @@ export function usePromptStatusQuery(id?: string) {
   return useQuery<PromptItem>({
     queryKey: ['nightworker', 'prompt', id],
     queryFn: async () => {
-      const raw = await apiFetch<PromptDetail & Record<string, unknown>>(`/prompts/${id}/status`)
+      const raw = await apiFetch<PromptDetail & Record<string, unknown>>(`/prompts/${id}`)
       return {
         id: raw.id,
         name: (raw as any).name || nameFromFilename(raw.filename),
