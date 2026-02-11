@@ -233,6 +233,86 @@ export type Database = {
         }
         Relationships: []
       }
+      nw_prompt_events: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          prompt_id: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          prompt_id: string
+          type?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          prompt_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nw_prompt_events_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "nw_prompts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nw_prompts: {
+        Row: {
+          attempts: number | null
+          content: string
+          created_at: string
+          error: string | null
+          id: string
+          name: string
+          next_retry_at: string | null
+          provider: string
+          result_content: string | null
+          result_path: string | null
+          status: string
+          target_folder: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number | null
+          content: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          name: string
+          next_retry_at?: string | null
+          provider: string
+          result_content?: string | null
+          result_path?: string | null
+          status?: string
+          target_folder?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number | null
+          content?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          name?: string
+          next_retry_at?: string | null
+          provider?: string
+          result_content?: string | null
+          result_path?: string | null
+          status?: string
+          target_folder?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       opportunities: {
         Row: {
           created_at: string
