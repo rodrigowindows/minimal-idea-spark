@@ -102,12 +102,18 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
     console.info('[NightWorker] Provider init', { baseUrl: config.baseUrl, suggestedSupabase, envBaseUrl, hasEnvToken: !!envToken })
 
     setConfigState((prev) => {
-      let nextBase = prev.baseUrl
+      const currentBase = sanitizeBaseUrl(prev.baseUrl || DEFAULT_BASE_URL)
+      let nextBase = currentBase
+
       // Priority 1: explicit env base URL
       if (envBaseUrl) nextBase = sanitizeBaseUrl(envBaseUrl)
       // Priority 2: auto-migrate legacy default to Supabase edge if available
-      else if (suggestedSupabase && prev.baseUrl.includes('coder-ai.workfaraway.com')) {
+      else if (suggestedSupabase && currentBase.includes('coder-ai.workfaraway.com')) {
         nextBase = sanitizeBaseUrl(suggestedSupabase)
+      }
+      // Priority 3: migrate old localhost default to the hosted endpoint (or Supabase if provided)
+      else if (currentBase.includes('localhost:5555')) {
+        nextBase = sanitizeBaseUrl(suggestedSupabase ?? DEFAULT_BASE_URL)
       }
 
       const nextToken = prev.token ?? envToken ?? null

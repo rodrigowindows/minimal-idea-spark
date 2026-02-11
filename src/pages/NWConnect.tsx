@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,15 +11,21 @@ import { CheckCircle2, Eye, EyeOff, Link2, Loader2, Lock, XCircle } from 'lucide
 
 export default function NWConnect() {
   const { config, setConfig, setToken } = useNightWorker()
-  const suggested = (import.meta.env.VITE_SUPABASE_URL
-    ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/nightworker-prompts`
-    : 'http://localhost:5555')
+  const suggested =
+    (import.meta.env.VITE_NIGHTWORKER_API_URL as string | undefined)?.replace(/\/+$/, '') ||
+    (import.meta.env.VITE_SUPABASE_URL
+      ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/nightworker-prompts`
+      : 'https://coder-ai.workfaraway.com')
   const [baseUrl, setBaseUrl] = useState(config.baseUrl || suggested)
   const [token, setTokenInput] = useState(config.token || '')
   const [showToken, setShowToken] = useState(false)
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<'idle' | 'success' | 'health-fail' | 'auth-fail'>('idle')
   const navigate = useNavigate()
+
+  useEffect(() => {
+    setBaseUrl(config.baseUrl || suggested)
+  }, [config.baseUrl, suggested])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -156,7 +162,7 @@ export default function NWConnect() {
                 type="button"
                 onClick={() => {
                   setTokenInput('')
-                  setBaseUrl('http://localhost:5555')
+                  setBaseUrl(suggested)
                   setTestResult('idle')
                 }}
               >
