@@ -41,6 +41,14 @@ export default function NWPrompts() {
     })
   }, [data?.length, isConnected, isLoading, isFetching, isError])
 
+  // Redirect to connect page if not authenticated
+  useEffect(() => {
+    if (!isConnected) {
+      console.log('[NWPrompts] Not connected, redirecting to /nw/connect')
+      navigate('/nw/connect', { replace: true })
+    }
+  }, [isConnected, navigate])
+
   const filtered = useMemo(() => {
     return (data || []).filter((item) => {
       if (statusFilter !== 'all' && item.status !== statusFilter) return false
