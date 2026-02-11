@@ -66,7 +66,7 @@ export default function NWDashboard() {
         <Alert className="border-amber-500/40 bg-amber-500/10 text-amber-100">
           <AlertTitle>Configure a conexão</AlertTitle>
           <AlertDescription>
-            Defina a URL e token em <button className="underline" onClick={() => navigate('/connect')}>/connect</button> para carregar métricas.
+            Defina a URL e token em <button className="underline" onClick={() => navigate('/nw/connect')}>/connect</button> para carregar métricas.
           </AlertDescription>
         </Alert>
       )}
@@ -107,7 +107,7 @@ export default function NWDashboard() {
             <span className="h-2 w-2 rounded-full bg-current shadow-[0_0_0_4px_rgba(34,197,94,0.25)]" />
             {healthQuery.data?.status === 'ok' ? 'Conectado' : 'Verificar conexão'}
           </Badge>
-          <Button variant="outline" size="icon" onClick={() => navigate('/settings')}>
+          <Button variant="outline" size="icon" onClick={() => navigate('/nw/settings')}>
             <Settings2 className="h-5 w-5" />
           </Button>
         </div>
@@ -141,7 +141,7 @@ export default function NWDashboard() {
         <Card className="lg:col-span-2 border border-white/10 bg-card/60 backdrop-blur">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Últimos Prompts</CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/prompts')}>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/nw/prompts')}>
               Ver todos
             </Button>
           </CardHeader>
@@ -183,7 +183,7 @@ export default function NWDashboard() {
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{formatHour(prompt.updated_at || prompt.created_at)}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => navigate(`/prompts/${prompt.id}`)}>
+                        <Button variant="ghost" size="sm" onClick={() => navigate(`/nw/prompts/${prompt.id}`)}>
                           Detalhes
                         </Button>
                       </TableCell>
