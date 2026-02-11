@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { NightWorkerConfig } from '@/types/night-worker'
 
 const STORAGE_KEY = 'nightworker_config_v1'
-const DEFAULT_BASE_URL = (import.meta.env.VITE_NIGHTWORKER_API_URL as string | undefined) || 'http://localhost:5555'
+const DEFAULT_BASE_URL = (import.meta.env.VITE_NIGHTWORKER_API_URL as string | undefined) || 'https://coder-ai.workfaraway.com'
 
 export class ApiError extends Error {
   status?: number
@@ -27,7 +27,7 @@ interface NightWorkerContextValue {
 const defaultConfig: NightWorkerConfig = {
   baseUrl: DEFAULT_BASE_URL,
   token: null,
-  port: 5555,
+  port: 443,
   workers: {
     claude: {
       active: true,
