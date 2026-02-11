@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { useNightWorker } from '@/contexts/NightWorkerContext'
 import { toast } from 'sonner'
-import { Copy, Eye, EyeOff, KeyRound, Save, Settings2 } from 'lucide-react'
+import { Copy, Eye, EyeOff, KeyRound, Save, Settings2, Shield } from 'lucide-react'
 import type { WorkerConfig } from '@/types/night-worker'
 
 export default function NWSettings() {
