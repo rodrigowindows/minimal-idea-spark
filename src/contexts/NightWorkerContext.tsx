@@ -91,6 +91,23 @@ function sanitizeBaseUrl(url: string) {
 export function NightWorkerProvider({ children }: { children: ReactNode }) {
   const [config, setConfigState] = useState<NightWorkerConfig>(() => loadConfig())
   const [lastError, setLastError] = useState<string | null>(null)
+  const suggestedSupabase =
+    (import.meta.env.VITE_SUPABASE_URL
+      ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/nightworker-prompts`
+      : undefined)
+
+  useEffect(() => {
+    console.info('[NightWorker] Provider init', { baseUrl: config.baseUrl, suggestedSupabase })
+    // Auto-migrate legacy base URL to Supabase edge if available
+    if (
+      suggestedSupabase &&
+      config.baseUrl.includes('coder-ai.workfaraway.com')
+    ) {
+      console.info('[NightWorker] Switching baseUrl to Supabase edge function', { newBase: suggestedSupabase })
+      setConfigState((prev) => ({ ...prev, baseUrl: sanitizeBaseUrl(suggestedSupabase) }))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // run once
 
   useEffect(() => {
     try {
