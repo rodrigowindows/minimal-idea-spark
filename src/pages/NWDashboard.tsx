@@ -158,14 +158,14 @@ export default function NWDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isLoading && (
+                  {promptsQuery.isLoading && (
                     <TableRow>
                       <TableCell colSpan={5} className="py-6 text-center text-muted-foreground">
                         Carregando...
                       </TableCell>
                     </TableRow>
                   )}
-                  {!isLoading && lastPrompts.length === 0 && (
+                  {!promptsQuery.isLoading && lastPrompts.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={5} className="py-6 text-center text-muted-foreground">
                         Nenhum prompt recente.

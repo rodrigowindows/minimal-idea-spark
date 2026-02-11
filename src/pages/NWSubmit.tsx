@@ -41,7 +41,7 @@ export default function NWSubmit() {
 
   const onSubmit = async (values: FormValues) => {
     try {
-      const { id } = await mutation.mutateAsync(values)
+      const { id } = await mutation.mutateAsync(values as { provider: string; name: string; content: string; target_folder: string })
       toast.success('Prompt enviado', { description: `ID: ${id}` })
       navigate(`/prompts/${id}`)
     } catch (err) {

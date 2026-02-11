@@ -32,11 +32,12 @@ serve(async (req) => {
     // deno-lint-ignore no-explicit-any
     const supabaseClient: any = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
         global: {
           headers: { Authorization: req.headers.get('Authorization')! },
         },
+        db: { schema: 'public' },
       }
     );
 
@@ -64,7 +65,7 @@ serve(async (req) => {
   }
 });
 
-async function handleCreateInvite(supabaseClient: ReturnType<typeof createClient>, req: Request, body: InviteRequest) {
+async function handleCreateInvite(supabaseClient: any, req: Request, body: InviteRequest) {
   // Authenticate user
   const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
   if (authError || !user) {
@@ -192,7 +193,7 @@ async function handleCreateInvite(supabaseClient: ReturnType<typeof createClient
   );
 }
 
-async function handleRevoke(supabaseClient: ReturnType<typeof createClient>, body: RevokeRequest) {
+async function handleRevoke(supabaseClient: any, body: RevokeRequest) {
   const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
   if (authError || !user) {
     return new Response(
@@ -243,7 +244,7 @@ async function handleRevoke(supabaseClient: ReturnType<typeof createClient>, bod
   );
 }
 
-async function handleValidate(supabaseClient: ReturnType<typeof createClient>, body: ValidateRequest) {
+async function handleValidate(supabaseClient: any, body: ValidateRequest) {
   const { token } = body;
 
   if (!token) {

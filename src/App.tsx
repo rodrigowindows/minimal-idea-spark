@@ -140,7 +140,7 @@ function AppContent() {
           <Route path="/habits" element={<Suspense fallback={<PageFallback />}><Habits /></Suspense>} />
           <Route path="/goals" element={<Suspense fallback={<PageFallback />}><Goals /></Suspense>} />
           <Route path="/calendar" element={<Suspense fallback={<PageFallback />}><CalendarPage /></Suspense>} />
-          <Route path="/priorities" element={<PriorityDashboard userId="" />} />
+          <Route path="/priorities" element={<PriorityDashboard />} />
           <Route path="/weekly-review" element={<Suspense fallback={<PageFallback />}><WeeklyReview /></Suspense>} />
           <Route path="/content-generator" element={<Suspense fallback={<PageFallback />}><ContentGeneratorPage /></Suspense>} />
           <Route path="/automation" element={<Suspense fallback={<PageFallback />}><ErrorBoundary><AutomationPage /></ErrorBoundary></Suspense>} />
