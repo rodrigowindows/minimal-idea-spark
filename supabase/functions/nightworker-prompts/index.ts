@@ -95,12 +95,10 @@ serve(async (req) => {
 
   log('info', 'request', { rid, method: req.method, route })
 
+  // Use service-role key directly for all operations (no user auth required)
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    {
-      global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } },
-    }
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   )
 
   let resp: Response

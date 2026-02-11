@@ -162,6 +162,7 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
       if (!mergedHeaders.has('Content-Type') && rest.body && !(rest.body instanceof FormData)) {
         mergedHeaders.set('Content-Type', 'application/json')
       }
+      // Token is now optional - edge function uses service-role internally
       if (!skipAuth && config.token) {
         mergedHeaders.set('Authorization', `Bearer ${config.token}`)
       }
@@ -222,7 +223,7 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
       setToken,
       clearAuth,
       apiFetch,
-      isConnected: !!config.token,
+      isConnected: true, // Always connected (no token required)
       lastError,
     }),
     [apiFetch, clearAuth, config, lastError, setConfig, setToken]
