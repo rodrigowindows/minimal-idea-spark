@@ -97,7 +97,7 @@ export async function showLocalNotification(
 
 /* ─── Push subscription ─── */
 export async function subscribeToPush(vapidPublicKey: string): Promise<PushSubscription | null> {
-  const reg = await navigator.serviceWorker?.ready;
+  const reg: any = await navigator.serviceWorker?.ready;
   if (!reg?.pushManager) return null;
   try {
     const existing = await reg.pushManager.getSubscription();
@@ -112,7 +112,7 @@ export async function subscribeToPush(vapidPublicKey: string): Promise<PushSubsc
 }
 
 export async function unsubscribeFromPush(): Promise<boolean> {
-  const reg = await navigator.serviceWorker?.ready;
+  const reg: any = await navigator.serviceWorker?.ready;
   if (!reg?.pushManager) return false;
   try {
     const sub = await reg.pushManager.getSubscription();
@@ -124,7 +124,7 @@ export async function unsubscribeFromPush(): Promise<boolean> {
 }
 
 export async function getPushSubscription(): Promise<PushSubscription | null> {
-  const reg = await navigator.serviceWorker?.ready;
+  const reg: any = await navigator.serviceWorker?.ready;
   if (!reg?.pushManager) return null;
   return reg.pushManager.getSubscription();
 }
