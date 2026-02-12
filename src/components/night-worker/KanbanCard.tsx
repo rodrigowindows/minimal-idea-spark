@@ -5,16 +5,18 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from './StatusBadge'
 import { ProviderBadge } from './ProviderBadge'
-import { GripVertical } from 'lucide-react'
+import { GripVertical, Loader2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { PromptItem } from '@/types/night-worker'
+import { Badge } from '@/components/ui/badge'
 
 interface KanbanCardProps {
   prompt: PromptItem
   isDraggable: boolean
+  isProcessing?: boolean
 }
 
-export const KanbanCard = memo(function KanbanCard({ prompt, isDraggable }: KanbanCardProps) {
+export const KanbanCard = memo(function KanbanCard({ prompt, isDraggable, isProcessing }: KanbanCardProps) {
   const navigate = useNavigate()
   const {
     attributes,
@@ -39,7 +41,11 @@ export const KanbanCard = memo(function KanbanCard({ prompt, isDraggable }: Kanb
       ref={setNodeRef}
       style={style}
       aria-label={`Prompt ${prompt.name}`}
-      className={`mb-2 border border-border/60 bg-card/80 hover:border-blue-500/40 transition-colors ${
+      className={`mb-2 border transition-all duration-500 ${
+        isProcessing 
+          ? 'border-blue-500/60 bg-blue-500/5 shadow-[0_0_15px_rgba(59,130,246,0.1)] animate-pulse' 
+          : 'border-border/60 bg-card/80'
+      } hover:border-blue-500/40 ${
         isDragging ? 'shadow-xl cursor-grabbing' : isDraggable ? 'cursor-grab' : ''
       }`}
     >
@@ -58,8 +64,14 @@ export const KanbanCard = memo(function KanbanCard({ prompt, isDraggable }: Kanb
           )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <StatusBadge status={prompt.status} pulse={prompt.status === 'pending'} />
+              <StatusBadge status={prompt.status} pulse={prompt.status === 'pending' && !isProcessing} />
               <ProviderBadge provider={prompt.provider} />
+              {isProcessing && (
+                <Badge variant="secondary" className="h-5 gap-1 bg-blue-500/20 text-blue-300 border-blue-500/30 px-1.5 animate-pulse">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Processando</span>
+                </Badge>
+              )}
             </div>
             <h4 className="text-sm font-semibold text-foreground truncate mb-1">
               {prompt.name}

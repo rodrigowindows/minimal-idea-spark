@@ -67,7 +67,12 @@ export const KanbanColumn = memo(function KanbanColumn({
         ) : (
           <SortableContext items={prompts.map((p) => p.id)} strategy={verticalListSortingStrategy}>
             {prompts.map((prompt) => (
-              <KanbanCard key={prompt.id} prompt={prompt} isDraggable={isDraggable} />
+              <KanbanCard 
+                key={prompt.id} 
+                prompt={prompt} 
+                isDraggable={isDraggable} 
+                isProcessing={id === 'doing'}
+              />
             ))}
           </SortableContext>
         )}

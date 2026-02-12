@@ -9,11 +9,11 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StatusBadge } from '@/components/night-worker/StatusBadge'
 import { ProviderBadge } from '@/components/night-worker/ProviderBadge'
 import { PromptsKanban } from '@/components/night-worker/PromptsKanban'
-import { useCreatePromptMutation, usePromptsQuery } from '@/hooks/useNightWorkerApi'
+import { useCreatePromptMutation, useHealthQuery, usePromptsQuery } from '@/hooks/useNightWorkerApi'
 import { useNightWorker, ApiError } from '@/contexts/NightWorkerContext'
 import { useKanbanState } from '@/hooks/useKanbanState'
 import type { PromptItem } from '@/types/night-worker'
-import { Calendar, Filter, Loader2, RefreshCw, Search, Send, List, Kanban } from 'lucide-react'
+import { Activity, Calendar, Filter, Loader2, RefreshCw, Search, Send, List, Kanban } from 'lucide-react'
 import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
@@ -22,6 +22,7 @@ const PAGE_SIZE = 20
 export default function NWPrompts() {
   const navigate = useNavigate()
   const { isConnected, apiFetch, config } = useNightWorker()
+  const { data: health } = useHealthQuery()
   const { data, isLoading, isError, error, refetch, isFetching } = usePromptsQuery(15000)
   const resendMutation = useCreatePromptMutation()
 
@@ -139,16 +140,27 @@ export default function NWPrompts() {
         </Alert>
       )}
 
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.1em] text-blue-200">Fila de prompts</p>
           <h1 className="text-3xl font-bold text-foreground">Prompts</h1>
-          <p className="text-sm text-muted-foreground">
-            Filtro por status, provider, data e busca por nome.
-            <span className="ml-2 text-[11px] text-muted-foreground/80">
-              Base: {config.baseUrl}
+          <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <span className={`h-2 w-2 rounded-full ${health?.status === 'ok' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-red-500'}`} />
+              <span className="font-medium text-[13px]">
+                {health?.status === 'ok' ? 'Worker Online' : 'Worker Offline'}
+              </span>
+            </div>
+            {health?.providers && health.providers.length > 0 && (
+              <div className="flex items-center gap-1">
+                <Activity className="h-3 w-3" />
+                <span className="text-[12px]">{health.providers.join(', ')}</span>
+              </div>
+            )}
+            <span className="text-[11px] text-muted-foreground/60">
+              API: {config.baseUrl.split('/functions')[0]}
             </span>
-          </p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'list' | 'kanban')}>
