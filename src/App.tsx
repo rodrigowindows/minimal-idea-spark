@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { DeepWorkOverlay } from "@/components/deep-work/DeepWorkOverlay";
 import { ConfettiEffect } from "@/components/gamification/ConfettiEffect";
@@ -98,14 +98,15 @@ function AppContent() {
   const { levelUpTriggered } = useAppContext();
   const [tourForceOpen, setTourForceOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { lastError } = useNightWorker();
   useNotificationGenerator();
 
   useEffect(() => {
     if (import.meta.env.DEV) {
-      console.info('[App] Navigation occurred', { pathname: window.location.pathname });
+      console.info('[App] Navigation occurred', { pathname: location.pathname });
     }
-  }, [window.location.pathname]);
+  }, [location.pathname]);
 
   useEffect(() => {
     registerFlushSyncQueue(async () => {

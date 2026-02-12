@@ -89,6 +89,10 @@ export function useKanbanState(prompts: PromptItem[] | undefined) {
     setState((prev) => ({ ...prev, prioritizedIds: ids }))
   }, [])
 
+  const clearKanban = useCallback(() => {
+    setState({ prioritizedIds: [], doingIds: [] })
+  }, [])
+
   return {
     prioritizedIds: state.prioritizedIds,
     doingIds: state.doingIds,
@@ -96,5 +100,6 @@ export function useKanbanState(prompts: PromptItem[] | undefined) {
     moveToPrioritized,
     moveToDoing,
     reorderPrioritized,
+    clearKanban,
   }
 }

@@ -147,7 +147,7 @@ export function AppLayout() {
         <div className={cn('relative', deepWorkMode && 'z-20')}>
           <ErrorBoundary>
             <AnimatePresence initial={false}>
-              <PageTransition pathname={location.pathname}>
+              <PageTransition key={location.pathname}>
                 <Outlet />
               </PageTransition>
             </AnimatePresence>

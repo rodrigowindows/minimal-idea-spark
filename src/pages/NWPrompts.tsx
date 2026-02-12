@@ -241,7 +241,12 @@ export default function NWPrompts() {
         </div>
 
         <div className="flex items-center gap-2 ml-auto">
-          <Button variant="ghost" size="sm" onClick={handleClear}>Limpar</Button>
+          <Button variant="ghost" size="sm" onClick={handleClear}>Limpar Filtros</Button>
+          {viewMode === 'kanban' && (
+            <Button variant="ghost" size="sm" onClick={kanban.clearKanban} className="text-amber-400 hover:text-amber-300 hover:bg-amber-500/10">
+              Limpar Kanban
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
           </Button>
