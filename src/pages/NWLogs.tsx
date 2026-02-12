@@ -25,11 +25,17 @@ export default function NWLogs() {
 
   const { data: health } = useHealthQuery()
   const { data, refetch, isFetching, error, isError } = useLogsQuery(
-    { worker, level: level === 'ALL' ? undefined : level, lines: 120, since },
+    { worker, level: level === 'ALL' ? undefined : level, lines: 200, since },
     { enabled: isConnected && !paused, refetchInterval: autoScroll ? 4000 : 8000 }
   )
   const logsUnavailable = isError && error instanceof ApiError && error.status === 404
   const isSupabase = config.baseUrl.includes('.supabase.co')
+
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.info('[NWLogs] Component Mounted');
+    }
+  }, []);
 
   useEffect(() => {
     if (!data) return
@@ -57,6 +63,10 @@ export default function NWLogs() {
     })
   }, [buffer, level, query, worker])
   const lastTimestamp = buffer.length ? buffer[buffer.length - 1].timestamp : null
+
+  const handleForceRefresh = () => {
+    window.location.reload()
+  }
 
   return (
     <div className="px-4 pb-10 md:px-8">
@@ -130,7 +140,10 @@ export default function NWLogs() {
 
       {logsUnavailable && (
         <Alert className="mb-4 border-amber-500/40 bg-amber-500/10 text-amber-100">
-          <AlertTitle>Logs não disponíveis</AlertTitle>
+          <AlertTitle className="flex items-center justify-between">
+            Logs não disponíveis
+            <Button size="xs" variant="outline" onClick={handleForceRefresh} className="h-6 text-[10px]">Forçar Refresh</Button>
+          </AlertTitle>
           <AlertDescription>
             Este backend ({isSupabase ? 'Supabase Edge' : 'Legacy'}) não expõe logs via HTTP. 
             Use um <strong>Worker Direto (API B)</strong> ou verifique o console do seu worker local.

@@ -26,6 +26,12 @@ export default function NWPrompts() {
   const { data, isLoading, isError, error, refetch, isFetching } = usePromptsQuery(15000)
   const resendMutation = useCreatePromptMutation()
 
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.info('[NWPrompts] Component Mounted');
+    }
+  }, []);
+
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'done' | 'failed'>('all')
   const [providerFilter, setProviderFilter] = useState<'all' | 'codex' | 'claude'>('all')

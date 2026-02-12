@@ -80,17 +80,15 @@ const PageFallback = () => (
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 min stale-while-revalidate
-      gcTime: 1000 * 60 * 30, // 30 min garbage collection
-      refetchOnWindowFocus: false,
+      staleTime: 1000 * 30, // 30 seconds (reduced from 5 min to be more reactive)
+      gcTime: 1000 * 60 * 10, // 10 min
+      refetchOnWindowFocus: true, // Re-enable window focus to keep state fresh
       refetchOnReconnect: true,
-      refetchOnMount: true, // Default to always refetch on mount
+      refetchOnMount: true,
       retry: 1,
-      // Network mode: fail fast if offline
       networkMode: 'online',
     },
     mutations: {
-      // Mutations should also respect network state
       networkMode: 'online',
     },
   },
@@ -100,8 +98,15 @@ function AppContent() {
   const { levelUpTriggered } = useAppContext();
   const [tourForceOpen, setTourForceOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { lastError } = useNightWorker();
   useNotificationGenerator();
+
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.info('[App] Navigation occurred', { pathname: location.pathname });
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     registerFlushSyncQueue(async () => {

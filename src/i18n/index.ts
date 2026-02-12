@@ -29,12 +29,28 @@ export function isRTL(lang: string): boolean {
 // Silence the "i18next is maintained with support from locize.com" sponsorship message
 const i18nextSponsorPattern = /locize\.com|i18next.*maintained/i
 const silenceLocize = (orig: any) => (...args: unknown[]) => {
-  if (args.some((a) => typeof a === 'string' && i18nextSponsorPattern.test(a))) return
+  // Check if any argument contains the sponsorship pattern
+  const isSponsorMessage = args.some((a) => 
+    typeof a === 'string' && i18nextSponsorPattern.test(a)
+  )
+  if (isSponsorMessage) return
   if (typeof orig === 'function') orig.apply(console, args)
 }
-console.log = silenceLocize(console.log)
-console.info = silenceLocize(console.info)
-console.warn = silenceLocize(console.warn)
+
+// Store originals before patching
+const originalLog = console.log
+const originalInfo = console.info
+const originalWarn = console.warn
+
+console.log = silenceLocize(originalLog)
+console.info = silenceLocize(originalInfo)
+console.warn = silenceLocize(originalWarn)
+
+// Global flag for some i18next versions
+if (typeof window !== 'undefined') {
+  (window as any).i18next_ignore_support_notice = true;
+  (window as any).LOCIZE_IGNORE_SUPPORT_NOTICE = true;
+}
 
 i18n
   .use(LanguageDetector)
@@ -58,7 +74,11 @@ i18n
     },
   })
 
-// Note: No need to restore original consoles as silencing should persist for 3rd party libs
+// Re-patch after init just in case lib restored them
+console.log = silenceLocize(originalLog)
+console.info = silenceLocize(originalInfo)
+console.warn = silenceLocize(originalWarn)
+
 
 
 export default i18n

@@ -101,6 +101,7 @@ export function usePromptsQuery(pollMs = 15000, options: UsePromptsQueryOptions 
           next_retry_at: item.next_retry_at,
           filename: item.filename,
           has_result: item.has_result ?? (item.result != null),
+          events: item.events ?? [],
         } satisfies PromptItem))
       } catch (error) {
         if (import.meta.env.DEV) {
@@ -215,7 +216,9 @@ export function useLogsQuery(
   params: { worker: string; level?: string; lines?: number; since?: string },
   options?: { enabled?: boolean; refetchInterval?: number }
 ) {
-  const { apiFetch, isConnected } = useNightWorker()
+  const { apiFetch, isConnected, config } = useNightWorker()
+  const isSupabase = config.baseUrl.includes('.supabase.co')
+
   const queryString = useMemo(() => {
     const qs = new URLSearchParams()
     if (params.worker && params.worker !== 'all') qs.set('worker', params.worker)
@@ -232,7 +235,8 @@ export function useLogsQuery(
         retry: 1,
         silentStatuses: [404],
       }),
-    enabled: (options?.enabled ?? true) && isConnected,
+    // Disable completely on Supabase to avoid 404 console spam
+    enabled: (options?.enabled ?? true) && isConnected && !isSupabase,
     refetchInterval: (query) => {
       if (query.state.error instanceof ApiError && query.state.error.status === 404) return false
       return options?.refetchInterval ?? 5000

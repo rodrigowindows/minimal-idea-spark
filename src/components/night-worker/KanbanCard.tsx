@@ -72,6 +72,11 @@ export const KanbanCard = memo(function KanbanCard({ prompt, isDraggable, isProc
                   <span className="text-[10px] font-bold uppercase tracking-wider">Processando</span>
                 </Badge>
               )}
+              {!isProcessing && prompt.status === 'pending' && prompt.has_result === false && (prompt as any).events?.length > 0 && (
+                <Badge variant="outline" className="h-5 bg-emerald-500/10 text-emerald-400 border-emerald-500/30 px-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Recebido</span>
+                </Badge>
+              )}
             </div>
             <h4 className="text-sm font-semibold text-foreground truncate mb-1">
               {prompt.name}
