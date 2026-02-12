@@ -174,15 +174,14 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
       const maxAttempts = Number.isFinite(retry) ? Math.max(1, Math.floor(retry)) : 3
       const silentStatusSet = new Set(silentStatuses)
 
-      if (import.meta.env.DEV) {
-        console.log('[apiFetch] Starting request', {
-          path,
-          url,
-          hasToken: !!config.token,
-          skipAuth,
-          baseUrl: config.baseUrl
-        })
-      }
+      console.log('[apiFetch] 📡 Starting request', {
+        path,
+        url,
+        hasToken: !!config.token,
+        skipAuth,
+        method: rest.method || 'GET',
+        timestamp: new Date().toISOString()
+      })
 
       const mergedHeaders = new Headers(headers || {})
       if (!mergedHeaders.has('Content-Type') && rest.body && !(rest.body instanceof FormData)) {
@@ -198,18 +197,14 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
 
       while (attempt < maxAttempts) {
         try {
-          if (import.meta.env.DEV) {
-            console.log(`[apiFetch] Attempt ${attempt + 1}/${maxAttempts} to ${url}`)
-          }
+          console.log(`[apiFetch] 🔄 Attempt ${attempt + 1}/${maxAttempts}`)
+
           const response = await fetch(url, { ...rest, headers: mergedHeaders })
 
-          if (import.meta.env.DEV) {
-            console.log(`[apiFetch] Response received`, {
-              status: response.status,
-              statusText: response.statusText,
-              headers: Object.fromEntries(response.headers.entries())
-            })
-          }
+          console.log(`[apiFetch] 📨 Response ${response.status}`, {
+            ok: response.ok,
+            timestamp: new Date().toISOString()
+          })
 
           if (response.status === 401) {
             setLastError('auth')
