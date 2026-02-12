@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNightWorker, ApiError } from '@/contexts/NightWorkerContext'
 import type {
@@ -10,7 +10,18 @@ import type {
   PromptsListResponse,
 } from '@/types/night-worker'
 
-const PROMPTS_KEY = ['nightworker', 'prompts']
+const PROMPTS_KEY_BASE = ['nightworker', 'prompts'] as const
+
+function promptsQueryKey(baseUrl: string) {
+  return [...PROMPTS_KEY_BASE, baseUrl] as const
+}
+
+interface UsePromptsQueryOptions {
+  enabled?: boolean
+  staleTimeMs?: number
+  refetchOnMount?: boolean | 'always'
+  refetchOnWindowFocus?: boolean
+}
 
 /**
  * Extracts a human-readable name from a filename like "a1b2c3d4_nome-do-prompt.txt"
@@ -45,45 +56,30 @@ export function useHealthQuery() {
     },
     refetchInterval: 10000,
     staleTime: 5000,
-    // Só chama quando já tem token (evita GET localhost:5555/health em deploy e ERR_CONNECTION_REFUSED)
+    // Only call when connected to avoid localhost errors in deploy.
     enabled: isConnected,
   })
 }
 
-export function usePromptsQuery(pollMs = 15000) {
+export function usePromptsQuery(pollMs = 15000, options: UsePromptsQueryOptions = {}) {
   const { apiFetch, isConnected, config } = useNightWorker()
+  const {
+    enabled = true,
+    staleTimeMs = 30000,
+    refetchOnMount = false,
+    refetchOnWindowFocus = false,
+  } = options
 
-  if (import.meta.env.DEV) {
-    console.log('[usePromptsQuery] Hook called', {
-      isConnected,
-      baseUrl: config.baseUrl,
-      pollMs
-    })
-  }
-
-  const query = useQuery<PromptItem[]>({
-    queryKey: PROMPTS_KEY,
+  return useQuery<PromptItem[]>({
+    queryKey: promptsQueryKey(config.baseUrl),
     queryFn: async () => {
-      if (import.meta.env.DEV) {
-        console.log('[usePromptsQuery] Starting fetch to /prompts')
-      }
-
       try {
-        // The API may return { total, providers, prompts: [...] } or a plain array
+        // The API may return { total, prompts: [...] } or a plain array.
         const raw = await apiFetch<PromptsListResponse | PromptItem[]>('/prompts')
 
-        if (import.meta.env.DEV) {
-          console.log('[usePromptsQuery] Raw response:', raw)
-        }
-
-        // Handle wrapped response
         const items = Array.isArray(raw) ? raw : (raw as PromptsListResponse).prompts ?? []
 
-        if (import.meta.env.DEV) {
-          console.log('[usePromptsQuery] Parsed items count:', items.length)
-        }
-
-        const mapped = items.map((item: any) => ({
+        return items.map((item: any) => ({
           id: item.id,
           name: item.name || nameFromFilename(item.filename),
           provider: item.provider,
@@ -100,43 +96,23 @@ export function usePromptsQuery(pollMs = 15000) {
           filename: item.filename,
           has_result: item.has_result ?? (item.result != null),
         } satisfies PromptItem))
-
-        if (import.meta.env.DEV) {
-          console.log('[usePromptsQuery] Mapped items:', mapped)
-        }
-
-        return mapped
       } catch (error) {
         console.error('[usePromptsQuery] Error fetching prompts:', error)
         throw error
       }
     },
-    enabled: isConnected,
-    // Intelligent polling: faster when there are pending items, slower otherwise
+    enabled: isConnected && enabled,
+    // Keep default poll for pending items; slow down when idle.
     refetchInterval: (query) => {
       const hasPending = query.state.data?.some((p) => p.status === 'pending')
-      return hasPending ? Math.min(pollMs, 10000) : Math.max(pollMs, 30000)
+      return hasPending ? pollMs : Math.max(pollMs, 30000)
     },
-    staleTime: 30000, // 30s - reduce unnecessary refetches
-    gcTime: 5 * 60 * 1000, // 5min - keep in cache longer
-    refetchOnWindowFocus: false, // Prevent refetch storms on window focus
-    refetchOnMount: 'always', // Always fetch fresh data on mount
-    placeholderData: (previousData) => previousData, // Keep previous data while refetching
+    staleTime: staleTimeMs,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus,
+    refetchOnMount,
+    placeholderData: (previousData) => previousData,
   })
-
-  useEffect(() => {
-    if (import.meta.env.DEV && query.data) {
-      console.info('[NightWorker] ✓ fetched prompts', { count: query.data.length })
-    }
-  }, [query.data])
-
-  useEffect(() => {
-    if (query.error) {
-      console.error('[NightWorker] ✗ prompts error', query.error)
-    }
-  }, [query.error])
-
-  return query
 }
 
 export function usePromptStatusQuery(id?: string) {
@@ -180,7 +156,7 @@ export function useCreatePromptMutation() {
         body: JSON.stringify(body),
       }),
     onSuccess: () => {
-      client.invalidateQueries({ queryKey: PROMPTS_KEY })
+      client.invalidateQueries({ queryKey: PROMPTS_KEY_BASE })
     },
   })
 }

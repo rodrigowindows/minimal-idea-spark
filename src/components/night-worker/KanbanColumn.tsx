@@ -40,6 +40,8 @@ export const KanbanColumn = memo(function KanbanColumn({
   return (
     <Card
       ref={setNodeRef}
+      role="region"
+      aria-label={`Coluna ${title}, ${prompts.length} itens`}
       className={`flex-shrink-0 w-80 border ${
         isOver && isDroppable ? colorClasses[color as keyof typeof colorClasses] : 'border-border/60'
       } bg-background/40 transition-colors`}

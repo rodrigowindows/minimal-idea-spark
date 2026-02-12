@@ -267,13 +267,17 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { t } = useTranslation()
   const { language, toggleLanguage } = useLanguage()
   const { user } = useAuth()
-  const { data: promptData } = usePromptsQuery(15000)
-  const pendingCount = promptData?.filter((p) => p.status === 'pending').length ?? 0
   const [promptsSubmenuOpen, setPromptsSubmenuOpen] = useState(false)
+  const shouldLoadPromptData = promptsSubmenuOpen
+  const { data: promptData } = usePromptsQuery(30000, {
+    enabled: shouldLoadPromptData,
+    refetchOnMount: false,
+  })
+  const pendingCount = promptData?.filter((p) => p.status === 'pending').length ?? 0
   const navItemsWithBadges = useMemo(
     () =>
       NAV_ITEMS.map((item) =>
-        item.to === '/prompts' ? { ...item, badge: pendingCount } : item
+        item.to === '/nw/prompts' ? { ...item, badge: pendingCount } : item
       ),
     [pendingCount]
   )
@@ -559,7 +563,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   <ul id={`nav-section-${sectionKey}`} role="list" className="space-y-0.5">
                     {items.map((item) => {
                       // Special handling for Prompts submenu
-                      if (item.to === '/prompts' && !collapsed) {
+                      if (item.to === '/nw/prompts' && !collapsed) {
                         return (
                           <li key={item.to} className="space-y-0.5">
                             <div className="flex items-center gap-1">
@@ -588,7 +592,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                                 {promptData.slice(0, 10).map((prompt) => (
                                   <li key={prompt.id}>
                                     <NavLink
-                                      to={`/prompts/${prompt.id}`}
+                                      to={`/nw/prompts/${prompt.id}`}
                                       className={({ isActive }) =>
                                         cn(
                                           'flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition-colors',
@@ -611,7 +615,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                                 {promptData.length > 10 && (
                                   <li>
                                     <NavLink
-                                      to="/prompts"
+                                      to="/nw/prompts"
                                       className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors italic"
                                     >
                                       +{promptData.length - 10} more...

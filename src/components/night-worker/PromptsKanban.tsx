@@ -5,6 +5,9 @@ import { KanbanColumn } from './KanbanColumn'
 import { KanbanCard } from './KanbanCard'
 import type { PromptItem } from '@/types/night-worker'
 
+const COLUMN_IDS = ['backlog', 'prioritized', 'doing', 'done', 'failed'] as const
+type ColumnId = (typeof COLUMN_IDS)[number]
+
 interface PromptsKanbanProps {
   prompts: PromptItem[]
   prioritizedIds: string[]
@@ -38,6 +41,7 @@ export const PromptsKanban = memo(function PromptsKanban({
   // Memoize column data (heavy computation)
   const columns = useMemo(() => {
     const pending = prompts.filter((p) => p.status === 'pending')
+    const pendingById = new Map(pending.map((p) => [p.id, p] as const))
     const prioritizedSet = new Set(prioritizedIds)
     const doingSet = new Set(doingIds)
 
@@ -46,7 +50,7 @@ export const PromptsKanban = memo(function PromptsKanban({
 
     // Prioritized: maintain order from prioritizedIds
     const prioritized = prioritizedIds
-      .map((id) => pending.find((p) => p.id === id))
+      .map((id) => pendingById.get(id))
       .filter((p): p is PromptItem => p !== undefined)
 
     // Doing: prompts in doingIds
@@ -73,33 +77,37 @@ export const PromptsKanban = memo(function PromptsKanban({
       const activeId = active.id as string
       const overId = over.id as string
 
-      // Determine source and destination columns
       const sourceColumn = getColumnForId(activeId, columns, prioritizedIds, doingIds)
-      const destColumn = overId as 'backlog' | 'prioritized' | 'doing' | 'done' | 'failed'
+      const isColumnDrop = (COLUMN_IDS as readonly string[]).includes(overId)
+      const isKnownPromptDrop = Object.values(columns).some((items) => items.some((p) => p.id === overId))
+      if (!isColumnDrop && !isKnownPromptDrop) return
 
-      // Prevent drops into read-only columns
-      if (destColumn === 'done' || destColumn === 'failed') {
-        return
-      }
+      // When dropping on a card, over.id is the prompt id; resolve which column that card is in
+      const destColumn: ColumnId = isColumnDrop
+        ? (overId as ColumnId)
+        : getColumnForId(overId, columns, prioritizedIds, doingIds)
 
-      // Handle move between columns
-      if (sourceColumn !== destColumn) {
-        if (destColumn === 'backlog') {
-          onMoveToBacklog(activeId)
-        } else if (destColumn === 'prioritized') {
-          onMoveToPrioritized(activeId)
-        } else if (destColumn === 'doing') {
-          onMoveToDoing(activeId)
+      if (destColumn === 'done' || destColumn === 'failed') return
+      if (sourceColumn === destColumn && sourceColumn !== 'prioritized') return
+
+      // Reorder within prioritized: dropped on another card in same column
+      if (sourceColumn === 'prioritized' && destColumn === 'prioritized' && activeId !== overId) {
+        const oldIndex = prioritizedIds.indexOf(activeId)
+        const newIndex = prioritizedIds.indexOf(overId)
+        if (oldIndex >= 0 && newIndex >= 0) {
+          onReorderPrioritized(arrayMove(prioritizedIds, oldIndex, newIndex))
         }
         return
       }
 
-      // Handle reorder within prioritized column
-      if (destColumn === 'prioritized' && activeId !== overId) {
-        const oldIndex = prioritizedIds.indexOf(activeId)
-        const newIndex = prioritizedIds.indexOf(overId)
-        const newOrder = arrayMove(prioritizedIds, oldIndex, newIndex)
-        onReorderPrioritized(newOrder)
+      // Move between columns
+      if (sourceColumn !== destColumn) {
+        if (destColumn === 'backlog') onMoveToBacklog(activeId)
+        else if (destColumn === 'doing') onMoveToDoing(activeId)
+        else if (destColumn === 'prioritized') {
+          const index = columns.prioritized.findIndex((p) => p.id === overId)
+          onMoveToPrioritized(activeId, index >= 0 ? index : undefined)
+        }
       }
     },
     [columns, prioritizedIds, doingIds, onMoveToBacklog, onMoveToPrioritized, onMoveToDoing, onReorderPrioritized]
@@ -166,25 +174,18 @@ export const PromptsKanban = memo(function PromptsKanban({
       </div>
 
       <DragOverlay>
-        {activePrompt && <KanbanCard prompt={activePrompt} isDraggable />}
+        {activePrompt && <KanbanCard prompt={activePrompt} isDraggable={false} />}
       </DragOverlay>
     </DndContext>
   )
 })
 
-// Helper function to determine which column a prompt is in
 function getColumnForId(
   id: string,
-  columns: ReturnType<typeof useMemo<{
-    backlog: PromptItem[]
-    prioritized: PromptItem[]
-    doing: PromptItem[]
-    done: PromptItem[]
-    failed: PromptItem[]
-  }>>,
+  columns: { backlog: PromptItem[]; prioritized: PromptItem[]; doing: PromptItem[]; done: PromptItem[]; failed: PromptItem[] },
   prioritizedIds: string[],
   doingIds: string[]
-): 'backlog' | 'prioritized' | 'doing' | 'done' | 'failed' {
+): ColumnId {
   if (doingIds.includes(id)) return 'doing'
   if (prioritizedIds.includes(id)) return 'prioritized'
   if (columns.done.some((p) => p.id === id)) return 'done'

@@ -38,6 +38,7 @@ export const KanbanCard = memo(function KanbanCard({ prompt, isDraggable }: Kanb
     <Card
       ref={setNodeRef}
       style={style}
+      aria-label={`Prompt ${prompt.name}`}
       className={`mb-2 border border-border/60 bg-card/80 hover:border-blue-500/40 transition-colors ${
         isDragging ? 'shadow-xl cursor-grabbing' : isDraggable ? 'cursor-grab' : ''
       }`}
@@ -45,13 +46,15 @@ export const KanbanCard = memo(function KanbanCard({ prompt, isDraggable }: Kanb
       <CardContent className="p-3">
         <div className="flex items-start gap-2">
           {isDraggable && (
-            <div
+            <button
+              type="button"
               {...attributes}
               {...listeners}
+              aria-label={`Arrastar prompt ${prompt.name}`}
               className="mt-1 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing"
             >
               <GripVertical className="h-4 w-4" />
-            </div>
+            </button>
           )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
@@ -68,6 +71,7 @@ export const KanbanCard = memo(function KanbanCard({ prompt, isDraggable }: Kanb
               variant="ghost"
               size="sm"
               onClick={() => navigate(`/nw/prompts/${prompt.id}`)}
+              aria-label={`Ver detalhes do prompt ${prompt.name}`}
               className="mt-2 h-7 text-xs"
             >
               Ver detalhes

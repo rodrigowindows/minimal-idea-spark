@@ -254,7 +254,7 @@ export default function NWPrompts() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(isLoading || isFetching) && Array.from({ length: 5 }).map((_, i) => (
+                {isLoading && Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i} className="border-border/60">
                     <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-28" /></TableCell>
@@ -292,7 +292,7 @@ export default function NWPrompts() {
                     </TableCell>
                     <TableCell className="max-w-[220px] truncate font-mono text-xs text-blue-200">{prompt.target_folder || '—'}</TableCell>
                     <TableCell className="text-right space-x-2">
-                      <Button variant="ghost" size="sm" onClick={() => navigate(`/prompts/${prompt.id}`)}>Ver</Button>
+                      <Button variant="ghost" size="sm" onClick={() => navigate(`/nw/prompts/${prompt.id}`)}>Ver</Button>
                       {prompt.status === 'failed' && (
                         <Button variant="outline" size="sm" onClick={() => handleResend(prompt)} disabled={resendMutation.isPending}>
                           Reenviar
