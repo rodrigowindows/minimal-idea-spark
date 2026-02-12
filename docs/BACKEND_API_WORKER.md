@@ -606,3 +606,4 @@ O frontend implementa suporte dual:
 - Checklist: [NIGHTWORKER_BACKEND_CHECKLIST.md](./NIGHTWORKER_BACKEND_CHECKLIST.md)
 - Frontend API: [BACKEND_API_FRONTEND.md](./BACKEND_API_FRONTEND.md)
 - **Guia de compatibilidade completo**: [BACKEND_COMPATIBILITY.md](./BACKEND_COMPATIBILITY.md)
+- **Por que api_server não processa prompts da Edge**: [NIGHTWORKER_API_SERVER_VS_WORKER.md](./NIGHTWORKER_API_SERVER_VS_WORKER.md)

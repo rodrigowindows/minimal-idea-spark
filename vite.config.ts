@@ -186,6 +186,6 @@ export default defineConfig(({ mode }) => ({
       { find: "date-fns/locale", replacement: path.resolve(__dirname, "./node_modules/date-fns/locale.js") },
       { find: /^date-fns$/, replacement: path.resolve(__dirname, "./node_modules/date-fns/index.js") },
     ],
-    dedupe: ["react", "react-dom", "react/jsx-runtime", "react-i18next", "i18next", "@radix-ui/react-toast"],
+    dedupe: ["react", "react-dom", "react/jsx-runtime", "react-i18next", "i18next", "@radix-ui/react-toast", "react-router-dom"],
   },
 }));

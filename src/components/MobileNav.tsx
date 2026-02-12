@@ -15,9 +15,9 @@ import {
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, labelKey: 'nav.dashboard' },
-  { to: '/submit', icon: Send, labelKey: 'nav.submit' },
-  { to: '/prompts', icon: ListChecks, labelKey: 'nav.prompts' },
-  { to: '/logs', icon: Terminal, labelKey: 'nav.logs' },
+  { to: '/nw/submit', icon: Send, labelKey: 'nav.submit' },
+  { to: '/nw/prompts', icon: ListChecks, labelKey: 'nav.prompts' },
+  { to: '/nw/logs', icon: Terminal, labelKey: 'nav.logs' },
   { to: '/settings', icon: Settings2, labelKey: 'nav.settings' },
 ];
 
@@ -36,7 +36,7 @@ export function MobileNav() {
   const touchStartY = useRef(0);
 
   // Swipe gesture navigation (left/right between main pages)
-  const pages = ['/', '/submit', '/prompts', '/logs', '/settings'];
+  const pages = ['/', '/nw/submit', '/nw/prompts', '/nw/logs', '/settings'];
 
   useEffect(() => {
     const main = document.querySelector('main');

@@ -750,6 +750,8 @@ O worker mostra estatísticas **a cada 10 polls** (ou quando você aperta Ctrl+C
 
 **Causa**: Worker não está rodando.
 
+**Importante:** Se você está rodando apenas o **api_server.py** (porta 5555), ele **não** processa prompts que estão na **Supabase Edge**. Quem processa a Edge é o **worker.py** com `supabase_mode=true`. Veja [NIGHTWORKER_API_SERVER_VS_WORKER.md](./NIGHTWORKER_API_SERVER_VS_WORKER.md).
+
 **Solução**: Iniciar worker (ver seção "Como Ligar o Worker" acima).
 
 **Como verificar**:
@@ -998,6 +1000,7 @@ Para fazer o sistema funcionar completo:
 ## 📚 Documentação Adicional
 
 - [BACKEND_API_WORKER.md](./BACKEND_API_WORKER.md) - Documentação técnica do worker
+- [NIGHTWORKER_API_SERVER_VS_WORKER.md](./NIGHTWORKER_API_SERVER_VS_WORKER.md) - Por que api_server não processa prompts da Edge
 - [NIGHTWORKER_INTEGRATION_REVIEW.md](./NIGHTWORKER_INTEGRATION_REVIEW.md) - Revisão completa
 - [NIGHTWORKER_BACKEND_CHECKLIST.md](./NIGHTWORKER_BACKEND_CHECKLIST.md) - Checklist técnico
 
