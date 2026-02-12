@@ -568,8 +568,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                           <li key={item.to} className="space-y-0.5">
                             <div className="flex items-center gap-1">
                               <button
-                                onClick={() => setPromptsSubmenuOpen(!promptsSubmenuOpen)}
-                                className="flex-1"
+                                onClick={() => setPromptsSubmenuOpen(true)}
+                                className="flex-1 text-left"
                               >
                                 <SidebarNavItem
                                   item={{ to: item.to, icon: item.icon, label: t(item.labelKey), shortcut: item.shortcut, badge: item.badge }}

@@ -4,15 +4,15 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
-import { useLogsQuery } from '@/hooks/useNightWorkerApi'
+import { useHealthQuery, useLogsQuery } from '@/hooks/useNightWorkerApi'
 import { ApiError, useNightWorker } from '@/contexts/NightWorkerContext'
 import type { LogEntry } from '@/types/night-worker'
-import { Filter, Pause, Play, RefreshCw, Trash2, WifiOff } from 'lucide-react'
+import { Activity, Filter, Pause, Play, RefreshCw, Trash2, WifiOff } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 export default function NWLogs() {
-  const { isConnected } = useNightWorker()
+  const { isConnected, config } = useNightWorker()
   const navigate = useNavigate()
   const [worker, setWorker] = useState<'codex' | 'claude' | 'all'>('codex')
   const [level, setLevel] = useState<'INFO' | 'WARN' | 'ERROR' | 'ALL'>('ALL')
@@ -23,14 +23,13 @@ export default function NWLogs() {
   const [since, setSince] = useState<string | undefined>(undefined)
   const scrollRef = useRef<HTMLDivElement | null>(null)
 
+  const { data: health } = useHealthQuery()
   const { data, refetch, isFetching, error, isError } = useLogsQuery(
     { worker, level: level === 'ALL' ? undefined : level, lines: 120, since },
     { enabled: isConnected && !paused, refetchInterval: autoScroll ? 4000 : 8000 }
   )
   const logsUnavailable = isError && error instanceof ApiError && error.status === 404
-
-  // No redirect check - allow page to work regardless of isConnected state
-  // (removed to prevent infinite loops when token is not configured)
+  const isSupabase = config.baseUrl.includes('.supabase.co')
 
   useEffect(() => {
     if (!data) return
@@ -76,20 +75,73 @@ export default function NWLogs() {
           </Badge>
         </div>
       </div>
+
+      <div className="grid gap-4 mb-6 lg:grid-cols-3">
+        <Card className="border border-white/10 bg-card/70 backdrop-blur lg:col-span-2">
+          <CardHeader className="py-4">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Activity className="h-4 w-4 text-emerald-400" /> Monitor de Saúde
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="py-0 pb-4">
+            <div className="flex flex-wrap gap-6">
+              <div className="space-y-1">
+                <p className="text-[10px] uppercase text-muted-foreground">Status Geral</p>
+                <div className="flex items-center gap-2">
+                  <span className={`h-2 w-2 rounded-full ${health?.status === 'ok' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]' : 'bg-red-500'}`} />
+                  <span className="font-semibold">{health?.status === 'ok' ? 'Operacional' : 'Offline'}</span>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] uppercase text-muted-foreground">Versão API</p>
+                <p className="font-mono text-sm">{health?.version || '---'}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] uppercase text-muted-foreground">Providers Ativos</p>
+                <div className="flex gap-1">
+                  {health?.providers?.map(p => (
+                    <Badge key={p} variant="secondary" className="px-1.5 py-0 text-[10px]">{p}</Badge>
+                  )) || <span className="text-sm text-muted-foreground">Nenhum</span>}
+                </div>
+              </div>
+              {health?.uptime && (
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase text-muted-foreground">Uptime</p>
+                  <p className="text-sm">{health.uptime}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-amber-500/20 bg-amber-500/5 backdrop-blur">
+          <CardHeader className="py-4">
+            <CardTitle className="text-sm text-amber-200">Nota de Conexão</CardTitle>
+          </CardHeader>
+          <CardContent className="text-xs text-amber-100/70">
+            {isSupabase ? (
+              <p>Você está usando o backend <strong>Supabase</strong>. Logs em tempo real exigem uma conexão direta com o worker local ou via API B.</p>
+            ) : (
+              <p>Conectado ao <strong>Worker Direto</strong>. Se os logs não aparecerem, verifique se o script <code>worker.py</code> está rodando.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       {logsUnavailable && (
         <Alert className="mb-4 border-amber-500/40 bg-amber-500/10 text-amber-100">
-          <AlertTitle>Logs nao disponiveis</AlertTitle>
+          <AlertTitle>Logs não disponíveis</AlertTitle>
           <AlertDescription>
-            Logs nao disponiveis neste backend (edge-only). Use um worker local para ver logs em tempo real.
+            Este backend ({isSupabase ? 'Supabase Edge' : 'Legacy'}) não expõe logs via HTTP. 
+            Use um <strong>Worker Direto (API B)</strong> ou verifique o console do seu worker local.
           </AlertDescription>
         </Alert>
       )}
 
       <Card className="border border-white/10 bg-card/70 backdrop-blur">
-        <CardHeader className="flex flex-row items-start justify-between gap-3">
+        <CardHeader className="flex flex-row items-start justify-between gap-3 font-semibold">
           <div>
-            <CardTitle className="flex items-center gap-2"><Filter className="h-4 w-4" /> Controles</CardTitle>
-            <CardDescription>Selecione worker, nível e busca no log.</CardDescription>
+            <CardTitle className="flex items-center gap-2"><Filter className="h-4 w-4" /> Filtros do Console</CardTitle>
           </div>
           {!isConnected && (
             <Badge variant="outline" className="flex items-center gap-1 border-red-500/60 bg-red-500/10 text-red-200">

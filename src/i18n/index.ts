@@ -27,12 +27,14 @@ export function isRTL(lang: string): boolean {
 }
 
 // Silence the "i18next is maintained with support from locize.com" sponsorship message
-const originalConsoleLog = console.log
 const i18nextSponsorPattern = /locize\.com|i18next.*maintained/i
-console.log = (...args: unknown[]) => {
+const silenceLocize = (orig: any) => (...args: unknown[]) => {
   if (args.some((a) => typeof a === 'string' && i18nextSponsorPattern.test(a))) return
-  originalConsoleLog.apply(console, args)
+  if (typeof orig === 'function') orig.apply(console, args)
 }
+console.log = silenceLocize(console.log)
+console.info = silenceLocize(console.info)
+console.warn = silenceLocize(console.warn)
 
 i18n
   .use(LanguageDetector)
@@ -56,7 +58,7 @@ i18n
     },
   })
 
-// Restore original console.log after init
-console.log = originalConsoleLog
+// Note: No need to restore original consoles as silencing should persist for 3rd party libs
+
 
 export default i18n
