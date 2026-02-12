@@ -1003,5 +1003,26 @@ Para fazer o sistema funcionar completo:
 
 ---
 
+## Prompt: funcionamento completo (copiar quando precisar)
+
+Use o bloco abaixo quando quiser passar o funcionamento inteiro do Night Worker para outra pessoa ou para uma IA (ex.: nova sessão, onboarding, suporte).
+
+```
+Projeto: minimal-idea-spark (Night Worker). Workspace: C:\code\minimal-idea-spark.
+
+O que é: Sistema de fila de prompts (tarefas de código). O usuário cria prompts no frontend; um worker (separado) busca pendentes na API, processa com IA (Claude/Codex) e atualiza o status via PATCH. O frontend faz polling e mostra lista/Kanban (Backlog, Priorizado, Doing, Done, Falhas).
+
+Arquitetura em 3 partes:
+1) Frontend (React/Vite): /nw/submit (criar), /nw/prompts (listar + Kanban), /nw/prompts/:id (detalhe). Usa Supabase Edge como API. Auto-connect; polling 10s com pending, 30s sem.
+2) Backend A – Supabase Edge (nightworker-prompts): GET/POST/PATCH /prompts, GET /prompts/:id, GET /health. Guarda dados no Postgres. PATCH só aceita service-role (403 com anon). Não expõe GET /logs (edge-only).
+3) Backend B – Worker: consome a edge (GET ?status=pending&provider=X, depois PATCH com status=done/failed, result_content, etc.) com SUPABASE_SERVICE_ROLE_KEY. Três opções: (a) Node daemon em scripts/nightworker-worker-daemon.ts (loop, polling, MOCK; deploy systemd/docker/pm2); (b) Node one-shot em scripts/nightworker-worker-example.ts; (c) Python FastAPI já em produção em https://coder-ai.workfaraway.com (processamento real).
+
+Por que prompts ficam "Pendente": nenhum worker está rodando. É intencional; é preciso subir um worker (Python externo, Node local ou Node em produção).
+
+Para funcionar: (1) npx supabase functions deploy nightworker-prompts. (2) Rodar um worker com .env (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY) apontando para essa edge. Documentação completa: docs/NIGHTWORKER_COMO_FUNCIONA.md.
+```
+
+---
+
 **Última atualização**: 2026-02-12
 **Revisado por**: Claude (Sonnet 4.5)

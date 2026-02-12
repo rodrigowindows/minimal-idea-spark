@@ -10,7 +10,11 @@
       "Bash(git log:*)",
       "Bash(node:*)",
       "Bash(supabase functions deploy:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Read(//c/code/claude-auto/night-worker/**)",
+      "Read(//c/code/claude-auto/**)",
+      "Bash(python:*)",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "ask": []

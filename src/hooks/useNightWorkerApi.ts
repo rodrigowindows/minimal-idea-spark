@@ -23,17 +23,6 @@ interface UsePromptsQueryOptions {
   refetchOnWindowFocus?: boolean
 }
 
-/**
- * Extracts a human-readable name from a filename like "a1b2c3d4_nome-do-prompt.txt"
- */
-function nameFromFilename(filename?: string): string {
-  if (!filename) return 'sem-nome'
-  // Remove ID prefix (anything before first underscore) and .txt extension
-  const withoutExt = filename.replace(/\.txt$/i, '')
-  const underscoreIdx = withoutExt.indexOf('_')
-  return underscoreIdx >= 0 ? withoutExt.substring(underscoreIdx + 1) : withoutExt
-}
-
 export function useHealthQuery() {
   const { apiFetch, config, isConnected } = useNightWorker()
   return useQuery<HealthResponse>({
@@ -65,13 +54,13 @@ export function usePromptsQuery(pollMs = 15000, options: UsePromptsQueryOptions 
   const { apiFetch, isConnected, config } = useNightWorker()
   const {
     enabled = true,
-    staleTimeMs = 30000,
+    staleTimeMs = 5000, // Reduced from 30s to 5s to ensure polling works
     refetchOnMount = false,
     refetchOnWindowFocus = false,
   } = options
 
   if (import.meta.env.DEV) {
-    console.log('[usePromptsQuery] Hook called', {
+    console.debug('[usePromptsQuery] Hook called', {
       isConnected,
       enabled: isConnected && enabled,
       baseUrl: config.baseUrl,
@@ -83,7 +72,7 @@ export function usePromptsQuery(pollMs = 15000, options: UsePromptsQueryOptions 
     queryKey: promptsQueryKey(config.baseUrl),
     queryFn: async () => {
       if (import.meta.env.DEV) {
-        console.log('[usePromptsQuery] Starting fetch', { url: `${config.baseUrl}/prompts` })
+        console.debug('[usePromptsQuery] Starting fetch', { url: `${config.baseUrl}/prompts` })
       }
 
       try {
@@ -93,12 +82,12 @@ export function usePromptsQuery(pollMs = 15000, options: UsePromptsQueryOptions 
         const items = Array.isArray(raw) ? raw : (raw as PromptsListResponse).prompts ?? []
 
         if (import.meta.env.DEV) {
-          console.log('[usePromptsQuery] Received', items.length, 'items')
+          console.debug('[usePromptsQuery] Received', items.length, 'items')
         }
 
         return items.map((item: any) => ({
           id: item.id,
-          name: item.name || nameFromFilename(item.filename),
+          name: item.name ?? item.filename?.replace(/\.txt$/i, '') ?? 'sem-nome',
           provider: item.provider,
           status: item.status,
           content: item.content,
@@ -131,7 +120,11 @@ export function usePromptsQuery(pollMs = 15000, options: UsePromptsQueryOptions 
     },
     staleTime: staleTimeMs,
     gcTime: 5 * 60 * 1000,
-    refetchOnWindowFocus,
+    // Refetch on window focus only when there are pending prompts
+    refetchOnWindowFocus: (query) => {
+      const hasPending = query.state.data?.some((p) => p.status === 'pending')
+      return hasPending || refetchOnWindowFocus
+    },
     refetchOnMount,
     placeholderData: (previousData) => previousData,
     retry: (failureCount, error) => {
@@ -147,29 +140,59 @@ export function usePromptStatusQuery(id?: string) {
   return useQuery<PromptItem>({
     queryKey: ['nightworker', 'prompt', id],
     queryFn: async () => {
-      const raw = await apiFetch<PromptDetail & Record<string, unknown>>(`/prompts/${id}`)
-      return {
-        id: raw.id,
-        name: (raw as any).name || nameFromFilename(raw.filename),
-        provider: raw.provider,
-        status: raw.status,
-        content: raw.content ?? null,
-        target_folder: (raw as any).target_folder ?? null,
-        created_at: (raw as any).created_at,
-        updated_at: (raw as any).updated_at,
-        result_path: raw.path ?? (raw as any).result_path ?? null,
-        result_content: raw.result ?? (raw as any).result_content ?? null,
-        error: (raw as any).error ?? null,
-        attempts: (raw as any).attempts,
-        filename: raw.filename,
-      } satisfies PromptItem
+      try {
+        // Try Edge contract first: GET /prompts/:id
+        const raw = await apiFetch<PromptDetail & Record<string, unknown>>(`/prompts/${id}`)
+        return {
+          id: raw.id,
+          name: (raw as any).name ?? raw.filename?.replace(/\.txt$/i, '') ?? 'sem-nome',
+          provider: raw.provider,
+          status: raw.status,
+          content: raw.content ?? null,
+          target_folder: (raw as any).target_folder ?? null,
+          created_at: (raw as any).created_at,
+          updated_at: (raw as any).updated_at,
+          result_path: raw.path ?? (raw as any).result_path ?? null,
+          result_content: raw.result ?? (raw as any).result_content ?? null,
+          error: (raw as any).error ?? null,
+          attempts: (raw as any).attempts,
+          filename: raw.filename,
+        } satisfies PromptItem
+      } catch (error) {
+        // Fallback for api_server.py: try GET /prompts/:id/status
+        if (error instanceof ApiError && error.status === 404) {
+          try {
+            const fallback = await apiFetch<any>(`/prompts/${id}/status`)
+            return {
+              id: fallback.id,
+              name: fallback.filename?.replace(/\.txt$/i, '') ?? 'sem-nome',
+              provider: fallback.provider,
+              status: fallback.status,
+              content: fallback.content ?? null,
+              target_folder: null,
+              created_at: null,
+              updated_at: null,
+              result_path: fallback.path ?? null,
+              result_content: fallback.result ?? null,
+              error: null,
+              attempts: 0,
+              filename: fallback.filename,
+            } satisfies PromptItem
+          } catch {
+            // If both fail, re-throw original error
+            throw error
+          }
+        }
+        throw error
+      }
     },
     enabled: Boolean(id),
+    // Slower polling (15s) to avoid duplicate requests with list query (10s)
     refetchInterval: (query) => {
       const d = query.state.data
-      return d?.status === 'pending' ? 5000 : false
+      return d?.status === 'pending' ? 15000 : false
     },
-    staleTime: 2000,
+    staleTime: 5000,
   })
 }
 

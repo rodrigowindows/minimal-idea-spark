@@ -274,10 +274,50 @@ Access-Control-Allow-Methods: GET, POST, PATCH, OPTIONS
 
 ---
 
-## Notas de compatibilidade
+## Compatibility Notes
+
+### Arquitetura de 2 Backends
+
+O Night Worker possui **2 APIs diferentes**:
+
+1. **Supabase Edge Function (ESTA API)** - Fonte de verdade
+   - Localização: `minimal-idea-spark/supabase/functions/nightworker-prompts/index.ts`
+   - Endpoints: `/health`, `/prompts`, `/prompts/:id` (GET com events), `PATCH /prompts/:id`
+   - `/logs` **NÃO EXISTE** (404 tratado silenciosamente)
+   - PATCH requer **service-role token** (403 para anon)
+   - Idempotência: PATCH retorna 409 se já processado
+
+2. **api_server.py (file-based)** - Backend alternativo
+   - Localização: `claude-auto/api_server.py`
+   - **Contrato diferente**:
+     - GET `/prompts/:id/status` (não `/prompts/:id`)
+     - Campos diferentes: `path` (não `result_path`), `result` (não `result_content`)
+     - Sem eventos, sem PATCH, sem /logs
+   - Uso: desenvolvimento local, testes
+
+3. **worker.py** - Consumidor (não é API)
+   - `supabase_mode=true`: Consome Edge (GET pending + PATCH done/failed)
+   - `supabase_mode=false`: File-based local (input/*.txt)
+
+### Frontend Fallback Strategy
+
+O frontend (`src/hooks/useNightWorkerApi.ts`) implementa fallback automático:
+
+```typescript
+// 1. Tenta Edge contract: GET /prompts/:id
+// 2. Se 404, tenta api_server.py: GET /prompts/:id/status
+// 3. Mapeia campos: path→result_path, result→result_content
+```
+
+### Notas de Compatibilidade Legadas
 
 - A edge function retorna `{ total, prompts: [...] }` no list. O frontend aceita tanto esse formato quanto array puro.
 - O campo `filename` do tipo antigo e mapeado para `name` via `nameFromFilename()`.
 - O campo `has_result` e inferido de `result != null` quando nao presente.
 - `/logs` **nao existe** na API Supabase (edge). Requisicoes a /logs retornam 404 e sao tratadas silenciosamente (`silentStatuses: [404]`).
 - O frontend usa `isConnected: true` sempre (token nao e obrigatorio para leitura).
+
+### Referências
+
+- Guia completo de compatibilidade: [BACKEND_COMPATIBILITY.md](./BACKEND_COMPATIBILITY.md)
+- Worker API: [BACKEND_API_WORKER.md](./BACKEND_API_WORKER.md)
