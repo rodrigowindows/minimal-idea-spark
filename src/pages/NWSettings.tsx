@@ -21,13 +21,13 @@ function getDefaultSupabaseUrl(): string {
 
 const BACKEND_PRESETS: Record<ApiBackend, { label: string; description: string; url: string }> = {
   supabase: {
-    label: 'Supabase Edge (API A)',
-    description: 'Edge function no Supabase. Cria/lista prompts. Nao expoe /logs.',
+    label: 'Supabase Edge (Fonte de Verdade)',
+    description: 'API oficial (A). Recomendado. CRUD completo em DB. PATCH seguro.',
     url: getDefaultSupabaseUrl(),
   },
   worker: {
-    label: 'Worker direto (API B)',
-    description: 'API do worker externo (ex.: coder-ai.workfaraway.com). Expoe /logs.',
+    label: 'API Alternativa (File-based)',
+    description: 'API local/legacy (B). Salva prompts em input/. Detalhe via /status.',
     url: 'https://coder-ai.workfaraway.com',
   },
 }
