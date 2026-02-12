@@ -139,7 +139,8 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          // Keep react-router-dom out of vendor chunk to avoid "useLocation is not defined" when chunk load order differs (e.g. Lovable deploy)
+          'vendor-react': ['react', 'react-dom'],
           'vendor-ui': [
             '@radix-ui/react-dialog',
             '@radix-ui/react-dropdown-menu',

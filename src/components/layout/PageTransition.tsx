@@ -1,14 +1,12 @@
 import { motion } from 'framer-motion'
 import { type ReactNode, useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
 
 interface PageTransitionProps {
   children: ReactNode
+  pathname: string
 }
 
-export function PageTransition({ children }: PageTransitionProps) {
-  const { pathname } = useLocation()
-
+export function PageTransition({ children, pathname }: PageTransitionProps) {
   useEffect(() => {
     if (import.meta.env.DEV) {
       console.debug('[PageTransition] Mounting path:', pathname)
