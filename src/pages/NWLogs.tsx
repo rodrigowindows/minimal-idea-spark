@@ -78,9 +78,9 @@ export default function NWLogs() {
       </div>
       {logsUnavailable && (
         <Alert className="mb-4 border-amber-500/40 bg-amber-500/10 text-amber-100">
-          <AlertTitle>Endpoint /logs indisponivel</AlertTitle>
+          <AlertTitle>Logs nao disponiveis</AlertTitle>
           <AlertDescription>
-            Esta API edge nao expoe logs em tempo real. A tela continua funcional sem quebrar a experiencia.
+            Logs nao disponiveis neste backend (edge-only). Use um worker local para ver logs em tempo real.
           </AlertDescription>
         </Alert>
       )}

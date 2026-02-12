@@ -127,6 +127,10 @@ export default defineConfig(({ mode }) => ({
       },
     }),
   ].filter(Boolean),
+  define: {
+    // Silence i18next locize sponsorship console warning
+    'process.env.I18NEXT_IGNORE_SUPPORT_NOTICE': JSON.stringify('1'),
+  },
   build: {
     chunkSizeWarningLimit: 650,
     rollupOptions: {

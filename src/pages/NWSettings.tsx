@@ -7,22 +7,56 @@ import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { useNightWorker } from '@/contexts/NightWorkerContext'
 import { toast } from 'sonner'
-import { Copy, Eye, EyeOff, KeyRound, Save, Settings2, Shield } from 'lucide-react'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Copy, Eye, EyeOff, Save, Settings2, Shield } from 'lucide-react'
 import type { WorkerConfig } from '@/types/night-worker'
+
+const API_BACKEND_KEY = 'nightworker_api_backend'
+type ApiBackend = 'supabase' | 'worker'
+
+function getDefaultSupabaseUrl(): string {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined
+  return supabaseUrl ? `${supabaseUrl}/functions/v1/nightworker-prompts` : ''
+}
+
+const BACKEND_PRESETS: Record<ApiBackend, { label: string; description: string; url: string }> = {
+  supabase: {
+    label: 'Supabase Edge (API A)',
+    description: 'Edge function no Supabase. Cria/lista prompts. Nao expoe /logs.',
+    url: getDefaultSupabaseUrl(),
+  },
+  worker: {
+    label: 'Worker direto (API B)',
+    description: 'API do worker externo (ex.: coder-ai.workfaraway.com). Expoe /logs.',
+    url: 'https://coder-ai.workfaraway.com',
+  },
+}
 
 export default function NWSettings() {
   const { config, setConfig, setToken } = useNightWorker()
   const [showToken, setShowToken] = useState(false)
   const [localConfig, setLocalConfig] = useState(config)
+  const [apiBackend, setApiBackend] = useState<ApiBackend>(() => {
+    return (localStorage.getItem(API_BACKEND_KEY) as ApiBackend) || 'supabase'
+  })
 
   useEffect(() => {
     setLocalConfig(config)
   }, [config])
 
+  const handleBackendChange = (value: ApiBackend) => {
+    setApiBackend(value)
+    localStorage.setItem(API_BACKEND_KEY, value)
+    const preset = BACKEND_PRESETS[value]
+    if (preset.url) {
+      setLocalConfig((p) => ({ ...p, baseUrl: preset.url }))
+    }
+  }
+
   const handleSave = () => {
     setConfig(localConfig)
     setToken(localConfig.token)
-    toast.success('Configurações salvas')
+    toast.success('Configuracoes salvas')
   }
 
   return (
@@ -49,6 +83,28 @@ export default function NWSettings() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Backend da API</Label>
+              <RadioGroup value={apiBackend} onValueChange={(v) => handleBackendChange(v as ApiBackend)} className="flex flex-col gap-2">
+                {(Object.entries(BACKEND_PRESETS) as [ApiBackend, typeof BACKEND_PRESETS['supabase']][]).map(([key, preset]) => (
+                  <label
+                    key={key}
+                    className={`flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
+                      apiBackend === key
+                        ? 'border-blue-500/60 bg-blue-500/10'
+                        : 'border-border/60 bg-background/40 hover:border-border'
+                    }`}
+                  >
+                    <RadioGroupItem value={key} className="mt-0.5" />
+                    <div>
+                      <span className="text-sm font-medium">{preset.label}</span>
+                      <p className="text-xs text-muted-foreground">{preset.description}</p>
+                    </div>
+                  </label>
+                ))}
+              </RadioGroup>
+            </div>
+
             <div className="space-y-2">
               <Label>Token atual</Label>
               <div className="relative">

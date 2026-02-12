@@ -54,7 +54,7 @@ export default function NWPromptDetail() {
       }
       const { id: newId } = await resend.mutateAsync(payload)
       toast.success('Reenviado', { description: `Novo ID: ${newId}` })
-      navigate(`/prompts/${newId}`)
+      navigate(`/nw/prompts/${newId}`)
     } catch {
       toast.error('Falha ao reenviar')
     }
@@ -68,7 +68,7 @@ export default function NWPromptDetail() {
         <Alert className="mb-4 border-amber-500/40 bg-amber-500/10 text-amber-100">
           <AlertTitle>Configure a conexão</AlertTitle>
           <AlertDescription>
-            Defina a URL/token em <button className="underline" onClick={() => navigate('/connect')}>/connect</button> para ver os detalhes.
+            Defina a URL/token em <button className="underline" onClick={() => navigate('/nw/connect')}>/connect</button> para ver os detalhes.
           </AlertDescription>
         </Alert>
       )}

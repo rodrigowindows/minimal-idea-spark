@@ -5,16 +5,15 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StatusBadge } from '@/components/night-worker/StatusBadge'
 import { ProviderBadge } from '@/components/night-worker/ProviderBadge'
 import { PromptsKanban } from '@/components/night-worker/PromptsKanban'
 import { useCreatePromptMutation, usePromptsQuery } from '@/hooks/useNightWorkerApi'
-import { useNightWorker } from '@/contexts/NightWorkerContext'
+import { useNightWorker, ApiError } from '@/contexts/NightWorkerContext'
 import { useKanbanState } from '@/hooks/useKanbanState'
 import type { PromptItem } from '@/types/night-worker'
-import { Calendar, Filter, RefreshCw, Search, Send, List, Kanban } from 'lucide-react'
+import { Calendar, Filter, Loader2, RefreshCw, Search, Send, List, Kanban } from 'lucide-react'
 import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
@@ -110,18 +109,31 @@ export default function NWPrompts() {
         <Alert className="mb-4 border-amber-500/40 bg-amber-500/10 text-amber-100">
           <AlertTitle>Configure a conexão</AlertTitle>
           <AlertDescription>
-            Defina a URL e o token em <button className="underline" onClick={() => navigate('/connect')}>/connect</button> para listar prompts.
+            Defina a URL e o token em <button className="underline" onClick={() => navigate('/nw/connect')}>/connect</button> para listar prompts.
           </AlertDescription>
         </Alert>
       )}
 
       {isError && (
         <Alert className="mb-4 border-red-500/40 bg-red-500/10 text-red-100">
-          <AlertTitle>Erro ao carregar</AlertTitle>
+          <AlertTitle>
+            {error instanceof ApiError && (error.status === 408 || error.message?.includes('timeout'))
+              ? 'Timeout ao carregar prompts'
+              : 'Erro ao carregar prompts'}
+          </AlertTitle>
           <AlertDescription>
-            {error instanceof Error ? error.message : 'Não foi possível contatar a API. Verifique a URL/token.'}
-            <div className="mt-2">
-              <Button size="sm" variant="outline" onClick={() => refetch()}>Tentar novamente</Button>
+            {error instanceof ApiError && (error.status === 408 || error.message?.includes('timeout'))
+              ? 'A API demorou demais a responder. Verifique se o servidor esta acessivel.'
+              : error instanceof Error
+                ? error.message
+                : 'Nao foi possivel contatar a API. Verifique a URL/token.'}
+            <div className="mt-2 flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={() => refetch()}>
+                <RefreshCw className="mr-1 h-3 w-3" /> Tentar novamente
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => navigate('/nw/connect')}>
+                Configurar API
+              </Button>
             </div>
           </AlertDescription>
         </Alert>
@@ -154,7 +166,7 @@ export default function NWPrompts() {
           <Button variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
           </Button>
-          <Button onClick={() => navigate('/submit')}>Enviar novo</Button>
+          <Button onClick={() => navigate('/nw/submit')}>Enviar novo</Button>
         </div>
       </div>
 
@@ -218,8 +230,17 @@ export default function NWPrompts() {
         </div>
       </div>
 
+      {/* Loading state with clear feedback */}
+      {isLoading && !data && (
+        <div className="mt-6 flex flex-col items-center justify-center gap-3 py-12 text-muted-foreground">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
+          <p className="text-sm font-medium">Carregando prompts...</p>
+          <p className="text-xs text-muted-foreground/70">Conectando a {config.baseUrl}</p>
+        </div>
+      )}
+
       {/* Kanban View */}
-      {viewMode === 'kanban' && (
+      {viewMode === 'kanban' && !isLoading && (
         <div className="mt-4">
           <PromptsKanban
             prompts={filtered}
@@ -234,7 +255,7 @@ export default function NWPrompts() {
       )}
 
       {/* List View */}
-      {viewMode === 'list' && (
+      {viewMode === 'list' && !isLoading && (
       <Card className="mt-4 border border-white/10 bg-card/70 backdrop-blur">
         <CardHeader>
           <CardTitle>Lista completa</CardTitle>
@@ -254,25 +275,13 @@ export default function NWPrompts() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading && Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i} className="border-border/60">
-                    <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                    <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                    <TableCell className="text-right"><Skeleton className="h-8 w-24 rounded-full ml-auto" /></TableCell>
-                  </TableRow>
-                ))}
-
-                {!isLoading && paginated.length === 0 && (
+                {paginated.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                       <div className="flex flex-col items-center gap-2">
                         <Send className="h-6 w-6 text-blue-300" />
                         <p>Nenhum prompt encontrado</p>
-                        <Button onClick={() => navigate('/submit')}>Enviar primeiro prompt</Button>
+                        <Button onClick={() => navigate('/nw/submit')}>Enviar primeiro prompt</Button>
                       </div>
                     </TableCell>
                   </TableRow>

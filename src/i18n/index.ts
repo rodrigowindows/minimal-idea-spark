@@ -26,12 +26,19 @@ export function isRTL(lang: string): boolean {
   return RTL_LANGUAGES.has(lang)
 }
 
+// Silence the "i18next is maintained with support from locize.com" sponsorship message
+const originalConsoleLog = console.log
+const i18nextSponsorPattern = /locize\.com|i18next.*maintained/i
+console.log = (...args: unknown[]) => {
+  if (args.some((a) => typeof a === 'string' && i18nextSponsorPattern.test(a))) return
+  originalConsoleLog.apply(console, args)
+}
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     debug: false,
-    showSupportNotice: false,
     resources: {
       'pt-BR': { translation: ptBR },
       en: { translation: en },
@@ -48,5 +55,8 @@ i18n
       escapeValue: false,
     },
   })
+
+// Restore original console.log after init
+console.log = originalConsoleLog
 
 export default i18n

@@ -21,6 +21,7 @@ export type ApiFetchOptions = RequestInit & {
   skipAuth?: boolean
   retry?: number
   silentStatuses?: number[]
+  timeout?: number
 }
 
 interface NightWorkerContextValue {
@@ -168,20 +169,21 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
 
   const apiFetch = useCallback(
     async <T,>(path: string, options?: ApiFetchOptions) => {
-      const { skipAuth = false, retry = 3, silentStatuses = [], headers, ...rest } = options || {}
+      const { skipAuth = false, retry = 3, silentStatuses = [], timeout = 10_000, headers, ...rest } = options || {}
       const base = sanitizeBaseUrl(config.baseUrl || DEFAULT_BASE_URL)
       const url = path.startsWith('http') ? path : `${base}/${path.replace(/^\//, '')}`
       const maxAttempts = Number.isFinite(retry) ? Math.max(1, Math.floor(retry)) : 3
       const silentStatusSet = new Set(silentStatuses)
 
-      console.log('[apiFetch] 📡 Starting request', {
-        path,
-        url,
-        hasToken: !!config.token,
-        skipAuth,
-        method: rest.method || 'GET',
-        timestamp: new Date().toISOString()
-      })
+      if (import.meta.env.DEV) {
+        console.log('[apiFetch] Starting request', {
+          path,
+          url,
+          hasToken: !!config.token,
+          skipAuth,
+          method: rest.method || 'GET',
+        })
+      }
 
       const mergedHeaders = new Headers(headers || {})
       if (!mergedHeaders.has('Content-Type') && rest.body && !(rest.body instanceof FormData)) {
@@ -196,15 +198,28 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
       let error: unknown
 
       while (attempt < maxAttempts) {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), timeout)
+        // If caller provided a signal, abort our controller if theirs aborts
+        if (rest.signal) {
+          rest.signal.addEventListener('abort', () => controller.abort(), { once: true })
+        }
         try {
-          console.log(`[apiFetch] 🔄 Attempt ${attempt + 1}/${maxAttempts}`)
+          if (import.meta.env.DEV) {
+            console.log(`[apiFetch] Attempt ${attempt + 1}/${maxAttempts}`)
+          }
 
-          const response = await fetch(url, { ...rest, headers: mergedHeaders })
-
-          console.log(`[apiFetch] 📨 Response ${response.status}`, {
-            ok: response.ok,
-            timestamp: new Date().toISOString()
+          const response = await fetch(url, {
+            ...rest,
+            headers: mergedHeaders,
+            signal: controller.signal,
           })
+
+          clearTimeout(timeoutId)
+
+          if (import.meta.env.DEV) {
+            console.log(`[apiFetch] Response ${response.status}`, { ok: response.ok })
+          }
 
           if (response.status === 401) {
             setLastError('auth')
@@ -226,17 +241,25 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
               : await response.text()
           setLastError(null)
           if (import.meta.env.DEV) {
-            console.log('[NightWorker] ✓ API success', { url, status: response.status, dataType: typeof data })
+            console.log('[NightWorker] API success', { url, status: response.status })
           }
           return data as T
         } catch (err) {
+          clearTimeout(timeoutId)
+          // Treat AbortError as timeout — do not retry
+          if (err instanceof DOMException && err.name === 'AbortError') {
+            const timeoutErr = new ApiError(`Request timeout after ${timeout}ms`, 408)
+            if (!silentStatusSet.has(408)) {
+              console.error('[NightWorker] Request timeout', { url, timeout })
+            }
+            throw timeoutErr
+          }
           error = err
           const silentError = err instanceof ApiError && silentStatusSet.has(err.status ?? -1)
           if (!silentError) {
             console.error(`[apiFetch] Attempt ${attempt + 1} failed:`, err)
           }
           attempt += 1
-          if (err instanceof DOMException && err.name === 'AbortError') break
           if (silentError || attempt >= maxAttempts) break
           const delay = Math.min(4000, 250 * 2 ** attempt)
           if (import.meta.env.DEV) {
@@ -247,7 +270,7 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
       }
       const silentError = error instanceof ApiError && silentStatusSet.has(error.status ?? -1)
       if (!silentError) {
-        console.error('[NightWorker] ✗ API fetch failed after all retries', { url, error })
+        console.error('[NightWorker] API fetch failed after all retries', { url, error })
       }
       throw error
     },

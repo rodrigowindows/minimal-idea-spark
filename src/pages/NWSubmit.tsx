@@ -42,7 +42,7 @@ export default function NWSubmit() {
     try {
       const { id } = await mutation.mutateAsync(values as { provider: string; name: string; content: string; target_folder: string })
       toast.success('Prompt enviado', { description: `ID: ${id}` })
-      navigate(`/prompts/${id}`)
+      navigate(`/nw/prompts/${id}`)
     } catch (err) {
       toast.error('Erro ao enviar prompt')
     }

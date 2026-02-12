@@ -175,7 +175,6 @@ function AppContent() {
           <Route path="/prompts/:id" element={<Suspense fallback={<PageFallback />}><NWPromptDetail /></Suspense>} />
           <Route path="/submit" element={<Suspense fallback={<PageFallback />}><NWSubmit /></Suspense>} />
           <Route path="/logs" element={<Suspense fallback={<PageFallback />}><NWLogs /></Suspense>} />
-          <Route path="/settings" element={<Suspense fallback={<PageFallback />}><NWSettings /></Suspense>} />
           <Route path="/connect" element={<Suspense fallback={<PageFallback />}><NWConnect /></Suspense>} />
         </Route>
         <Route path="/invite/:token" element={<Suspense fallback={<PageFallback />}><AcceptInvite /></Suspense>} />

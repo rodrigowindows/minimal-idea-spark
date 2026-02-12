@@ -70,34 +70,31 @@ export function usePromptsQuery(pollMs = 15000, options: UsePromptsQueryOptions 
     refetchOnWindowFocus = false,
   } = options
 
-  console.log('[usePromptsQuery] Hook called', {
-    isConnected,
-    enabled: isConnected && enabled,
-    baseUrl: config.baseUrl,
-    pollMs,
-    timestamp: new Date().toISOString()
-  })
+  if (import.meta.env.DEV) {
+    console.log('[usePromptsQuery] Hook called', {
+      isConnected,
+      enabled: isConnected && enabled,
+      baseUrl: config.baseUrl,
+      pollMs,
+    })
+  }
 
   return useQuery<PromptItem[]>({
     queryKey: promptsQueryKey(config.baseUrl),
     queryFn: async () => {
-      console.log('[usePromptsQuery] 🚀 Starting fetch', {
-        url: `${config.baseUrl}/prompts`,
-        timestamp: new Date().toISOString()
-      })
+      if (import.meta.env.DEV) {
+        console.log('[usePromptsQuery] Starting fetch', { url: `${config.baseUrl}/prompts` })
+      }
 
       try {
         // The API may return { total, prompts: [...] } or a plain array.
         const raw = await apiFetch<PromptsListResponse | PromptItem[]>('/prompts')
 
-        console.log('[usePromptsQuery] ✅ Response received', {
-          type: Array.isArray(raw) ? 'array' : 'object',
-          timestamp: new Date().toISOString()
-        })
-
         const items = Array.isArray(raw) ? raw : (raw as PromptsListResponse).prompts ?? []
 
-        console.log('[usePromptsQuery] 📦 Mapping', items.length, 'items')
+        if (import.meta.env.DEV) {
+          console.log('[usePromptsQuery] Received', items.length, 'items')
+        }
 
         return items.map((item: any) => ({
           id: item.id,
@@ -117,13 +114,12 @@ export function usePromptsQuery(pollMs = 15000, options: UsePromptsQueryOptions 
           has_result: item.has_result ?? (item.result != null),
         } satisfies PromptItem))
       } catch (error) {
-        console.error('[usePromptsQuery] ❌ Error', {
-          error,
-          name: error?.constructor?.name,
-          message: error instanceof Error ? error.message : String(error),
-          status: (error as any)?.status,
-          timestamp: new Date().toISOString()
-        })
+        if (import.meta.env.DEV) {
+          console.error('[usePromptsQuery] Error', {
+            message: error instanceof Error ? error.message : String(error),
+            status: (error as any)?.status,
+          })
+        }
         throw error
       }
     },
@@ -138,6 +134,11 @@ export function usePromptsQuery(pollMs = 15000, options: UsePromptsQueryOptions 
     refetchOnWindowFocus,
     refetchOnMount,
     placeholderData: (previousData) => previousData,
+    retry: (failureCount, error) => {
+      // Don't retry on timeout or auth errors
+      if (error instanceof ApiError && (error.status === 408 || error.status === 401)) return false
+      return failureCount < 2
+    },
   })
 }
 
