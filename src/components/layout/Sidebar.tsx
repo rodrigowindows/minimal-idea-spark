@@ -128,7 +128,7 @@ const SECTION_LABELS: Record<SectionKey, string> = {
   favorites: 'nav.sectionFavorites',
 }
 
-const SECTION_ORDER: SectionKey[] = ['favorites', 'recent', 'principal', 'tools', 'nightworker', 'config']
+const SECTION_ORDER: SectionKey[] = ['favorites', 'recent', 'nightworker', 'principal', 'tools', 'config']
 
 const STORAGE_KEY_BASE = 'lifeos_sidebar_sections'
 const FAVORITES_KEY_BASE = 'lifeos_sidebar_favorites'

@@ -17,7 +17,11 @@ export class ApiError extends Error {
   }
 }
 
-export type ApiFetchOptions = RequestInit & { skipAuth?: boolean; retry?: number }
+export type ApiFetchOptions = RequestInit & {
+  skipAuth?: boolean
+  retry?: number
+  silentStatuses?: number[]
+}
 
 interface NightWorkerContextValue {
   config: NightWorkerConfig
@@ -164,9 +168,11 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
 
   const apiFetch = useCallback(
     async <T,>(path: string, options?: ApiFetchOptions) => {
-      const { skipAuth = false, retry = 3, headers, ...rest } = options || {}
+      const { skipAuth = false, retry = 3, silentStatuses = [], headers, ...rest } = options || {}
       const base = sanitizeBaseUrl(config.baseUrl || DEFAULT_BASE_URL)
       const url = path.startsWith('http') ? path : `${base}/${path.replace(/^\//, '')}`
+      const maxAttempts = Number.isFinite(retry) ? Math.max(1, Math.floor(retry)) : 3
+      const silentStatusSet = new Set(silentStatuses)
 
       if (import.meta.env.DEV) {
         console.log('[apiFetch] Starting request', {
@@ -190,10 +196,10 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
       let attempt = 0
       let error: unknown
 
-      while (attempt < retry) {
+      while (attempt < maxAttempts) {
         try {
           if (import.meta.env.DEV) {
-            console.log(`[apiFetch] Attempt ${attempt + 1}/${retry} to ${url}`)
+            console.log(`[apiFetch] Attempt ${attempt + 1}/${maxAttempts} to ${url}`)
           }
           const response = await fetch(url, { ...rest, headers: mergedHeaders })
 
@@ -211,8 +217,11 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
           }
           if (!response.ok) {
             const text = await response.text()
-            console.error('[NightWorker] API error', { url, status: response.status, body: text })
-            throw new ApiError(text || response.statusText, response.status)
+            const apiError = new ApiError(text || response.statusText, response.status)
+            if (!silentStatusSet.has(response.status)) {
+              console.error('[NightWorker] API error', { url, status: response.status, body: text })
+            }
+            throw apiError
           }
           const contentType = response.headers.get('content-type') || ''
           const data = response.status === 204
@@ -227,10 +236,13 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
           return data as T
         } catch (err) {
           error = err
-          console.error(`[apiFetch] Attempt ${attempt + 1} failed:`, err)
+          const silentError = err instanceof ApiError && silentStatusSet.has(err.status ?? -1)
+          if (!silentError) {
+            console.error(`[apiFetch] Attempt ${attempt + 1} failed:`, err)
+          }
           attempt += 1
           if (err instanceof DOMException && err.name === 'AbortError') break
-          if (attempt >= retry) break
+          if (silentError || attempt >= maxAttempts) break
           const delay = Math.min(4000, 250 * 2 ** attempt)
           if (import.meta.env.DEV) {
             console.log(`[apiFetch] Retrying in ${delay}ms...`)
@@ -238,7 +250,10 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
           await new Promise((resolve) => setTimeout(resolve, delay))
         }
       }
-      console.error('[NightWorker] ✗ API fetch failed after all retries', { url, error })
+      const silentError = error instanceof ApiError && silentStatusSet.has(error.status ?? -1)
+      if (!silentError) {
+        console.error('[NightWorker] ✗ API fetch failed after all retries', { url, error })
+      }
       throw error
     },
     [config.baseUrl, config.token]

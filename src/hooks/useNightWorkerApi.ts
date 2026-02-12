@@ -178,7 +178,10 @@ export function useLogsQuery(
   return useQuery<LogEntry[]>({
     queryKey: ['nightworker', 'logs', queryString],
     queryFn: () =>
-      apiFetch<LogEntry[]>(`/logs${queryString ? `?${queryString}` : ''}`),
+      apiFetch<LogEntry[]>(`/logs${queryString ? `?${queryString}` : ''}`, {
+        retry: 1,
+        silentStatuses: [404],
+      }),
     enabled: (options?.enabled ?? true) && isConnected,
     refetchInterval: (query) => {
       if (query.state.error instanceof ApiError && query.state.error.status === 404) return false
