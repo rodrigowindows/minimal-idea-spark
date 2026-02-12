@@ -84,7 +84,14 @@ const queryClient = new QueryClient({
       gcTime: 1000 * 60 * 30, // 30 min garbage collection
       refetchOnWindowFocus: false,
       refetchOnReconnect: true,
+      refetchOnMount: true, // Default to always refetch on mount
       retry: 1,
+      // Network mode: fail fast if offline
+      networkMode: 'online',
+    },
+    mutations: {
+      // Mutations should also respect network state
+      networkMode: 'online',
     },
   },
 });

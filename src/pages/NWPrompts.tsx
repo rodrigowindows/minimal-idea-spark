@@ -30,15 +30,17 @@ export default function NWPrompts() {
   const [toDate, setToDate] = useState('')
   const [page, setPage] = useState(1)
 
-  // Debug logging to understand loading state in production
+  // Debug logging to understand loading state in development
   useEffect(() => {
-    console.info('[NightWorker][Prompts] state', {
-      isConnected,
-      isLoading,
-      isFetching,
-      isError,
-      dataCount: data?.length ?? 0,
-    })
+    if (import.meta.env.DEV) {
+      console.info('[NightWorker][Prompts] state', {
+        isConnected,
+        isLoading,
+        isFetching,
+        isError,
+        dataCount: data?.length ?? 0,
+      })
+    }
   }, [data?.length, isConnected, isLoading, isFetching, isError])
 
   // No redirect check - allow page to work regardless of isConnected state

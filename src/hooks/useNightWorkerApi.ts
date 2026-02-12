@@ -53,27 +53,35 @@ export function useHealthQuery() {
 export function usePromptsQuery(pollMs = 15000) {
   const { apiFetch, isConnected, config } = useNightWorker()
 
-  console.log('[usePromptsQuery] Hook called', {
-    isConnected,
-    baseUrl: config.baseUrl,
-    pollMs
-  })
+  if (import.meta.env.DEV) {
+    console.log('[usePromptsQuery] Hook called', {
+      isConnected,
+      baseUrl: config.baseUrl,
+      pollMs
+    })
+  }
 
   const query = useQuery<PromptItem[]>({
     queryKey: PROMPTS_KEY,
     queryFn: async () => {
-      console.log('[usePromptsQuery] Starting fetch to /prompts')
+      if (import.meta.env.DEV) {
+        console.log('[usePromptsQuery] Starting fetch to /prompts')
+      }
 
       try {
         // The API may return { total, providers, prompts: [...] } or a plain array
         const raw = await apiFetch<PromptsListResponse | PromptItem[]>('/prompts')
 
-        console.log('[usePromptsQuery] Raw response:', raw)
+        if (import.meta.env.DEV) {
+          console.log('[usePromptsQuery] Raw response:', raw)
+        }
 
         // Handle wrapped response
         const items = Array.isArray(raw) ? raw : (raw as PromptsListResponse).prompts ?? []
 
-        console.log('[usePromptsQuery] Parsed items count:', items.length)
+        if (import.meta.env.DEV) {
+          console.log('[usePromptsQuery] Parsed items count:', items.length)
+        }
 
         const mapped = items.map((item: any) => ({
           id: item.id,
@@ -93,7 +101,9 @@ export function usePromptsQuery(pollMs = 15000) {
           has_result: item.has_result ?? (item.result != null),
         } satisfies PromptItem))
 
-        console.log('[usePromptsQuery] Mapped items:', mapped)
+        if (import.meta.env.DEV) {
+          console.log('[usePromptsQuery] Mapped items:', mapped)
+        }
 
         return mapped
       } catch (error) {
@@ -102,16 +112,28 @@ export function usePromptsQuery(pollMs = 15000) {
       }
     },
     enabled: isConnected,
-    refetchInterval: pollMs,
-    staleTime: 3000,
+    // Intelligent polling: faster when there are pending items, slower otherwise
+    refetchInterval: (query) => {
+      const hasPending = query.state.data?.some((p) => p.status === 'pending')
+      return hasPending ? Math.min(pollMs, 10000) : Math.max(pollMs, 30000)
+    },
+    staleTime: 30000, // 30s - reduce unnecessary refetches
+    gcTime: 5 * 60 * 1000, // 5min - keep in cache longer
+    refetchOnWindowFocus: false, // Prevent refetch storms on window focus
+    refetchOnMount: 'always', // Always fetch fresh data on mount
+    placeholderData: (previousData) => previousData, // Keep previous data while refetching
   })
 
   useEffect(() => {
-    if (query.data) console.info('[NightWorker] ✓ fetched prompts', { count: query.data.length })
+    if (import.meta.env.DEV && query.data) {
+      console.info('[NightWorker] ✓ fetched prompts', { count: query.data.length })
+    }
   }, [query.data])
 
   useEffect(() => {
-    if (query.error) console.error('[NightWorker] ✗ prompts error', query.error)
+    if (query.error) {
+      console.error('[NightWorker] ✗ prompts error', query.error)
+    }
   }, [query.error])
 
   return query

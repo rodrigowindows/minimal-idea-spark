@@ -20,16 +20,18 @@ export default function NWPromptDetail() {
   const resend = useCreatePromptMutation()
 
   useEffect(() => {
-    console.info('[NightWorker][PromptDetail] state', {
-      id,
-      isConnected,
-      isLoading,
-      isFetching,
-      isError,
-      hasData: !!data,
-      status: data?.status,
-      error: error ? String(error) : null,
-    })
+    if (import.meta.env.DEV) {
+      console.info('[NightWorker][PromptDetail] state', {
+        id,
+        isConnected,
+        isLoading,
+        isFetching,
+        isError,
+        hasData: !!data,
+        status: data?.status,
+        error: error ? String(error) : null,
+      })
+    }
   }, [id, isConnected, isLoading, isFetching, isError, !!data, data?.status, error])
 
   const handleCopy = (text?: string | null) => {

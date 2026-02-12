@@ -106,25 +106,29 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
   const envToken = import.meta.env.VITE_NW_ANON_TOKEN as string | undefined
 
   useEffect(() => {
-    console.info('[NightWorker] Provider init', {
-      baseUrl: config.baseUrl,
-      suggestedSupabase: SUGGESTED_SUPABASE,
-      envBaseUrl: ENV_BASE_URL,
-      defaultBaseUrl: DEFAULT_BASE_URL,
-      hasEnvToken: !!envToken,
-      VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
-      VITE_NIGHTWORKER_API_URL: import.meta.env.VITE_NIGHTWORKER_API_URL
-    })
+    if (import.meta.env.DEV) {
+      console.info('[NightWorker] Provider init', {
+        baseUrl: config.baseUrl,
+        suggestedSupabase: SUGGESTED_SUPABASE,
+        envBaseUrl: ENV_BASE_URL,
+        defaultBaseUrl: DEFAULT_BASE_URL,
+        hasEnvToken: !!envToken,
+        VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
+        VITE_NIGHTWORKER_API_URL: import.meta.env.VITE_NIGHTWORKER_API_URL
+      })
+    }
 
     setConfigState((prev) => {
       const nextBase = migrateBaseUrl(prev.baseUrl)
       const nextToken = prev.token ?? envToken ?? null
-      console.info('[NightWorker] After migration', {
-        prevBase: prev.baseUrl,
-        nextBase,
-        prevToken: prev.token ? '***' : null,
-        nextToken: nextToken ? '***' : null
-      })
+      if (import.meta.env.DEV) {
+        console.info('[NightWorker] After migration', {
+          prevBase: prev.baseUrl,
+          nextBase,
+          prevToken: prev.token ? '***' : null,
+          nextToken: nextToken ? '***' : null
+        })
+      }
       return { ...prev, baseUrl: nextBase, token: nextToken }
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -164,13 +168,15 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
       const base = sanitizeBaseUrl(config.baseUrl || DEFAULT_BASE_URL)
       const url = path.startsWith('http') ? path : `${base}/${path.replace(/^\//, '')}`
 
-      console.log('[apiFetch] Starting request', {
-        path,
-        url,
-        hasToken: !!config.token,
-        skipAuth,
-        baseUrl: config.baseUrl
-      })
+      if (import.meta.env.DEV) {
+        console.log('[apiFetch] Starting request', {
+          path,
+          url,
+          hasToken: !!config.token,
+          skipAuth,
+          baseUrl: config.baseUrl
+        })
+      }
 
       const mergedHeaders = new Headers(headers || {})
       if (!mergedHeaders.has('Content-Type') && rest.body && !(rest.body instanceof FormData)) {
@@ -186,14 +192,18 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
 
       while (attempt < retry) {
         try {
-          console.log(`[apiFetch] Attempt ${attempt + 1}/${retry} to ${url}`)
+          if (import.meta.env.DEV) {
+            console.log(`[apiFetch] Attempt ${attempt + 1}/${retry} to ${url}`)
+          }
           const response = await fetch(url, { ...rest, headers: mergedHeaders })
 
-          console.log(`[apiFetch] Response received`, {
-            status: response.status,
-            statusText: response.statusText,
-            headers: Object.fromEntries(response.headers.entries())
-          })
+          if (import.meta.env.DEV) {
+            console.log(`[apiFetch] Response received`, {
+              status: response.status,
+              statusText: response.statusText,
+              headers: Object.fromEntries(response.headers.entries())
+            })
+          }
 
           if (response.status === 401) {
             setLastError('auth')
@@ -211,7 +221,9 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
               ? await response.json()
               : await response.text()
           setLastError(null)
-          console.log('[NightWorker] ✓ API success', { url, status: response.status, dataType: typeof data })
+          if (import.meta.env.DEV) {
+            console.log('[NightWorker] ✓ API success', { url, status: response.status, dataType: typeof data })
+          }
           return data as T
         } catch (err) {
           error = err
@@ -220,7 +232,9 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
           if (err instanceof DOMException && err.name === 'AbortError') break
           if (attempt >= retry) break
           const delay = Math.min(4000, 250 * 2 ** attempt)
-          console.log(`[apiFetch] Retrying in ${delay}ms...`)
+          if (import.meta.env.DEV) {
+            console.log(`[apiFetch] Retrying in ${delay}ms...`)
+          }
           await new Promise((resolve) => setTimeout(resolve, delay))
         }
       }

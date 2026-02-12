@@ -23,13 +23,15 @@ export default function NWDashboard() {
   const isHealthNotFound = healthQuery.error instanceof ApiError && healthQuery.error.status === 404
 
   useEffect(() => {
-    console.info('[NightWorker][Dashboard] state', {
-      isConnected,
-      healthStatus: healthQuery.data?.status,
-      healthError: healthQuery.error ? String(healthQuery.error) : null,
-      promptsCount: promptsQuery.data?.length ?? 0,
-      promptsError: promptsQuery.error ? String(promptsQuery.error) : null,
-    })
+    if (import.meta.env.DEV) {
+      console.info('[NightWorker][Dashboard] state', {
+        isConnected,
+        healthStatus: healthQuery.data?.status,
+        healthError: healthQuery.error ? String(healthQuery.error) : null,
+        promptsCount: promptsQuery.data?.length ?? 0,
+        promptsError: promptsQuery.error ? String(promptsQuery.error) : null,
+      })
+    }
   }, [healthQuery.data?.status, healthQuery.error, promptsQuery.data?.length, promptsQuery.error, isConnected])
 
   const stats = useMemo(() => {
