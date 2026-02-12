@@ -6,12 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StatusBadge } from '@/components/night-worker/StatusBadge'
 import { ProviderBadge } from '@/components/night-worker/ProviderBadge'
+import { PromptsKanban } from '@/components/night-worker/PromptsKanban'
 import { useCreatePromptMutation, usePromptsQuery } from '@/hooks/useNightWorkerApi'
 import { useNightWorker } from '@/contexts/NightWorkerContext'
+import { useKanbanState } from '@/hooks/useKanbanState'
 import type { PromptItem } from '@/types/night-worker'
-import { Calendar, Filter, RefreshCw, Search, Send } from 'lucide-react'
+import { Calendar, Filter, RefreshCw, Search, Send, List, Kanban } from 'lucide-react'
 import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
@@ -23,12 +26,16 @@ export default function NWPrompts() {
   const { data, isLoading, isError, error, refetch, isFetching } = usePromptsQuery(15000)
   const resendMutation = useCreatePromptMutation()
 
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'done' | 'failed'>('all')
   const [providerFilter, setProviderFilter] = useState<'all' | 'codex' | 'claude'>('all')
   const [query, setQuery] = useState('')
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
   const [page, setPage] = useState(1)
+
+  // Kanban state management
+  const kanban = useKanbanState(data)
 
   // Debug logging to understand loading state in development
   useEffect(() => {
@@ -132,6 +139,18 @@ export default function NWPrompts() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'list' | 'kanban')}>
+            <TabsList>
+              <TabsTrigger value="list" className="gap-2">
+                <List className="h-4 w-4" />
+                Lista
+              </TabsTrigger>
+              <TabsTrigger value="kanban" className="gap-2">
+                <Kanban className="h-4 w-4" />
+                Kanban
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
           <Button variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
           </Button>
@@ -199,6 +218,23 @@ export default function NWPrompts() {
         </div>
       </div>
 
+      {/* Kanban View */}
+      {viewMode === 'kanban' && (
+        <div className="mt-4">
+          <PromptsKanban
+            prompts={filtered}
+            prioritizedIds={kanban.prioritizedIds}
+            doingIds={kanban.doingIds}
+            onMoveToBacklog={kanban.moveToBacklog}
+            onMoveToPrioritized={kanban.moveToPrioritized}
+            onMoveToDoing={kanban.moveToDoing}
+            onReorderPrioritized={kanban.reorderPrioritized}
+          />
+        </div>
+      )}
+
+      {/* List View */}
+      {viewMode === 'list' && (
       <Card className="mt-4 border border-white/10 bg-card/70 backdrop-blur">
         <CardHeader>
           <CardTitle>Lista completa</CardTitle>
@@ -280,6 +316,7 @@ export default function NWPrompts() {
           </div>
         </CardContent>
       </Card>
+      )}
     </div>
   )
 }
