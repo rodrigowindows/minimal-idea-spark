@@ -101,7 +101,6 @@ export function usePromptsQuery(pollMs = 15000, options: UsePromptsQueryOptions 
           next_retry_at: item.next_retry_at,
           filename: item.filename,
           has_result: item.has_result ?? (item.result != null),
-          events: item.events ?? [],
         } satisfies PromptItem))
       } catch (error) {
         if (import.meta.env.DEV) {

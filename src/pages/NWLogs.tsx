@@ -142,7 +142,7 @@ export default function NWLogs() {
         <Alert className="mb-4 border-amber-500/40 bg-amber-500/10 text-amber-100">
           <AlertTitle className="flex items-center justify-between">
             Logs não disponíveis
-            <Button size="xs" variant="outline" onClick={handleForceRefresh} className="h-6 text-[10px]">Forçar Refresh</Button>
+            <Button size="sm" variant="outline" onClick={handleForceRefresh} className="h-6 text-[10px]">Forçar Refresh</Button>
           </AlertTitle>
           <AlertDescription>
             Este backend ({isSupabase ? 'Supabase Edge' : 'Legacy'}) não expõe logs via HTTP. 
