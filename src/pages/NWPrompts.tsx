@@ -188,6 +188,12 @@ export default function NWPrompts() {
         </div>
       </div>
 
+      {viewMode === 'kanban' && (
+        <p className="mb-4 text-[11px] text-muted-foreground/70 bg-sidebar/30 p-2 rounded-lg border border-border/40 inline-block italic">
+          Nota: Arrastar e soltar organiza a fila local. As colunas <strong>Done</strong> e <strong>Falhas</strong> sÃ£o atualizadas automaticamente pelo worker.
+        </p>
+      )}
+
       {/* Barra de filtros no topo para acesso rápido */}
       <div className="sticky top-14 z-20 mb-4 flex flex-wrap gap-3 rounded-xl border border-border/60 bg-background/85 px-3 py-2 backdrop-blur">
         <div className="flex items-center gap-2">

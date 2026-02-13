@@ -41,7 +41,8 @@ export const KanbanColumn = memo(function KanbanColumn({
     <Card
       ref={setNodeRef}
       role="region"
-      aria-label={`Coluna ${title}, ${prompts.length} itens`}
+      aria-label={`Coluna ${title}, ${prompts.length} itens${!isDroppable ? '. Alterado apenas pelo worker.' : ''}`}
+      title={!isDroppable ? 'Alterado apenas pelo worker' : undefined}
       className={`flex-shrink-0 w-80 border ${
         isOver && isDroppable ? colorClasses[color as keyof typeof colorClasses] : 'border-border/60'
       } bg-background/40 transition-colors`}
@@ -56,7 +57,9 @@ export const KanbanColumn = memo(function KanbanColumn({
           </Badge>
         </div>
         {!isDroppable && (
-          <p className="text-xs text-muted-foreground mt-1">Somente leitura</p>
+          <p className="text-xs text-muted-foreground mt-1" title="Alterado apenas pelo worker">
+            Somente leitura
+          </p>
         )}
       </CardHeader>
       <CardContent className="max-h-[600px] overflow-y-auto">

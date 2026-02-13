@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { PromptItem } from '@/types/night-worker'
 
-const STORAGE_KEY_PRIORITIZED = 'nw_kanban_prioritized_v1'
-const STORAGE_KEY_DOING = 'nw_kanban_doing_v1'
+const STORAGE_KEY_PRIORITIZED = 'nw_kanban_prioritized'
+const STORAGE_KEY_DOING = 'nw_kanban_doing'
 
 interface KanbanState {
   prioritizedIds: string[]
