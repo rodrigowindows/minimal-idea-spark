@@ -110,6 +110,7 @@ export default function NWConnect() {
                 <br />
                 <span className="text-xs text-muted-foreground">
                   Use esta página apenas para conectar em servidor externo (ex: coder-ai.workfaraway.com).
+                  Edge vs api_server e quem processa: docs/NIGHTWORKER_API_SERVER_VS_WORKER.md no repositório.
                 </span>
               </CardDescription>
             </div>

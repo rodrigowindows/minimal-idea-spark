@@ -241,7 +241,7 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
               : await response.text()
           setLastError(null)
           if (import.meta.env.DEV) {
-            console.log('[NightWorker] API success', { url, status: response.status })
+            console.log('[NightWorker] ✓ API success', { url, status: response.status, dataType: typeof data })
           }
           return data as T
         } catch (err) {

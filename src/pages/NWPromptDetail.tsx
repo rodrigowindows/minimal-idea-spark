@@ -15,7 +15,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 export default function NWPromptDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { isConnected } = useNightWorker()
+  const { isConnected, config } = useNightWorker()
+  const isEdgeBackend = config.baseUrl.includes('supabase.co')
   const { data, isLoading, isError, error, refetch, isFetching } = usePromptStatusQuery(id)
   const resend = useCreatePromptMutation()
 
@@ -170,6 +171,11 @@ export default function NWPromptDetail() {
                   <div className="flex min-h-[200px] flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/60 bg-background/40 text-muted-foreground">
                     <Loader2 className="h-6 w-6 animate-spin" />
                     <p>Aguardando processamento...</p>
+                    {isEdgeBackend && (
+                      <p className="max-w-md text-center text-xs text-muted-foreground/90">
+                        Processado pelo worker (worker.py em modo Supabase). Se estiver pendente, confira se o worker está rodando.
+                      </p>
+                    )}
                   </div>
                 )}
 

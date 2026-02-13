@@ -22,6 +22,7 @@ const PAGE_SIZE = 20
 export default function NWPrompts() {
   const navigate = useNavigate()
   const { isConnected, apiFetch, config } = useNightWorker()
+  const isEdgeBackend = config.baseUrl.includes('supabase.co')
   const { data: health } = useHealthQuery()
   const { data, isLoading, isError, error, refetch, isFetching } = usePromptsQuery(15000)
   const resendMutation = useCreatePromptMutation()
@@ -75,6 +76,7 @@ export default function NWPrompts() {
     })
   }, [data, fromDate, providerFilter, query, statusFilter, toDate])
 
+  const hasPendingPrompts = (data?.some((p) => p.status === 'pending')) ?? false
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
@@ -166,6 +168,11 @@ export default function NWPrompts() {
             <span className="text-[11px] text-muted-foreground/60">
               API: {config.baseUrl.split('/functions')[0]}
             </span>
+            {isEdgeBackend && hasPendingPrompts && (
+              <span className="text-[11px] text-muted-foreground/80 max-w-xs">
+                Pendentes são processados pelo worker (worker.py em modo Supabase). Confira se está rodando.
+              </span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">

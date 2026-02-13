@@ -80,6 +80,7 @@ export default function NWSettings() {
             <CardTitle>API</CardTitle>
             <CardDescription>
               Edge Supabase que recebe/retorna prompts. O painel usa este token para criar/listar; o worker só lê e faz PATCH aqui.
+              Edge vs api_server e quem processa os pendentes: docs/NIGHTWORKER_API_SERVER_VS_WORKER.md no repositório.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

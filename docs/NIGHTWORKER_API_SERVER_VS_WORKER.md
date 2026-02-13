@@ -55,12 +55,22 @@
 Exemplo:
 
 ```text
-GET /prompts?status=pending&provider=claude&limit=5 HTTP/1.1" 401 Unauthorized
+GET /prompts?status=pending&provider=claude&limit=5 HTTP/1.1" 401 Unauthorized (IP 136.28.40.32)
 ```
 
-- O **api_server** exige **Bearer token** em GET/POST (configurado em `config.txt`, ex.: `api_token=...`).
-- Esse 401 significa que **alguém** (ex.: outro serviço ou o Lovable) está chamando o **api_server** em `/prompts` **sem token válido**.
-- Isso é **independente** do seu prompt na Edge: o prompt na Edge só é processado pelo **worker.py** que fala com a **Edge**, não pelo api_server.
+- **Por que acontece**: O **api_server.py** (porta 5555) exige um **Bearer token** (definido como `api_token` no `config.txt`). Se um cliente tenta acessar `/prompts` sem esse token, recebe 401.
+- **Quem está chamando**: No seu caso, o IP `136.28.40.32` indica um acesso externo (provavelmente o Lovable ou um monitoramento).
+- **Impacto no processamento**: Nenhum. O processamento de prompts da **Edge** depende apenas do **worker.py** configurado com a URL da **Edge** e o **SUPABASE_SERVICE_ROLE_KEY**. Se você vê esse 401 no `api_server`, é apenas um cliente tentando falar com a API file-based errada ou sem senha.
+
+---
+
+## Resumo de Fluxo (Plano de Ação)
+
+1. **Frontend**: Faz polling de `GET /prompts` na **Edge** para atualizar a UI.
+2. **Worker.py**: Faz polling de `GET /prompts?status=pending` na **Edge** para buscar trabalho.
+3. **api_server.py**: Fica isolado na porta 5555, servindo apenas como alternativa file-based.
+
+**Solução para o 401**: Se o chamador for legítimo (ex: um script seu), adicione o `Authorization: Bearer <api_token>` no request. Se for tráfego aleatório da internet no seu IP público, pode ignorar, pois a API está protegida por token.
 
 ---
 
