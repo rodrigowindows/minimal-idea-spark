@@ -46,6 +46,8 @@ import { EmptyState } from '@/components/EmptyState'
 import { SearchEmptyState } from '@/components/SearchEmptyState'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { PageContent } from '@/components/layout/PageContent'
 
 const TYPE_ICONS: Record<NotificationType, typeof Bell> = {
   task_due: Target,
@@ -206,19 +208,18 @@ export function NotificationsPage() {
   ]
 
   return (
-    <div className="min-h-screen p-4 md:p-6 lg:p-8">
-      <header className="mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Bell className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold tracking-tight">Notifications</h1>
+    <PageContent>
+      <PageHeader
+        icon={<Bell className="h-6 w-6 text-primary" />}
+        title="Notifications"
+        variant="compact"
+        actions={
+          <div className="flex items-center gap-2">
             {unreadCount > 0 && (
               <Badge variant="default" className="text-xs">
                 {unreadCount} unread
               </Badge>
             )}
-          </div>
-          <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" className="gap-1" onClick={markAllRead}>
               <CheckCheck className="h-3.5 w-3.5" />
               Mark all read
@@ -228,8 +229,8 @@ export function NotificationsPage() {
               Archive read
             </Button>
           </div>
-        </div>
-      </header>
+        }
+      />
 
       {/* Stats cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -474,7 +475,7 @@ export function NotificationsPage() {
           )}
         </TabsContent>
       </Tabs>
-    </div>
+    </PageContent>
   )
 }
 

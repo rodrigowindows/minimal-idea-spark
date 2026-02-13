@@ -22,6 +22,8 @@ import { ptBR } from 'date-fns/locale/pt-BR'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
 import { EmptyState } from '@/components/EmptyState'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { PageContent } from '@/components/layout/PageContent'
 import type { CalendarEvent } from '@/types'
 
 export function CalendarPage() {
@@ -104,23 +106,19 @@ export function CalendarPage() {
   }
 
   return (
-    <div className="space-y-6 pb-8">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <CalendarDays className="h-7 w-7 text-primary" />
-            Calendario Inteligente
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Gerencie seu tempo com sugestoes inteligentes de agendamento
-          </p>
-        </div>
-        <Button onClick={handleAutoSchedule} variant="outline" className="gap-2">
-          <Sparkles className="h-4 w-4" />
-          Auto-Agendar Dia
-        </Button>
-      </div>
+    <PageContent>
+      <PageHeader
+        icon={<CalendarDays className="h-6 w-6 text-primary" />}
+        title="Calendario Inteligente"
+        description="Gerencie seu tempo com sugestoes inteligentes de agendamento"
+        variant="compact"
+        actions={
+          <Button onClick={handleAutoSchedule} variant="outline" className="gap-2">
+            <Sparkles className="h-4 w-4" />
+            Auto-Agendar Dia
+          </Button>
+        }
+      />
 
       {/* Stats cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -281,6 +279,6 @@ export function CalendarPage() {
         editEvent={editEvent}
         opportunities={opportunities}
       />
-    </div>
+    </PageContent>
   )
 }

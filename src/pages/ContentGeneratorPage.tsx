@@ -1,24 +1,23 @@
 import { ContentGenerator } from '@/components/ContentGenerator';
 import { useTranslation } from 'react-i18next';
 import { AIFeatureInfo } from '@/components/AIFeatureInfo';
+import { Sparkles } from 'lucide-react';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { PageContent } from '@/components/layout/PageContent';
 
 export function ContentGeneratorPage() {
   const { t } = useTranslation();
 
   return (
-    <div className="space-y-6">
-      <div>
-        <div className="flex items-center gap-1.5">
-          <h1 className="text-2xl font-bold tracking-tight">
-            {t('nav.contentGenerator')}
-          </h1>
-          <AIFeatureInfo feature="content" />
-        </div>
-        <p className="text-muted-foreground">
-          {t('nav.contentGenerator')}
-        </p>
-      </div>
+    <PageContent>
+      <PageHeader
+        icon={<Sparkles className="h-6 w-6 text-primary" />}
+        title={t('nav.contentGenerator')}
+        description={t('nav.contentGenerator')}
+        variant="compact"
+        actions={<AIFeatureInfo feature="content" />}
+      />
       <ContentGenerator />
-    </div>
+    </PageContent>
   );
 }

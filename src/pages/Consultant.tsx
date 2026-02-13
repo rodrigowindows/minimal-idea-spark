@@ -17,6 +17,7 @@ import { useRagChat } from '@/hooks/useRagChat'
 import { usePriorities } from '@/hooks/usePriorities'
 import { calculateXPReward } from '@/lib/constants'
 import { Badge } from '@/components/ui/badge'
+import { PageHeader } from '@/components/layout/PageHeader'
 import type { Opportunity } from '@/types'
 import { buildCombinedRAGContext } from '@/lib/rag/goal-embeddings'
 import type { TFunction } from 'i18next'
@@ -327,43 +328,40 @@ export function Consultant() {
 
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col p-4 md:h-screen md:p-6 lg:p-8">
-      <header className="mb-4 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-          <Brain className="h-5 w-5 text-primary" />
-        </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-1.5">
-            <h1 className="text-xl font-bold tracking-tight">{t('consultant.title')}</h1>
+      <PageHeader
+        icon={<Brain className="h-6 w-6 text-primary" />}
+        title={t('consultant.title')}
+        description={t('consultant.subtitle')}
+        variant="compact"
+        actions={
+          <div className="flex items-center gap-2">
             <AIFeatureInfo feature="rag" />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleNewSession}
+              disabled={isBusy}
+              title={t('consultant.newConversation')}
+            >
+              <Trash2 className="h-4 w-4" />
+              <span className="sr-only">{t('consultant.newConversation')}</span>
+            </Button>
+            <Badge variant="outline" className="gap-1.5 text-xs">
+              {useAI ? (
+                <>
+                  <Wifi className="h-3 w-3 text-green-500" />
+                  RAG AI
+                </>
+              ) : (
+                <>
+                  <WifiOff className="h-3 w-3 text-muted-foreground" />
+                  Local
+                </>
+              )}
+            </Badge>
           </div>
-          <p className="text-sm text-muted-foreground">{t('consultant.subtitle')}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleNewSession}
-            disabled={isBusy}
-            title={t('consultant.newConversation')}
-          >
-            <Trash2 className="h-4 w-4" />
-            <span className="sr-only">{t('consultant.newConversation')}</span>
-          </Button>
-          <Badge variant="outline" className="gap-1.5 text-xs">
-            {useAI ? (
-              <>
-                <Wifi className="h-3 w-3 text-green-500" />
-                RAG AI
-              </>
-            ) : (
-              <>
-                <WifiOff className="h-3 w-3 text-muted-foreground" />
-                Local
-              </>
-            )}
-          </Badge>
-        </div>
-      </header>
+        }
+      />
 
       <ContextualTip
         tipId="rag-consultant"

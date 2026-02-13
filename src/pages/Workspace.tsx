@@ -52,6 +52,8 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { PageContent } from '@/components/layout/PageContent';
 
 export function Workspace() {
   const { user } = useAuth();
@@ -101,23 +103,18 @@ export function Workspace() {
   const onlineCount = presences.length;
 
   return (
-    <div className="min-h-screen p-4 md:p-6 lg:p-8">
-      <header className="mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Building2 className="h-6 w-6 text-primary" />
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">{currentOrg.name}</h1>
-              <p className="text-sm text-muted-foreground flex items-center gap-2">
-                {ROLE_LABELS[currentRole]} &middot; {orgMembers.length} membro{orgMembers.length > 1 ? 's' : ''}
-                <span className="flex items-center gap-1">
-                  <Circle className={cn('h-2 w-2 fill-current', isConnected ? 'text-green-500' : 'text-red-500')} />
-                  {onlineCount > 0 ? `${onlineCount} online` : 'Offline'}
-                </span>
-              </p>
-            </div>
-          </div>
+    <PageContent>
+      <PageHeader
+        icon={<Building2 className="h-6 w-6 text-primary" />}
+        title={currentOrg.name}
+        description={`${ROLE_LABELS[currentRole]} · ${orgMembers.length} membro${orgMembers.length > 1 ? 's' : ''}`}
+        variant="compact"
+        actions={
           <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1 text-sm text-muted-foreground">
+              <Circle className={cn('h-2 w-2 fill-current', isConnected ? 'text-green-500' : 'text-red-500')} />
+              {onlineCount > 0 ? `${onlineCount} online` : 'Offline'}
+            </span>
             <PresenceIndicator
               presences={presences}
               currentUserId={currentUserId}
@@ -139,8 +136,8 @@ export function Workspace() {
               </Button>
             )}
           </div>
-        </div>
-      </header>
+        }
+      />
 
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList className="flex-wrap">
@@ -553,6 +550,6 @@ export function Workspace() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContent>
   );
 }

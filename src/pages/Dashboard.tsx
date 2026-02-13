@@ -18,6 +18,7 @@ import type { OpportunityTypeValue } from '@/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Flame, Target, Brain, SlidersHorizontal } from 'lucide-react'
+import { PageContent } from '@/components/layout/PageContent'
 
 export function Dashboard() {
   const { opportunities, domains, isLoading, addOpportunity } = useLocalData()
@@ -83,11 +84,11 @@ export function Dashboard() {
   }, [isLoading, opportunities, domains])
 
   return (
-    <div className="min-h-screen p-6 md:p-8 lg:p-10">
+    <PageContent>
       <header className="mb-10">
         <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
+            <h1 tabIndex={-1} className="text-2xl font-bold tracking-tight md:text-3xl outline-none">
               {getGreeting()} <span className="text-gradient">{t('dashboard.commander')}</span>
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -136,6 +137,6 @@ export function Dashboard() {
       />
 
       <CustomizeWarRoomModal open={customizeOpen} onOpenChange={setCustomizeOpen} />
-    </div>
+    </PageContent>
   )
 }

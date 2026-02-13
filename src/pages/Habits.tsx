@@ -37,6 +37,8 @@ import {
 } from 'lucide-react'
 import { VoiceInput } from '@/components/smart-capture/VoiceInput'
 import { EmptyState } from '@/components/EmptyState'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { PageContent } from '@/components/layout/PageContent'
 import { format, subDays, startOfWeek, addDays } from 'date-fns'
 import { getDateLocale } from '@/lib/date-locale'
 
@@ -105,21 +107,18 @@ export function Habits() {
   }, [habits])
 
   return (
-    <div className="min-h-screen p-4 md:p-6 lg:p-8">
-      <header className="mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Repeat className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold tracking-tight">{t('habits.title')}</h1>
-          </div>
+    <PageContent>
+      <PageHeader
+        icon={<Repeat className="h-6 w-6 text-primary" />}
+        title={t('habits.title')}
+        description={t('habits.description')}
+        variant="compact"
+        actions={
           <Button onClick={() => setShowNew(true)} className="gap-2">
             <Plus className="h-4 w-4" />{t('habits.newHabit')}
           </Button>
-        </div>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t('habits.description')}
-        </p>
-      </header>
+        }
+      />
 
       {habits.length === 0 ? (
         <EmptyState
@@ -367,6 +366,6 @@ export function Habits() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContent>
   )
 }

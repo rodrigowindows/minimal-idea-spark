@@ -4,22 +4,21 @@ import { ImageGenerator } from '@/components/ImageGeneration/Generator'
 import { ImageGallery } from '@/components/ImageGeneration/Gallery'
 import { Sparkles, ImageIcon } from 'lucide-react'
 import { AIFeatureInfo } from '@/components/AIFeatureInfo'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { PageContent } from '@/components/layout/PageContent'
 
 export function ImageGenerationPage() {
   const [activeTab, setActiveTab] = useState('generate')
 
   return (
-    <div className="min-h-screen p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <ImageIcon className="h-6 w-6 text-primary" />
-          AI Image Generation
-          <AIFeatureInfo feature="images" />
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Generate, edit, and manage images using DALL-E. Create variations, upscale, and remove backgrounds.
-        </p>
-      </header>
+    <PageContent maxWidth="wide">
+      <PageHeader
+        icon={<ImageIcon className="h-6 w-6 text-primary" />}
+        title="AI Image Generation"
+        description="Generate, edit, and manage images using DALL-E. Create variations, upscale, and remove backgrounds."
+        variant="compact"
+        actions={<AIFeatureInfo feature="images" />}
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
@@ -45,6 +44,6 @@ export function ImageGenerationPage() {
           <ImageGallery />
         </TabsContent>
       </Tabs>
-    </div>
+    </PageContent>
   )
 }

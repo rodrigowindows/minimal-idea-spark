@@ -55,6 +55,8 @@ import {
 } from '@/lib/api/webhooks'
 import { parseCsvImport, parseJsonImport, type ImportItem, type ImportResult } from '@/lib/api/batch-import'
 import { useLocalData } from '@/hooks/useLocalData'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { PageContent } from '@/components/layout/PageContent'
 
 export function Integrations() {
   const { t } = useTranslation()
@@ -199,16 +201,13 @@ export function Integrations() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-6 lg:p-8 max-w-5xl mx-auto">
-      <header className="mb-6">
-        <div className="flex items-center gap-3">
-          <Zap className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold tracking-tight">{t('integrations.title', 'Integrations & API')}</h1>
-        </div>
-        <p className="text-muted-foreground mt-1">
-          {t('integrations.subtitle', 'Connect external tools, manage API keys, configure webhooks, and import data.')}
-        </p>
-      </header>
+    <PageContent maxWidth="wide">
+      <PageHeader
+        icon={<Zap className="h-6 w-6 text-primary" />}
+        title={t('integrations.title', 'Integrations & API')}
+        description={t('integrations.subtitle', 'Connect external tools, manage API keys, configure webhooks, and import data.')}
+        variant="compact"
+      />
 
       <Tabs defaultValue="api-keys" className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
@@ -793,6 +792,6 @@ X-LifeOS-Delivery: <uuid>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContent>
   )
 }

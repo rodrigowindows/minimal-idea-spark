@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Night Worker Daemon: Worker contínuo com polling inteligente
  *
  * Processa prompts pending de múltiplos providers em loop infinito.
@@ -8,22 +8,19 @@
  *   SUPABASE_SERVICE_ROLE_KEY=eyJ...
  *   node --env-file=.env --experimental-strip-types scripts/nightworker-worker-daemon.ts
  *
- * Ou com npx tsx:
- *   npx tsx scripts/nightworker-worker-daemon.ts
- *
- * Variáveis de ambiente opcionais:
- *   - NIGHTWORKER_API_URL: override do endpoint (padrão: SUPABASE_URL/functions/v1/nightworker-prompts)
- *   - WORKER_POLL_INTERVAL_MS: intervalo base de polling (padrão: 10000ms = 10s)
- *   - WORKER_IDLE_INTERVAL_MS: intervalo quando não há pending (padrão: 30000ms = 30s)
- *   - WORKER_MAX_BATCH_SIZE: max prompts por batch (padrão: 5)
- *   - WORKER_PROVIDERS: providers separados por vírgula (padrão: "codex,claude")
- *   - WORKER_MAX_RETRIES: max tentativas de processamento (padrão: 3)
- *   - WORKER_RETRY_BACKOFF_MS: base do backoff exponencial (padrão: 60000ms = 1min)
+ * Configurações (via .env):
+ *   - WORKER_MAX_RETRIES: Máximo de tentativas de processamento (padrão: 3)
+ *   - WORKER_RETRY_BACKOFF_MS: Base do backoff exponencial em ms (padrão: 60000)
+ *   - NIGHTWORKER_API_URL: Override do endpoint (padrão: SUPABASE_URL/functions/v1/nightworker-prompts)
+ *   - WORKER_POLL_INTERVAL_MS: Intervalo base de polling (padrão: 10000ms = 10s)
+ *   - WORKER_IDLE_INTERVAL_MS: Intervalo quando não há pending (padrão: 30000ms = 30s)
+ *   - WORKER_MAX_BATCH_SIZE: Max prompts por batch (padrão: 5)
+ *   - WORKER_PROVIDERS: Providers separados por vírgula (padrão: "codex,claude")
  */
 
 const BASE =
   process.env.NIGHTWORKER_API_URL ||
-  (process.env.SUPABASE_URL ? `${process.env.SUPABASE_URL}/functions/v1/nightworker-prompts` : '')
+  (process.env.SUPABASE_URL ? \\/functions/v1/nightworker-prompts\ : '')
 
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 
@@ -31,11 +28,21 @@ const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const POLL_INTERVAL_MS = Number(process.env.WORKER_POLL_INTERVAL_MS || '10000')
 const IDLE_INTERVAL_MS = Number(process.env.WORKER_IDLE_INTERVAL_MS || '30000')
 const MAX_BATCH_SIZE = Number(process.env.WORKER_MAX_BATCH_SIZE || '5')
-const PROVIDERS = (process.env.WORKER_PROVIDERS || 'codex,claude').split(',').map(p => p.trim())
+const PROVIDERS = (process.env.WORKER_PROVIDERS || 'codex,claude,gemini').split(',').map(p => p.trim())
 const MAX_PATCH_RETRIES = 3 // Retries para chamadas HTTP (PATCH)
 const PATCH_BACKOFF_MS = 1000 // Backoff base para retries HTTP
 const MAX_PROCESSING_RETRIES = Number(process.env.WORKER_MAX_RETRIES || '3') // Retries de processamento
 const RETRY_BACKOFF_BASE_MS = Number(process.env.WORKER_RETRY_BACKOFF_MS || '60000') // 1 minuto base
+
+/**
+ * Erro que indica que o processamento não deve ser retentado.
+ */
+class PermanentError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'PermanentError';
+  }
+}
 
 // Estatísticas
 let stats = {
@@ -49,13 +56,13 @@ let stats = {
 }
 
 function requestId(): string {
-  return crypto.randomUUID?.() ?? `req-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
+  return crypto.randomUUID?.() ?? \eq-\-\\
 }
 
 function log(level: 'info' | 'warn' | 'error', msg: string, data?: Record<string, unknown>) {
   const ts = new Date().toISOString()
-  const prefix = level === 'error' ? '❌' : level === 'warn' ? '⚠️' : '📡'
-  console.log(`[${ts}] ${prefix} ${msg}`, data ? JSON.stringify(data) : '')
+  const prefix = level === 'error' ? '✖' : level === 'warn' ? '⚠️' : '📡'
+  console.log(\[\] \ \\, data ? JSON.stringify(data) : '')
 }
 
 function jitter(ms: number): number {
@@ -67,10 +74,10 @@ async function api<T = unknown>(
   options: { method?: string; body?: object; requestId?: string } = {}
 ): Promise<{ status: number; data: T; requestId: string }> {
   const rid = options.requestId ?? requestId()
-  const url = `${BASE.replace(/\/+$/, '')}/${path.replace(/^\//, '')}`
+  const url = \\/\\
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+    Authorization: \Bearer \\,
     'X-Request-Id': rid,
   }
   const start = Date.now()
@@ -89,7 +96,7 @@ async function api<T = unknown>(
     const resRequestId = res.headers.get('X-Request-Id') ?? rid
 
     if (res.status >= 400) {
-      log('warn', `API ${options.method || 'GET'} ${path}`, {
+      log('warn', \API \ \\, {
         request_id: resRequestId,
         status: res.status,
         latency_ms: latencyMs,
@@ -100,7 +107,7 @@ async function api<T = unknown>(
     return { status: res.status, data: data as T, requestId: resRequestId }
   } catch (err) {
     const latencyMs = Date.now() - start
-    log('error', `API ${options.method || 'GET'} ${path} failed`, {
+    log('error', \API \ \ failed\, {
       request_id: rid,
       latency_ms: latencyMs,
       error: err instanceof Error ? err.message : String(err)
@@ -117,9 +124,9 @@ async function fetchPending(provider: string): Promise<Array<{
   attempts?: number
 }>> {
   const { status, data } = await api<{ total: number; prompts: unknown[] }>(
-    `prompts?status=pending&provider=${encodeURIComponent(provider)}&limit=${MAX_BATCH_SIZE}`
+    \prompts?status=pending&provider=\&limit=\\
   )
-  if (status !== 200) throw new Error(`GET pending failed: ${status}`)
+  if (status !== 200) throw new Error(\GET pending failed: \\)
   const prompts = (data as any)?.prompts ?? []
   return prompts.map((p: any) => ({
     id: p.id,
@@ -149,7 +156,7 @@ async function patchWithRetry(
 
   for (let attempt = 0; attempt < MAX_PATCH_RETRIES; attempt++) {
     try {
-      const { status, data } = await api(`prompts/${id}`, { method: 'PATCH', body, requestId: rid })
+      const { status, data } = await api(\prompts/\\, { method: 'PATCH', body, requestId: rid })
       lastStatus = status
       lastData = data
 
@@ -162,7 +169,7 @@ async function patchWithRetry(
 
       // Retryable error (5xx, timeout, etc)
       const delay = jitter(PATCH_BACKOFF_MS * Math.pow(2, attempt))
-      log('warn', `PATCH retry ${attempt + 1}/${MAX_PATCH_RETRIES}`, {
+      log('warn', \PATCH retry \/\\, {
         status,
         id,
         request_id: rid,
@@ -173,7 +180,7 @@ async function patchWithRetry(
       lastStatus = 0
       lastData = e
       const delay = jitter(PATCH_BACKOFF_MS * Math.pow(2, attempt))
-      log('error', `PATCH exception retry ${attempt + 1}/${MAX_PATCH_RETRIES}`, {
+      log('error', \PATCH exception retry \/\\, {
         id,
         error: String(e),
         request_id: rid,
@@ -214,40 +221,29 @@ async function markFailed(
     next_retry_at: nextRetryAt,
     event_type: nextRetryAt ? 'retry_scheduled' : 'failed',
     event_message: nextRetryAt
-      ? `Failed (attempt ${attempts}/${MAX_PROCESSING_RETRIES}). Next retry: ${nextRetryAt}`
-      : `Failed permanently after ${attempts} attempts: ${err}`,
+      ? \Failed (attempt \/\). Next retry: \\
+      : \Failed permanently after \ attempts: \\,
   })
   return ok
 }
 
 /**
  * Calcula próximo retry usando backoff exponencial com jitter.
- * Formula: base * 2^(attempt-1) + jitter
- * Exemplo (base=60s): 1m, 2m, 4m, 8m, 16m...
  */
-function calculateNextRetry(attempts: number): string | null {
-  if (attempts >= MAX_PROCESSING_RETRIES) {
-    return null // Não tenta mais
+function calculateNextRetry(attempts: number, isPermanent: boolean = false): string | null {
+  if (isPermanent || attempts >= MAX_PROCESSING_RETRIES) {
+    return null 
   }
 
-  // Backoff exponencial: 1min, 2min, 4min, 8min...
   const backoffMs = RETRY_BACKOFF_BASE_MS * Math.pow(2, attempts - 1)
-
-  // Adiciona jitter (±20%) para evitar thundering herd
   const jitterMs = backoffMs * (0.8 + 0.4 * Math.random())
-
-  // Limite máximo de 1 hora
-  const delayMs = Math.min(jitterMs, 3600000)
+  const delayMs = Math.min(jitterMs, 3600000) // Max 1h
 
   return new Date(Date.now() + delayMs).toISOString()
 }
 
 /**
  * Simula processamento do prompt.
- * SUBSTITUIR POR LÓGICA REAL:
- *   - Chamar CLI do provider (codex, claude)
- *   - Executar API do LLM
- *   - Salvar resultado em arquivo
  */
 async function processPrompt(prompt: {
   id: string
@@ -255,22 +251,26 @@ async function processPrompt(prompt: {
   content: string
   target_folder?: string
   attempts: number
-}): Promise<{ success: boolean; result_content?: string; error?: string }> {
-  // MOCK: Simula processamento (substituir por lógica real)
+}): Promise<{ success: boolean; result_content?: string; error?: string; isPermanent?: boolean }> {
   log('info', '🔧 Processing prompt', { id: prompt.id, name: prompt.name })
 
-  await new Promise(r => setTimeout(r, 1000)) // Simula delay de processamento
+  await new Promise(r => setTimeout(r, 1000)) 
 
-  // Simula sucesso 90% das vezes
+  // Simulação de erro permanente para testes
+  if (prompt.content.includes('FORCE_FAIL')) {
+    return { success: false, error: 'Erro permanente forçado', isPermanent: true }
+  }
+
   if (Math.random() > 0.1) {
     return {
       success: true,
-      result_content: `Resultado do processamento: ${prompt.name}\n\nConteúdo original:\n${prompt.content.slice(0, 200)}...`,
+      result_content: \Resultado do processamento: \\n\nConteúdo original:\n\...\,
     }
   } else {
     return {
       success: false,
-      error: 'Erro simulado no processamento',
+      error: 'Erro temporário simulado',
+      isPermanent: false
     }
   }
 }
@@ -282,7 +282,7 @@ async function processOneBatch(provider: string): Promise<number> {
     return 0
   }
 
-  log('info', `📦 Batch fetched`, { provider, count: pending.length })
+  log('info', \📦 Batch fetched\, { provider, count: pending.length })
 
   for (const prompt of pending) {
     try {
@@ -304,13 +304,13 @@ async function processOneBatch(provider: string): Promise<number> {
         }
       } else {
         const newAttempts = prompt.attempts + 1
-        const nextRetry = calculateNextRetry(newAttempts)
+        const nextRetry = calculateNextRetry(newAttempts, result.isPermanent)
         const ok = await markFailed(prompt.id, result.error || 'Unknown error', newAttempts, nextRetry)
 
         if (ok) {
           if (nextRetry) {
             stats.retried++
-            log('warn', `⚠️  Failed, retry scheduled`, {
+            log('warn', \⚠️ Failed, retry scheduled\, {
               id: prompt.id,
               name: prompt.name,
               attempt: newAttempts,
@@ -320,11 +320,12 @@ async function processOneBatch(provider: string): Promise<number> {
             })
           } else {
             stats.failed++
-            log('error', `❌ Failed permanently`, {
+            log('error', \✖ Failed permanently\, {
               id: prompt.id,
               name: prompt.name,
               attempts: newAttempts,
-              error: result.error
+              error: result.error,
+              reason: result.isPermanent ? 'Permanent Error' : 'Max retries reached'
             })
           }
         } else {
@@ -334,8 +335,9 @@ async function processOneBatch(provider: string): Promise<number> {
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
+      const isPermanent = e instanceof PermanentError
       const newAttempts = prompt.attempts + 1
-      const nextRetry = calculateNextRetry(newAttempts)
+      const nextRetry = calculateNextRetry(newAttempts, isPermanent)
 
       log('error', 'Processing exception', {
         id: prompt.id,
@@ -362,8 +364,8 @@ async function processOneBatch(provider: string): Promise<number> {
 function printStats() {
   const uptimeMin = Math.floor((Date.now() - stats.startTime) / 60000)
   const uptimeStr = uptimeMin < 60
-    ? `${uptimeMin}m`
-    : `${Math.floor(uptimeMin / 60)}h ${uptimeMin % 60}m`
+    ? \\m\
+    : \\h \m\
 
   log('info', '📊 Stats', {
     uptime: uptimeStr,
@@ -397,17 +399,15 @@ async function pollLoop() {
         totalProcessed += count
       }
 
-      // Print stats every 10 polls
       if (stats.polls % 10 === 0) {
         printStats()
       }
 
-      // Intelligent polling: fast when busy, slow when idle
       const nextInterval = totalProcessed > 0 ? POLL_INTERVAL_MS : IDLE_INTERVAL_MS
-      const nextIntervalStr = nextInterval >= 1000 ? `${nextInterval / 1000}s` : `${nextInterval}ms`
+      const nextIntervalStr = nextInterval >= 1000 ? \\s\ : \\ms\
 
       if (totalProcessed === 0) {
-        log('info', `💤 Idle, next poll in ${nextIntervalStr}`, {})
+        log('info', \💤 Idle, next poll in \\, {})
       }
 
       await new Promise(r => setTimeout(r, nextInterval))
@@ -415,13 +415,11 @@ async function pollLoop() {
       log('error', 'Poll loop error', {
         error: err instanceof Error ? err.message : String(err)
       })
-      // Wait before retrying on error
       await new Promise(r => setTimeout(r, POLL_INTERVAL_MS))
     }
   }
 }
 
-// Graceful shutdown
 process.on('SIGINT', () => {
   log('info', '🛑 Shutting down...', {})
   printStats()
@@ -434,7 +432,6 @@ process.on('SIGTERM', () => {
   process.exit(0)
 })
 
-// Validação e start
 if (!BASE || !SERVICE_ROLE_KEY) {
   log('error', 'Missing configuration', {
     has_base: !!BASE,

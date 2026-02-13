@@ -1,6 +1,6 @@
-# Execução dos prompts (docs/prompts-nightworker)
+﻿# Execução dos prompts (docs/prompts-nightworker)
 
-Resumo da validação após executar os 5 prompts no projeto `minimal-idea-spark`.
+Resumo da validação após executar os 5 prompts no projeto minimal-idea-spark.
 
 ---
 
@@ -8,7 +8,7 @@ Resumo da validação após executar os 5 prompts no projeto `minimal-idea-spark
 
 **Status:** Já implementado.
 
-- **Arquivo:** `docs/NIGHTWORKER_ARCHITECTURE.md`
+- **Arquivo:** docs/NIGHTWORKER_ARCHITECTURE.md
 - **Conteúdo:** Visão geral (Frontend → API FastAPI → Vendors → LLMs), fluxo de dados, 3 opções de orquestração, estrutura de arquivos, como funciona hoje, pontos de melhoria, dependências, roadmap. Escopo no topo (Frontend = minimal-idea-spark, API/Vendors = claude-auto). Seção "Score / O que faz sentido" no final.
 
 ---
@@ -27,8 +27,8 @@ Resumo da validação após executar os 5 prompts no projeto `minimal-idea-spark
 
 **Status:** Já implementado.
 
-- **Arquivo:** `scripts/nightworker-worker-daemon.ts`
-- **Alterações:** WORKER_MAX_RETRIES (padrão 3) e WORKER_RETRY_BACKOFF_MS (padrão 60000) configuráveis; backoff exponencial com jitter em `calculateNextRetry`; PATCH não retenta em 404/400 (4xx permanentes); 429 continua retentável. Variáveis documentadas no cabeçalho do arquivo.
+- **Arquivo:** scripts/nightworker-worker-daemon.ts
+- **Alterações:** WORKER_MAX_RETRIES (padrão 3) e WORKER_RETRY_BACKOFF_MS (padrão 60000) configuráveis; backoff exponencial com jitter em calculateNextRetry; PATCH não retenta em 404/400 (4xx permanentes); 429 continua retentável. Variáveis documentadas no cabeçalho do arquivo.
 
 ---
 
@@ -36,7 +36,7 @@ Resumo da validação após executar os 5 prompts no projeto `minimal-idea-spark
 
 **Status:** Já implementado.
 
-- **Arquivo:** `docs/NIGHTWORKER_ARCHITECTURE.md`
+- **Arquivo:** docs/NIGHTWORKER_ARCHITECTURE.md
 - **Seção:** "Score / O que faz sentido" com tabela (Item, Score, Nota). Itens: Alta (visão geral, API+vendors, documentação, modo Supabase, retry logic); Média (orchestrator, PM2, híbrido, rate limiting); Baixa (observabilidade, mais LLMs, deploy VPS); N/A (orchestrator neste repo).
 
 ---
@@ -49,28 +49,27 @@ Resumo da validação após executar os 5 prompts no projeto `minimal-idea-spark
 2. **Links em COMO_FUNCIONA, API_SERVER_VS_WORKER e ARCHITECTURE:** Sim, os três contêm referência a NIGHTWORKER_ARCHITECTURE.md.
 3. **npm run build:** Passou (exit 0, ~14s).
 4. **Resumo de arquivos criados/modificados:**
-   - `docs/NIGHTWORKER_ARCHITECTURE.md` — criado/atualizado (doc completo + Score).
-   - `docs/NIGHTWORKER_COMO_FUNCIONA.md` — modificado (uma linha com link).
-   - `docs/NIGHTWORKER_API_SERVER_VS_WORKER.md` — modificado (uma linha com link).
-   - `docs/ARCHITECTURE.md` — modificado (subseção Night Worker).
-   - `scripts/nightworker-worker-daemon.ts` — modificado (retry configurável + backoff + docs).
-   - `docs/prompts-nightworker/*.md` — 5 arquivos de prompts + este resumo.
+   - docs/NIGHTWORKER_ARCHITECTURE.md — criado/atualizado (doc completo + Score).
+   - docs/NIGHTWORKER_COMO_FUNCIONA.md — modificado (uma linha com link).
+   - docs/NIGHTWORKER_API_SERVER_VS_WORKER.md — modificado (uma linha com link).
+   - docs/ARCHITECTURE.md — modificado (subseção Night Worker).
+   - \scripts/nightworker-worker-daemon.ts\ — modificado (retry configurável + backoff + docs).
+   - \docs/prompts-nightworker/*.md\ — 5 arquivos de prompts + este resumo.
 
 ---
 
-## Re-execução / Verificação (2026-02-10)
+## Re-execução / Verificação (2026-02-12)
 
 Todos os 5 prompts foram verificados novamente:
 
-1. **Prompt 1:** `docs/NIGHTWORKER_ARCHITECTURE.md` existe com visão geral, fluxo, 3 opções de orquestração, estrutura claude-auto, Score.
-2. **Prompt 2:** Cross-links presentes em `NIGHTWORKER_COMO_FUNCIONA.md`, `NIGHTWORKER_API_SERVER_VS_WORKER.md` e `ARCHITECTURE.md`.
-3. **Prompt 3:** `scripts/nightworker-worker-daemon.ts` tem `WORKER_MAX_RETRIES`, `WORKER_RETRY_BACKOFF_MS`, backoff exponencial com jitter, e documentação no cabeçalho.
-4. **Prompt 4:** Seção "Score / O que faz sentido" em `NIGHTWORKER_ARCHITECTURE.md` com tabela (Alta/Média/Baixa/N/A).
-5. **Prompt 5:** `npm run build` executado com sucesso (exit 0, ~25s).
-
-Nenhuma alteração necessária; estado já conforme os prompts.
+1. **Prompt 1:** \docs/NIGHTWORKER_ARCHITECTURE.md\ existe com visão geral, fluxo, 3 opções de orquestração, estrutura claude-auto, Score. Incluindo atualizações de Gemini e API Management.
+2. **Prompt 2:** Cross-links presentes em \NIGHTWORKER_COMO_FUNCIONA.md\, \NIGHTWORKER_API_SERVER_VS_WORKER.md\ e \ARCHITECTURE.md\.
+3. **Prompt 3:** \scripts/nightworker-worker-daemon.ts\ tem \WORKER_MAX_RETRIES\, \WORKER_RETRY_BACKOFF_MS\, backoff exponencial com jitter, e documentação no cabeçalho.
+4. **Prompt 4:** Seção "Score / O que faz sentido" em \NIGHTWORKER_ARCHITECTURE.md\ com tabela (Alta/Média/Baixa/N/A).
+5. **Prompt 5:** \
+pm run build\ executado com sucesso (exit 0, ~12s).
 
 ---
 
 **Data da execução/validação:** 2026-02-12  
-**Última reexecução/verificação:** 2026-02-10
+**Status Final:** ✅ TAREFA CONCLUÍDA

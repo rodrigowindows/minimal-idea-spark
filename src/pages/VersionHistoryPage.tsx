@@ -55,6 +55,8 @@ import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { useTranslation } from 'react-i18next'
 import { EmptyState } from '@/components/EmptyState'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { PageContent } from '@/components/layout/PageContent'
 
 export function VersionHistoryPage() {
   const { t } = useTranslation()
@@ -275,30 +277,26 @@ export function VersionHistoryPage() {
     compareA && compareB ? [compareA.id, compareB.id] : null
 
   return (
-    <div className="min-h-screen p-4 md:p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <History className="h-6 w-6" />
-            Version History
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Track changes, compare versions, manage branches, and restore content.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => setShowCreate(true)} className="gap-1.5">
-            <Plus className="h-4 w-4" /> New Snapshot
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleExport} className="gap-1.5">
-            <Download className="h-4 w-4" /> Export
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setShowImport(true)} className="gap-1.5">
-            <Upload className="h-4 w-4" /> Import
-          </Button>
-        </div>
-      </header>
+    <PageContent>
+      <PageHeader
+        icon={<History className="h-6 w-6 text-primary" />}
+        title="Version History"
+        description="Track changes, compare versions, manage branches, and restore content."
+        variant="compact"
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowCreate(true)} className="gap-1.5">
+              <Plus className="h-4 w-4" /> New Snapshot
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExport} className="gap-1.5">
+              <Download className="h-4 w-4" /> Export
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setShowImport(true)} className="gap-1.5">
+              <Upload className="h-4 w-4" /> Import
+            </Button>
+          </div>
+        }
+      />
 
       {/* Entity & Branch Controls */}
       <div className="flex flex-wrap gap-3 items-end">
@@ -905,6 +903,6 @@ export function VersionHistoryPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContent>
   )
 }

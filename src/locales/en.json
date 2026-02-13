@@ -49,7 +49,10 @@
     "addFavorite": "Add to favorites",
     "removeFavorite": "Remove from favorites",
     "clearRecent": "Clear recent",
-    "bottomNavigation": "Bottom navigation"
+    "bottomNavigation": "Bottom navigation",
+    "more": "More",
+    "morePages": "More pages",
+    "closeMobileMenu": "Close menu"
   },
   "breadcrumbs": {
     "opportunities": "Opportunities",
@@ -662,7 +665,10 @@
     "refresh": "Refresh",
     "refreshToUpdate": "Refresh to update",
     "openMenu": "Open menu",
-    "navigation": "Navigation"
+    "navigation": "Navigation",
+    "mobileHeader": "Mobile header",
+    "search": "Search",
+    "mainContent": "Main content"
   },
   "common": {
     "loading": "Loading...",

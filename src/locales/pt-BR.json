@@ -49,7 +49,10 @@
     "addFavorite": "Adicionar aos favoritos",
     "removeFavorite": "Remover dos favoritos",
     "clearRecent": "Limpar recentes",
-    "bottomNavigation": "Navegação inferior"
+    "bottomNavigation": "Navegação inferior",
+    "more": "Mais",
+    "morePages": "Mais páginas",
+    "closeMobileMenu": "Fechar menu"
   },
   "onboarding": {
     "dontShowAgain": "Não mostrar novamente",
@@ -662,7 +665,10 @@
     "refresh": "Atualizar",
     "refreshToUpdate": "Atualizar para aplicar",
     "openMenu": "Abrir menu",
-    "navigation": "Navegação"
+    "navigation": "Navegação",
+    "mobileHeader": "Cabeçalho mobile",
+    "search": "Buscar",
+    "mainContent": "Conteúdo principal"
   },
   "common": {
     "loading": "Carregando...",

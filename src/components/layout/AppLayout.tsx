@@ -103,7 +103,14 @@ export function AppLayout() {
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetContent side="left" className="w-64 p-0" id="mobile-sidebar">
               <SheetTitle className="sr-only">{t('layout.navigation')}</SheetTitle>
-              <Sidebar collapsed={false} onToggle={() => setMobileOpen(false)} />
+              <div onClick={(e) => {
+                const target = e.target as HTMLElement;
+                if (target.closest('a[href]')) {
+                  setMobileOpen(false);
+                }
+              }}>
+                <Sidebar collapsed={false} onToggle={() => setMobileOpen(false)} />
+              </div>
             </SheetContent>
           </Sheet>
         </>
@@ -120,7 +127,7 @@ export function AppLayout() {
         aria-label={t('layout.mainContent') || 'Main content'}
         className={cn(
           'min-w-0 flex-1 overflow-y-auto overflow-x-hidden transition-all duration-300 ease-in-out',
-          isMobile && !deepWorkMode && 'pt-14 pb-16',
+          isMobile && !deepWorkMode && 'pt-14 pb-[calc(4rem+env(safe-area-inset-bottom))]',
           deepWorkMode && 'bg-background/95'
         )}
       >

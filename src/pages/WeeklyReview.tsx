@@ -26,6 +26,8 @@ import {
 import { VoiceInput } from '@/components/smart-capture/VoiceInput'
 import { AudioToText } from '@/components/AudioToText'
 import { format, subDays, startOfWeek, endOfWeek } from 'date-fns'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { PageContent } from '@/components/layout/PageContent'
 
 export function WeeklyReview() {
   const { opportunities, dailyLogs, habits, domains } = useLocalData()
@@ -164,18 +166,13 @@ export function WeeklyReview() {
   }, [streakDays, weekStats])
 
   return (
-    <div className="min-h-screen p-4 md:p-6 lg:p-8">
-      <header className="mb-6">
-        <div className="flex items-center gap-3">
-          <ClipboardCheck className="h-6 w-6 text-primary" />
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Weekly Review</h1>
-            <p className="text-sm text-muted-foreground">
-              {format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d, yyyy')}
-            </p>
-          </div>
-        </div>
-      </header>
+    <PageContent>
+      <PageHeader
+        icon={<ClipboardCheck className="h-6 w-6 text-primary" />}
+        title="Weekly Review"
+        description={`${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`}
+        variant="compact"
+      />
 
       <div className="grid gap-6 lg:grid-cols-12">
         <div className="space-y-6 lg:col-span-8">
@@ -403,6 +400,6 @@ export function WeeklyReview() {
           )}
         </div>
       </div>
-    </div>
+    </PageContent>
   )
 }

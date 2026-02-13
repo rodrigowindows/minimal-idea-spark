@@ -31,6 +31,8 @@ import {
 } from 'lucide-react'
 import { VoiceInput } from '@/components/smart-capture/VoiceInput'
 import { EmptyState } from '@/components/EmptyState'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { PageContent } from '@/components/layout/PageContent'
 import { GoalCard } from '@/components/Goals/GoalCard'
 import { getCurrentCycle, getCycleLabel, filterGoalsByCycle, suggestOpportunitiesForGoal } from '@/lib/goals/goal-service'
 
@@ -120,13 +122,13 @@ export function Goals() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-6 lg:p-8">
-      <header className="mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Flag className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold tracking-tight">{t('goals.title')}</h1>
-          </div>
+    <PageContent>
+      <PageHeader
+        icon={<Flag className="h-6 w-6 text-primary" />}
+        title={t('goals.title')}
+        description={t('goals.description')}
+        variant="compact"
+        actions={
           <div className="flex items-center gap-2">
             <Button
               variant={showHistory ? 'secondary' : 'outline'}
@@ -144,24 +146,19 @@ export function Goals() {
               <Plus className="h-4 w-4" />{t('goals.newGoal')}
             </Button>
           </div>
-        </div>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t('goals.description')}
-        </p>
-
+        }
+      >
         {/* Cycle filter */}
-        <div className="mt-4">
-          <Tabs value={selectedCycle} onValueChange={(v) => setSelectedCycle(v as OKRCycle | 'all')}>
-            <TabsList className="flex-wrap h-auto gap-1">
-              {ALL_CYCLES.map(c => (
-                <TabsTrigger key={c} value={c} className="text-xs px-3 py-1.5">
-                  {c === 'all' ? t('goals.allCycles') : getCycleLabel(c)}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        </div>
-      </header>
+        <Tabs value={selectedCycle} onValueChange={(v) => setSelectedCycle(v as OKRCycle | 'all')}>
+          <TabsList className="flex-wrap h-auto gap-1">
+            {ALL_CYCLES.map(c => (
+              <TabsTrigger key={c} value={c} className="text-xs px-3 py-1.5">
+                {c === 'all' ? t('goals.allCycles') : getCycleLabel(c)}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+      </PageHeader>
 
       {filteredGoals.length === 0 ? (
         <EmptyState
@@ -367,6 +364,6 @@ export function Goals() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContent>
   )
 }

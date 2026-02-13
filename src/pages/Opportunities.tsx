@@ -42,6 +42,8 @@ import {
   CalendarClock,
   Bell,
 } from 'lucide-react'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { PageContent } from '@/components/layout/PageContent'
 import { toast } from 'sonner'
 
 export function Opportunities() {
@@ -212,19 +214,18 @@ export function Opportunities() {
   }, [])
 
   return (
-    <div className="min-h-screen p-4 md:p-6 lg:p-8">
+    <PageContent>
       <ContextualTip
         tipId="opportunities-views"
         titleKey="onboarding.contextualTips.kanbanTitle"
         descriptionKey="onboarding.contextualTips.kanbanDesc"
         className="mb-6"
       />
-      <header className="mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Target className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold tracking-tight">Opportunities</h1>
-          </div>
+      <PageHeader
+        icon={<Target className="h-6 w-6 text-primary" />}
+        title="Opportunities"
+        variant="compact"
+        actions={
           <div className="flex items-center gap-2">
             <div className="flex rounded-lg border border-border/50">
               <Button
@@ -265,8 +266,8 @@ export function Opportunities() {
               <Plus className="h-4 w-4" />New
             </Button>
           </div>
-        </div>
-      </header>
+        }
+      />
 
       {viewMode === 'matrix' ? (
         <EisenhowerMatrix
@@ -402,7 +403,7 @@ export function Opportunities() {
         goals={goals?.map((g) => ({ id: g.id, title: g.title })) ?? []}
         onSave={handleSave}
       />
-    </div>
+    </PageContent>
   )
 }
 

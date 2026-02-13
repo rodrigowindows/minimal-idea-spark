@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { Template } from '@/lib/db/schema-templates'
 import { FileStack, PenTool, Store } from 'lucide-react'
 import { ContextualTip } from '@/components/Onboarding/ContextualTip'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { PageContent } from '@/components/layout/PageContent'
 
 export function TemplatesPage() {
   const { t } = useTranslation()
@@ -29,7 +31,30 @@ export function TemplatesPage() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-6 lg:p-8">
+    <PageContent>
+      <PageHeader
+        icon={<FileStack className="h-6 w-6 text-primary" />}
+        title={t('templatesPage.library')}
+        variant="withTabs"
+        tabs={
+          <Tabs value={tab} onValueChange={setTab}>
+            <TabsList>
+              <TabsTrigger value="library" className="gap-2">
+                <FileStack className="h-4 w-4" />
+                {t('templatesPage.library')}
+              </TabsTrigger>
+              <TabsTrigger value="editor" className="gap-2">
+                <PenTool className="h-4 w-4" />
+                {t('templatesPage.editor')}
+              </TabsTrigger>
+              <TabsTrigger value="marketplace" className="gap-2">
+                <Store className="h-4 w-4" />
+                {t('templatesPage.marketplace')}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        }
+      />
       <ContextualTip
         tipId="templates-intro"
         titleKey="onboarding.contextualTips.templatesTitle"
@@ -37,20 +62,6 @@ export function TemplatesPage() {
         className="mb-6"
       />
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="mb-6">
-          <TabsTrigger value="library" className="gap-2">
-            <FileStack className="h-4 w-4" />
-            {t('templatesPage.library')}
-          </TabsTrigger>
-          <TabsTrigger value="editor" className="gap-2">
-            <PenTool className="h-4 w-4" />
-            {t('templatesPage.editor')}
-          </TabsTrigger>
-          <TabsTrigger value="marketplace" className="gap-2">
-            <Store className="h-4 w-4" />
-            {t('templatesPage.marketplace')}
-          </TabsTrigger>
-        </TabsList>
 
         <TabsContent value="library">
           <TemplatesLibrary
@@ -70,6 +81,6 @@ export function TemplatesPage() {
           <TemplateMarketplace />
         </TabsContent>
       </Tabs>
-    </div>
+    </PageContent>
   )
 }

@@ -3,16 +3,29 @@ import { cn } from '@/lib/utils'
 import { PageBreadcrumbs } from './PageBreadcrumbs'
 
 /**
- * Reusable page header with breadcrumb, actions, tabs and filter slots.
+ * Reusable page header with icon, breadcrumb, actions, tabs and filter slots.
+ *
  * - Variants: `hero` (large title), `compact` (one-line title + actions), `withTabs` (extra breathing room when tabs are present).
  * - Mobile-first: actions stack below the title on small screens and align right on desktop.
  * - Accessibility: heading is focusable for SkipLink and announced via `aria-labelledby`.
+ *
+ * @example
+ * ```tsx
+ * <PageHeader
+ *   icon={<Target className="h-6 w-6 text-primary" />}
+ *   title="Opportunities"
+ *   description="Track and manage your opportunities"
+ *   actions={<Button>New</Button>}
+ * />
+ * ```
  */
 export type PageHeaderVariant = 'default' | 'compact' | 'hero' | 'withTabs'
 
 interface PageHeaderProps {
   title: string
   description?: string
+  /** Optional icon rendered before the title */
+  icon?: ReactNode
   /** Breadcrumb items: [{ label, href? }]. Last item is current page (no href). */
   breadcrumb?: { label: string; href?: string }[]
   /** Actions (buttons, dropdown) on the right */
@@ -31,6 +44,7 @@ interface PageHeaderProps {
 export function PageHeader({
   title,
   description,
+  icon,
   breadcrumb,
   actions,
   tabs,
@@ -68,8 +82,9 @@ export function PageHeader({
           <h1
             id={headingId}
             tabIndex={-1}
-            className={cn('font-bold tracking-tight text-foreground', headingStyles[variant])}
+            className={cn('flex items-center gap-3 font-bold tracking-tight text-foreground', headingStyles[variant])}
           >
+            {icon}
             {title}
           </h1>
           {description && (

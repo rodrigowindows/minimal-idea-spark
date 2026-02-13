@@ -18,6 +18,8 @@ import { EmptyState } from '@/components/EmptyState'
 import { VirtualList } from '@/components/VirtualList'
 import { format, parseISO } from 'date-fns'
 import { getDateLocale } from '@/lib/date-locale'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { PageContent } from '@/components/layout/PageContent'
 import { toast } from 'sonner'
 import { supabase } from '@/integrations/supabase/client'
 import { enqueue } from '@/lib/pwa/sync-queue'
@@ -162,19 +164,18 @@ export function Journal() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-6 lg:p-8">
-      <header className="mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <BookOpen className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold tracking-tight">{t('journal.title')}</h1>
-          </div>
+    <PageContent>
+      <PageHeader
+        icon={<BookOpen className="h-6 w-6 text-primary" />}
+        title={t('journal.title')}
+        variant="compact"
+        actions={
           <Button onClick={() => setShowNewEntry(!showNewEntry)} className="gap-2">
             <Plus className="h-4 w-4" />
             {t('journal.newEntry')}
           </Button>
-        </div>
-      </header>
+        }
+      />
 
       {showNewEntry && (
         <Card className="mb-6 rounded-xl">
@@ -372,6 +373,6 @@ export function Journal() {
           </div>
         )}
       </ScrollArea>
-    </div>
+    </PageContent>
   )
 }

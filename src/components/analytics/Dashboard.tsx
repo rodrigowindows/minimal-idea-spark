@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
+import { PageHeader } from '@/components/layout/PageHeader'
 import { WeeklyScorecard } from './WeeklyScorecard'
 import { ActivityHeatmap } from './ActivityHeatmap'
 import { Charts } from './Charts'
@@ -262,20 +263,22 @@ export function AnalyticsDashboard() {
         </div>
       </div>
 
-      <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="mb-2 text-2xl font-bold tracking-tight md:text-3xl">Analytics Dashboard</h1>
-          <p className="text-muted-foreground">Track your progress, performance, and AI-powered insights</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportCSV} className="gap-2">
-            <Download className="h-4 w-4" /> Export CSV
-          </Button>
-          <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2">
-            <FileText className="h-4 w-4" /> Print / PDF
-          </Button>
-        </div>
-      </header>
+      <PageHeader
+        icon={<BarChart3 className="h-6 w-6 text-primary" />}
+        title="Analytics Dashboard"
+        description="Track your progress, performance, and AI-powered insights"
+        variant="compact"
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleExportCSV} className="gap-2">
+              <Download className="h-4 w-4" /> Export CSV
+            </Button>
+            <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2">
+              <FileText className="h-4 w-4" /> Print / PDF
+            </Button>
+          </div>
+        }
+      />
 
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
         <SummaryCard label="Productivity" value={`${productivityScore}/100`} icon={<Sparkles className="h-4 w-4" />} color="text-primary" bgColor="bg-primary/10" />

@@ -75,6 +75,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { PageContent } from '@/components/layout/PageContent'
 
 const LANGUAGE_OPTIONS: { value: Language; label: string; flag: string }[] = [
   { value: 'pt-BR', label: 'Português (Brasil)', flag: '🇧🇷' },
@@ -186,13 +188,12 @@ export function Settings() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-6 lg:p-8">
-      <header className="mb-6">
-        <div className="flex items-center gap-3">
-          <Settings2 className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold tracking-tight">{t('settings.title')}</h1>
-        </div>
-      </header>
+    <PageContent>
+      <PageHeader
+        icon={<Settings2 className="h-6 w-6 text-primary" />}
+        title={t('settings.title')}
+        variant="compact"
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Language */}
@@ -1169,6 +1170,6 @@ export function Settings() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContent>
   )
 }

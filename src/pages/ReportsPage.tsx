@@ -30,6 +30,8 @@ import {
 } from 'lucide-react'
 import { useTranslation } from '@/contexts/LanguageContext'
 import { toast } from 'sonner'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { PageContent } from '@/components/layout/PageContent'
 
 const REPORT_CONTAINER_ID = 'report-print'
 const TEMPLATE_KEY = 'lifeos_report_template'
@@ -147,31 +149,34 @@ export function ReportsPage() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-6 lg:p-8">
-      <header className="mb-6 flex flex-wrap items-center justify-between gap-4 no-print">
-        <div className="flex items-center gap-3">
-          <FileText className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold tracking-tight">{t('reports.title')}</h1>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => setOptionsOpen(true)}>
-            <Settings2 className="h-4 w-4" />
-            {t('reports.options')}
-          </Button>
-          <Button variant="outline" size="sm" className="gap-2" onClick={handlePrint}>
-            <Printer className="h-4 w-4" />
-            {t('reports.print')}
-          </Button>
-          <Button variant="outline" size="sm" className="gap-2" onClick={handleExportText}>
-            <Download className="h-4 w-4" />
-            {t('reports.exportText')}
-          </Button>
-          <Button size="sm" className="gap-2" onClick={handleExportPdf} disabled={exporting}>
-            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FilePlus className="h-4 w-4" />}
-            {t('reports.exportPdf')}
-          </Button>
-        </div>
-      </header>
+    <PageContent>
+      <div className="no-print">
+        <PageHeader
+          icon={<FileText className="h-6 w-6 text-primary" />}
+          title={t('reports.title')}
+          variant="compact"
+          actions={
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => setOptionsOpen(true)}>
+                <Settings2 className="h-4 w-4" />
+                {t('reports.options')}
+              </Button>
+              <Button variant="outline" size="sm" className="gap-2" onClick={handlePrint}>
+                <Printer className="h-4 w-4" />
+                {t('reports.print')}
+              </Button>
+              <Button variant="outline" size="sm" className="gap-2" onClick={handleExportText}>
+                <Download className="h-4 w-4" />
+                {t('reports.exportText')}
+              </Button>
+              <Button size="sm" className="gap-2" onClick={handleExportPdf} disabled={exporting}>
+                {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FilePlus className="h-4 w-4" />}
+                {t('reports.exportPdf')}
+              </Button>
+            </div>
+          }
+        />
+      </div>
 
       <Tabs value={tab} onValueChange={setTab} className="no-print">
         <TabsList>
@@ -239,6 +244,6 @@ export function ReportsPage() {
         onTemplateChange={handleTemplateChange}
         onGenerate={handleGenerate}
       />
-    </div>
+    </PageContent>
   )
 }
