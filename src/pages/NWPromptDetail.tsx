@@ -176,6 +176,11 @@ export default function NWPromptDetail() {
                         Processado pelo worker (worker.py em modo Supabase). Se estiver pendente, confira se o worker está rodando.
                       </p>
                     )}
+                    {!isEdgeBackend && (
+                      <p className="max-w-md text-center text-xs text-muted-foreground/90">
+                        Processado pelo worker (worker.py lendo input/). Confira se o worker está rodando.
+                      </p>
+                    )}
                   </div>
                 )}
 

@@ -1,86 +1,25 @@
-# api_server.py vs worker.py — Por que o prompt fica "Aguardando processamento"?
+# api_server.py vs worker.py — Guia de Fluxo
 
-## Situação típica
+## FAQ: Por que nada acontece?
 
-- Você criou um prompt no frontend (ex.: ID `3a5ef6b2-7c20-4e96-a307-f98d8ba665ec`).
-- O status fica **"Aguardando processamento"** e nunca muda.
-- Você está rodando a **Night Worker API** (api_server.py) em `http://localhost:5555` e **não vê nada nos logs** relacionado a esse prompt.
+### 1. Movi para "Doing", mas o backend não atualizou. Por quê?
+As colunas **Priorizado** e **Doing** no Kanban são organizadores visuais locais (salvos no seu navegador). O Night Worker é um sistema **pull-based**:
+- O backend (Edge ou api_server) guarda os prompts.
+- O **worker.py** (outro processo) fica perguntando: "Tem algo pendente?".
+- Mover para "Doing" na UI **não avisa o worker**. O worker sempre processará os itens na ordem em que foram criados.
 
-## Explicação em uma frase
+### 2. Por que vejo erro 401 Unauthorized nos logs?
+Se você vir `401 Unauthorized` nos logs do `api_server` (porta 5555), significa que:
+- **Alguém está tentando acessar sua API sem a senha correta.**
+- Se o IP for externo (ex: `136.28.40.32`), são bots de internet fazendo varredura. Isso é normal e sua API os bloqueou com sucesso.
+- Se for o seu próprio worker, verifique se o `api_token` no `config.txt` da API é o mesmo que o worker está enviando.
 
-**api_server.py não é o programa que processa prompts guardados na Supabase Edge.** Quem processa é o **worker.py** (em modo Supabase). Os logs que você está vendo são do api_server; o worker que precisaria rodar é outro processo.
+## Resumo de Responsabilidades
 
----
+| Componente | O que faz? |
+|------------|------------|
+| **Frontend** | Interface para você criar e ver prompts. |
+| **API (Edge/5555)** | O "Cartório": Recebe e guarda os pedidos. |
+| **Worker (worker.py)** | O "Motor": É quem realmente executa o Claude/Codex e devolve o resultado. |
 
-## Dois fluxos diferentes
-
-### Fluxo 1: Frontend usa **Supabase Edge** (API A)
-
-- O frontend envia `POST /prompts` para a **Edge** (`.../functions/v1/nightworker-prompts`).
-- O prompt fica no **banco Supabase** com status `pending`.
-- Para esse prompt sair de "Aguardando processamento", é preciso um **worker que fale com a Edge**:
-  - **worker.py** (em `claude-auto/night-worker/`) com **`supabase_mode=true`** no `config.txt`.
-  - Esse worker faz **GET** na Edge (`/prompts?status=pending&provider=...`) com **SUPABASE_SERVICE_ROLE_KEY**, processa e faz **PATCH** com o resultado.
-- O **api_server.py** (porta 5555) **não consulta a Edge** e **não processa** esses prompts. Por isso você não vê nada nos logs do api_server quando o prompt está na Supabase.
-
-### Fluxo 2: Frontend usa **api_server** (API B file-based)
-
-- O frontend envia `POST /prompts` para o **api_server** (ex.: `http://localhost:5555`).
-- O api_server grava um arquivo em `night-worker/input/` (ou `night-worker -codex/input/`).
-- Para o prompt ser processado, é preciso rodar o **worker.py** com **`supabase_mode=false`**, que lê a pasta **input/** e processa os arquivos.
-- Nesse fluxo, os logs de "recebi prompt" / "processando" aparecem no **worker.py**, não no api_server (o api_server só recebe POST e grava em disco).
-
----
-
-## O que fazer quando o prompt está na Edge e fica pendente
-
-1. **Confirmar que a Edge está no ar**  
-   - Deploy: `npx supabase functions deploy nightworker-prompts`  
-   - Teste: `curl "https://<seu-projeto>.supabase.co/functions/v1/nightworker-prompts/health"`
-
-2. **Subir o worker que consome a Edge**  
-   - No projeto **claude-auto**, em `night-worker/`:
-     - No `config.txt`: `supabase_mode=true`, `supabase_url=...`, `supabase_service_role_key=...`, `nightworker_api_url=https://<seu-projeto>.supabase.co/functions/v1/nightworker-prompts`
-     - Rodar: `python worker.py` (ou o script de serviço que você usa).
-   - Esse processo é que vai aparecer nos logs pegando o prompt e processando.
-
-3. **Não confundir com o api_server**  
-   - Rodar só o api_server (porta 5555) **não** faz os prompts da Edge serem processados.  
-   - O api_server é outra API (file-based); o worker que esvazia a fila da Edge é o worker.py em modo Supabase.
-
----
-
-## Sobre o 401 nos logs do api_server
-
-Exemplo:
-
-```text
-GET /prompts?status=pending&provider=claude&limit=5 HTTP/1.1" 401 Unauthorized (IP 136.28.40.32)
-```
-
-- **Por que acontece**: O **api_server.py** (porta 5555) exige um **Bearer token** (definido como `api_token` no `config.txt`). Se um cliente tenta acessar `/prompts` sem esse token, recebe 401.
-- **Quem está chamando**: No seu caso, o IP `136.28.40.32` indica um acesso externo (provavelmente o Lovable ou um monitoramento).
-- **Impacto no processamento**: Nenhum. O processamento de prompts da **Edge** depende apenas do **worker.py** configurado com a URL da **Edge** e o **SUPABASE_SERVICE_ROLE_KEY**. Se você vê esse 401 no `api_server`, é apenas um cliente tentando falar com a API file-based errada ou sem senha.
-
----
-
-## Resumo de Fluxo (Plano de Ação)
-
-1. **Frontend**: Faz polling de `GET /prompts` na **Edge** para atualizar a UI.
-2. **Worker.py**: Faz polling de `GET /prompts?status=pending` na **Edge** para buscar trabalho.
-3. **api_server.py**: Fica isolado na porta 5555, servindo apenas como alternativa file-based.
-
-**Solução para o 401**: Se o chamador for legítimo (ex: um script seu), adicione o `Authorization: Bearer <api_token>` no request. Se for tráfego aleatório da internet no seu IP público, pode ignorar, pois a API está protegida por token.
-
----
-
-## Resumo
-
-| Onde o prompt foi criado? | Quem processa?           | Onde aparecem os logs? |
-|---------------------------|--------------------------|-------------------------|
-| **Supabase Edge**         | **worker.py** (supabase_mode=true) | **worker.py**           |
-| **api_server** (POST em :5555) | **worker.py** (supabase_mode=false) lendo **input/** | **worker.py**           |
-
-**api_server.py** = API que recebe prompts e grava em arquivo (e opcionalmente lista).  
-**worker.py** = Processo que realmente processa (lendo da Edge ou da pasta input/).  
-Por isso, ao usar a Edge, você **não** vê o seu prompt sendo processado nos logs do api_server.
+**Dica**: Sempre confira se o badge **"Worker Ativo"** está aparecendo no topo da página de Prompts. Se não estiver, o seu `worker.py` pode estar parado ou mal configurado.

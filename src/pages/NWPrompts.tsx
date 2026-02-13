@@ -13,7 +13,7 @@ import { useCreatePromptMutation, useHealthQuery, usePromptsQuery } from '@/hook
 import { useNightWorker, ApiError } from '@/contexts/NightWorkerContext'
 import { useKanbanState } from '@/hooks/useKanbanState'
 import type { PromptItem } from '@/types/night-worker'
-import { Activity, Calendar, Filter, Loader2, RefreshCw, Search, Send, List, Kanban } from 'lucide-react'
+import { Activity, Calendar, Filter, Loader2, RefreshCw, Search, Send, List, Kanban, Info } from 'lucide-react'
 import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
@@ -22,16 +22,9 @@ const PAGE_SIZE = 20
 export default function NWPrompts() {
   const navigate = useNavigate()
   const { isConnected, apiFetch, config } = useNightWorker()
-  const isEdgeBackend = config.baseUrl.includes('supabase.co')
   const { data: health } = useHealthQuery()
   const { data, isLoading, isError, error, refetch, isFetching } = usePromptsQuery(15000)
   const resendMutation = useCreatePromptMutation()
-
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.info('[NWPrompts] Component Mounted');
-    }
-  }, []);
 
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'done' | 'failed'>('all')
@@ -41,24 +34,7 @@ export default function NWPrompts() {
   const [toDate, setToDate] = useState('')
   const [page, setPage] = useState(1)
 
-  // Kanban state management
   const kanban = useKanbanState(data)
-
-  // Debug logging to understand loading state in development
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.info('[NightWorker][Prompts] state', {
-        isConnected,
-        isLoading,
-        isFetching,
-        isError,
-        dataCount: data?.length ?? 0,
-      })
-    }
-  }, [data?.length, isConnected, isLoading, isFetching, isError])
-
-  // No redirect check - allow page to work regardless of isConnected state
-  // (removed to prevent infinite loops when token is not configured)
 
   const filtered = useMemo(() => {
     return (data || []).filter((item) => {
@@ -76,7 +52,6 @@ export default function NWPrompts() {
     })
   }, [data, fromDate, providerFilter, query, statusFilter, toDate])
 
-  const hasPendingPrompts = (data?.some((p) => p.status === 'pending')) ?? false
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
@@ -101,12 +76,9 @@ export default function NWPrompts() {
         provider: detail.provider || prompt.provider,
         name: `${prompt.name}-retry`,
         content,
-        target_folder: detail.target_folder
-          || prompt.target_folder
-          || config.workers[(prompt.provider && prompt.provider.toLowerCase().includes('claude')) ? 'claude' : 'codex'].folder
-          || '',
+        target_folder: detail.target_folder || prompt.target_folder || '',
       })
-      toast.success('Prompt reenviado', { description: `${prompt.name}-retry` })
+      toast.success('Prompt reenviado')
     } catch {
       toast.error('Falha ao reenviar')
     }
@@ -114,36 +86,12 @@ export default function NWPrompts() {
 
   return (
     <div className="px-4 pb-10 md:px-8">
-      {!isConnected && (
-        <Alert className="mb-4 border-amber-500/40 bg-amber-500/10 text-amber-100">
-          <AlertTitle>Configure a conexão</AlertTitle>
-          <AlertDescription>
-            Defina a URL e o token em <button className="underline" onClick={() => navigate('/nw/connect')}>/connect</button> para listar prompts.
-          </AlertDescription>
-        </Alert>
-      )}
-
       {isError && (
         <Alert className="mb-4 border-red-500/40 bg-red-500/10 text-red-100">
-          <AlertTitle>
-            {error instanceof ApiError && (error.status === 408 || error.message?.includes('timeout'))
-              ? 'Timeout ao carregar prompts'
-              : 'Erro ao carregar prompts'}
-          </AlertTitle>
+          <AlertTitle>Erro ao carregar</AlertTitle>
           <AlertDescription>
-            {error instanceof ApiError && (error.status === 408 || error.message?.includes('timeout'))
-              ? 'A API demorou demais a responder. Verifique se o servidor esta acessivel.'
-              : error instanceof Error
-                ? error.message
-                : 'Nao foi possivel contatar a API. Verifique a URL/token.'}
-            <div className="mt-2 flex items-center gap-2">
-              <Button size="sm" variant="outline" onClick={() => refetch()}>
-                <RefreshCw className="mr-1 h-3 w-3" /> Tentar novamente
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => navigate('/nw/connect')}>
-                Configurar API
-              </Button>
-            </div>
+            {error instanceof Error ? error.message : 'Não foi possível contatar a API.'}
+            <Button size="sm" variant="outline" onClick={() => refetch()} className="ml-3">Retry</Button>
           </AlertDescription>
         </Alert>
       )}
@@ -156,52 +104,42 @@ export default function NWPrompts() {
             <div className="flex items-center gap-1.5">
               <span className={`h-2 w-2 rounded-full ${health?.status === 'ok' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-red-500'}`} />
               <span className="font-medium text-[13px]">
-                {health?.status === 'ok' ? 'Worker Online' : 'Worker Offline'}
+                {health?.status === 'ok' ? 'API Online' : 'API Offline'}
               </span>
             </div>
-            {health?.providers && health.providers.length > 0 && (
-              <div className="flex items-center gap-1">
-                <Activity className="h-3 w-3" />
-                <span className="text-[12px]">{health.providers.join(', ')}</span>
+            {health?.workers && health.workers.length > 0 && (
+              <div className="flex items-center gap-2 border-l border-border/40 pl-3">
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
+                <span className="text-[11px] uppercase tracking-wider text-blue-300 font-bold">Worker Ativo</span>
               </div>
-            )}
-            <span className="text-[11px] text-muted-foreground/60">
-              API: {config.baseUrl.split('/functions')[0]}
-            </span>
-            {isEdgeBackend && hasPendingPrompts && (
-              <span className="text-[11px] text-muted-foreground/80 max-w-xs">
-                Pendentes são processados pelo worker (worker.py em modo Supabase). Confira se está rodando.
-              </span>
             )}
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'list' | 'kanban')}>
             <TabsList>
-              <TabsTrigger value="list" className="gap-2">
-                <List className="h-4 w-4" />
-                Lista
-              </TabsTrigger>
-              <TabsTrigger value="kanban" className="gap-2">
-                <Kanban className="h-4 w-4" />
-                Kanban
-              </TabsTrigger>
+              <TabsTrigger value="list" className="gap-2"><List className="h-4 w-4" /> Lista</TabsTrigger>
+              <TabsTrigger value="kanban" className="gap-2"><Kanban className="h-4 w-4" /> Kanban</TabsTrigger>
             </TabsList>
           </Tabs>
           <Button variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
           </Button>
-          <Button onClick={() => navigate('/nw/submit')}>Enviar novo</Button>
+          <Button onClick={() => navigate('/nw/submit')}>Novo</Button>
         </div>
       </div>
 
       {viewMode === 'kanban' && (
-        <p className="mb-4 text-[11px] text-muted-foreground/70 bg-sidebar/30 p-2 rounded-lg border border-border/40 inline-block italic">
-          Nota: Arrastar e soltar organiza a fila local. As colunas <strong>Done</strong> e <strong>Falhas</strong> sÃ£o atualizadas automaticamente pelo worker.
-        </p>
+        <Alert className="mb-4 border-blue-500/20 bg-blue-500/5 text-blue-200 py-2">
+          <Info className="h-4 w-4" />
+          <AlertDescription className="text-[11px] italic">
+            Nota: As colunas <strong>Priorizado</strong> e <strong>Doing</strong> são apenas organizadores visuais locais. 
+            O processamento real é feito pelo <code>worker.py</code> em ordem de criação.
+          </AlertDescription>
+        </Alert>
       )}
 
-      {/* Barra de filtros no topo para acesso rápido */}
+      {/* Barra de filtros */}
       <div className="sticky top-14 z-20 mb-4 flex flex-wrap gap-3 rounded-xl border border-border/60 bg-background/85 px-3 py-2 backdrop-blur">
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
@@ -220,147 +158,67 @@ export default function NWPrompts() {
           ))}
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Provider</span>
-          {(['all', 'codex', 'claude'] as const).map((p) => (
-            <Badge
-              key={p}
-              variant="outline"
-              className={`cursor-pointer rounded-full px-3 py-1 text-xs font-semibold ${
-                providerFilter === p ? 'border-blue-500/60 bg-blue-500/10 text-blue-100' : 'border-border/60 text-muted-foreground'
-              }`}
-              onClick={() => { setProviderFilter(p); setPage(1) }}
-            >
-              {p === 'all' ? 'Todos' : p === 'codex' ? 'Codex' : 'Claude'}
-            </Badge>
-          ))}
-        </div>
-
-        <div className="relative flex-1 min-w-[180px] max-w-sm">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome"
-            value={query}
-            onChange={(e) => { setQuery(e.target.value); setPage(1) }}
-            className="pl-10 bg-background/60"
-          />
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
-          <Input type="date" value={fromDate} onChange={(e) => { setFromDate(e.target.value); setPage(1) }} className="bg-background/60" />
-          <span className="text-xs text-muted-foreground">até</span>
-          <Input type="date" value={toDate} onChange={(e) => { setToDate(e.target.value); setPage(1) }} className="bg-background/60" />
-        </div>
-
         <div className="flex items-center gap-2 ml-auto">
-          <Button variant="ghost" size="sm" onClick={handleClear}>Limpar Filtros</Button>
+          <Button variant="ghost" size="sm" onClick={handleClear}>Limpar</Button>
           {viewMode === 'kanban' && (
-            <Button variant="ghost" size="sm" onClick={kanban.clearKanban} className="text-amber-400 hover:text-amber-300 hover:bg-amber-500/10">
-              Limpar Kanban
-            </Button>
+            <Button variant="ghost" size="sm" onClick={kanban.clearKanban} className="text-amber-400">Reset Kanban</Button>
           )}
-          <Button variant="outline" size="sm" onClick={() => refetch()}>
-            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-          </Button>
         </div>
       </div>
 
-      {/* Loading state with clear feedback */}
       {isLoading && !data && (
         <div className="mt-6 flex flex-col items-center justify-center gap-3 py-12 text-muted-foreground">
           <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
           <p className="text-sm font-medium">Carregando prompts...</p>
-          <p className="text-xs text-muted-foreground/70">Conectando a {config.baseUrl}</p>
         </div>
       )}
 
-      {/* Kanban View */}
       {viewMode === 'kanban' && !isLoading && (
-        <div className="mt-4">
-          <PromptsKanban
-            prompts={filtered}
-            prioritizedIds={kanban.prioritizedIds}
-            doingIds={kanban.doingIds}
-            onMoveToBacklog={kanban.moveToBacklog}
-            onMoveToPrioritized={kanban.moveToPrioritized}
-            onMoveToDoing={kanban.moveToDoing}
-            onReorderPrioritized={kanban.reorderPrioritized}
-          />
-        </div>
+        <PromptsKanban
+          prompts={filtered}
+          prioritizedIds={kanban.prioritizedIds}
+          doingIds={kanban.doingIds}
+          onMoveToBacklog={kanban.moveToBacklog}
+          onMoveToPrioritized={kanban.moveToPrioritized}
+          onMoveToDoing={kanban.moveToDoing}
+          onReorderPrioritized={kanban.reorderPrioritized}
+        />
       )}
 
-      {/* List View */}
       {viewMode === 'list' && !isLoading && (
-      <Card className="mt-4 border border-white/10 bg-card/70 backdrop-blur">
-        <CardHeader>
-          <CardTitle>Lista completa</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-xl border border-border/70 bg-background/60 shadow-inner">
+        <Card className="mt-4 border border-white/10 bg-card/70 backdrop-blur">
+          <CardContent className="p-0">
             <Table>
               <TableHeader>
-                <TableRow className="border-border/60">
+                <TableRow>
                   <TableHead>Status</TableHead>
-                  <TableHead>ID</TableHead>
                   <TableHead>Nome</TableHead>
                   <TableHead>Provider</TableHead>
-                  <TableHead>Data/Hora</TableHead>
-                  <TableHead>Pasta alvo</TableHead>
+                  <TableHead>Atualizado</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginated.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
-                      <div className="flex flex-col items-center gap-2">
-                        <Send className="h-6 w-6 text-blue-300" />
-                        <p>Nenhum prompt encontrado</p>
-                        <Button onClick={() => navigate('/nw/submit')}>Enviar primeiro prompt</Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                  <TableRow><TableCell colSpan={5} className="py-8 text-center text-muted-foreground">Nenhum registro.</TableCell></TableRow>
                 )}
-
                 {paginated.map((prompt) => (
-                  <TableRow key={prompt.id} className="border-border/60">
+                  <TableRow key={prompt.id}>
                     <TableCell><StatusBadge status={prompt.status} pulse={prompt.status === 'pending'} /></TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">{prompt.id}</TableCell>
-                    <TableCell className="font-semibold text-foreground">{prompt.name}</TableCell>
+                    <TableCell className="font-semibold">{prompt.name}</TableCell>
                     <TableCell><ProviderBadge provider={prompt.provider} /></TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {(() => {
-                        const dateValue = prompt.updated_at || prompt.created_at
-                        return dateValue ? new Date(dateValue).toLocaleString() : '—'
-                      })()}
+                    <TableCell className="text-xs text-muted-foreground">
+                      {new Date(prompt.updated_at || prompt.created_at || '').toLocaleString()}
                     </TableCell>
-                    <TableCell className="max-w-[220px] truncate font-mono text-xs text-blue-200">{prompt.target_folder || '—'}</TableCell>
-                    <TableCell className="text-right space-x-2">
+                    <TableCell className="text-right">
                       <Button variant="ghost" size="sm" onClick={() => navigate(`/nw/prompts/${prompt.id}`)}>Ver</Button>
-                      {prompt.status === 'failed' && (
-                        <Button variant="outline" size="sm" onClick={() => handleResend(prompt)} disabled={resendMutation.isPending}>
-                          Reenviar
-                        </Button>
-                      )}
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </div>
-
-          <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-            <span>
-              Página {page} de {pageCount} — {filtered.length} registros
-            </span>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>Anterior</Button>
-              <Button variant="ghost" size="sm" onClick={() => setPage((p) => Math.min(pageCount, p + 1))} disabled={page === pageCount}>Próxima</Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
       )}
     </div>
   )

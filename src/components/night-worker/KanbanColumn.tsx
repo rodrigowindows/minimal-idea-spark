@@ -56,6 +56,11 @@ export const KanbanColumn = memo(function KanbanColumn({
             {prompts.length}
           </Badge>
         </div>
+        {id === 'doing' && (
+          <p className="text-xs text-muted-foreground mt-1" title="Coluna apenas para sua ordem">
+            Doing é só para sua ordem. O processamento é feito pelo worker (worker.py); confira se está rodando.
+          </p>
+        )}
         {!isDroppable && (
           <p className="text-xs text-muted-foreground mt-1" title="Alterado apenas pelo worker">
             Somente leitura
