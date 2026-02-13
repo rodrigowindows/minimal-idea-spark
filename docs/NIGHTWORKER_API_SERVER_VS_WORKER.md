@@ -23,3 +23,5 @@ Se você vir `401 Unauthorized` nos logs do `api_server` (porta 5555), significa
 | **Worker (worker.py)** | O "Motor": É quem realmente executa o Claude/Codex e devolve o resultado. |
 
 **Dica**: Sempre confira se o badge **"Worker Ativo"** está aparecendo no topo da página de Prompts. Se não estiver, o seu `worker.py` pode estar parado ou mal configurado.
+
+**Arquitetura completa do sistema** (frontend, api_server, vendors, opções de orquestração): [NIGHTWORKER_ARCHITECTURE.md](./NIGHTWORKER_ARCHITECTURE.md).

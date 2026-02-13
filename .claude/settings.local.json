@@ -19,7 +19,8 @@
       "Bash(git -C \"C:\\code\\claude-auto\" log --oneline -3)",
       "Bash(git -C \"C:\\code\\claude-auto\" show --stat 82dbea8)",
       "Bash(git -C \"C:\\code\\claude-auto\" diff night-worker/worker.py)",
-      "Bash(git -C \"C:\\code\\claude-auto\" log --all --oneline --grep=\"bug\\|fix\\|parsing\\|worker\" -10)"
+      "Bash(git -C \"C:\\code\\claude-auto\" log --all --oneline --grep=\"bug\\|fix\\|parsing\\|worker\" -10)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []

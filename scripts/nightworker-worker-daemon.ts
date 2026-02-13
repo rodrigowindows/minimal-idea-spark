@@ -17,6 +17,8 @@
  *   - WORKER_IDLE_INTERVAL_MS: intervalo quando não há pending (padrão: 30000ms = 30s)
  *   - WORKER_MAX_BATCH_SIZE: max prompts por batch (padrão: 5)
  *   - WORKER_PROVIDERS: providers separados por vírgula (padrão: "codex,claude")
+ *   - WORKER_MAX_RETRIES: max tentativas de processamento (padrão: 3)
+ *   - WORKER_RETRY_BACKOFF_MS: base do backoff exponencial (padrão: 60000ms = 1min)
  */
 
 const BASE =
@@ -30,14 +32,17 @@ const POLL_INTERVAL_MS = Number(process.env.WORKER_POLL_INTERVAL_MS || '10000')
 const IDLE_INTERVAL_MS = Number(process.env.WORKER_IDLE_INTERVAL_MS || '30000')
 const MAX_BATCH_SIZE = Number(process.env.WORKER_MAX_BATCH_SIZE || '5')
 const PROVIDERS = (process.env.WORKER_PROVIDERS || 'codex,claude').split(',').map(p => p.trim())
-const MAX_PATCH_RETRIES = 3
-const PATCH_BACKOFF_MS = 1000
+const MAX_PATCH_RETRIES = 3 // Retries para chamadas HTTP (PATCH)
+const PATCH_BACKOFF_MS = 1000 // Backoff base para retries HTTP
+const MAX_PROCESSING_RETRIES = Number(process.env.WORKER_MAX_RETRIES || '3') // Retries de processamento
+const RETRY_BACKOFF_BASE_MS = Number(process.env.WORKER_RETRY_BACKOFF_MS || '60000') // 1 minuto base
 
 // Estatísticas
 let stats = {
   processed: 0,
   succeeded: 0,
   failed: 0,
+  retried: 0, // Prompts que falharam mas serão tentados novamente
   errors: 0,
   polls: 0,
   startTime: Date.now(),
@@ -207,10 +212,34 @@ async function markFailed(
     error: err,
     attempts,
     next_retry_at: nextRetryAt,
-    event_type: 'failed',
-    event_message: err,
+    event_type: nextRetryAt ? 'retry_scheduled' : 'failed',
+    event_message: nextRetryAt
+      ? `Failed (attempt ${attempts}/${MAX_PROCESSING_RETRIES}). Next retry: ${nextRetryAt}`
+      : `Failed permanently after ${attempts} attempts: ${err}`,
   })
   return ok
+}
+
+/**
+ * Calcula próximo retry usando backoff exponencial com jitter.
+ * Formula: base * 2^(attempt-1) + jitter
+ * Exemplo (base=60s): 1m, 2m, 4m, 8m, 16m...
+ */
+function calculateNextRetry(attempts: number): string | null {
+  if (attempts >= MAX_PROCESSING_RETRIES) {
+    return null // Não tenta mais
+  }
+
+  // Backoff exponencial: 1min, 2min, 4min, 8min...
+  const backoffMs = RETRY_BACKOFF_BASE_MS * Math.pow(2, attempts - 1)
+
+  // Adiciona jitter (±20%) para evitar thundering herd
+  const jitterMs = backoffMs * (0.8 + 0.4 * Math.random())
+
+  // Limite máximo de 1 hora
+  const delayMs = Math.min(jitterMs, 3600000)
+
+  return new Date(Date.now() + delayMs).toISOString()
 }
 
 /**
@@ -274,23 +303,56 @@ async function processOneBatch(provider: string): Promise<number> {
           log('error', 'Failed to mark done', { id: prompt.id })
         }
       } else {
-        const nextRetry = new Date(Date.now() + 60_000).toISOString()
-        const ok = await markFailed(prompt.id, result.error || 'Unknown error', prompt.attempts + 1, nextRetry)
+        const newAttempts = prompt.attempts + 1
+        const nextRetry = calculateNextRetry(newAttempts)
+        const ok = await markFailed(prompt.id, result.error || 'Unknown error', newAttempts, nextRetry)
+
         if (ok) {
-          stats.failed++
-          log('warn', '❌ Failed', { id: prompt.id, name: prompt.name, error: result.error })
+          if (nextRetry) {
+            stats.retried++
+            log('warn', `⚠️  Failed, retry scheduled`, {
+              id: prompt.id,
+              name: prompt.name,
+              attempt: newAttempts,
+              max_retries: MAX_PROCESSING_RETRIES,
+              next_retry_at: nextRetry,
+              error: result.error
+            })
+          } else {
+            stats.failed++
+            log('error', `❌ Failed permanently`, {
+              id: prompt.id,
+              name: prompt.name,
+              attempts: newAttempts,
+              error: result.error
+            })
+          }
         } else {
           stats.errors++
           log('error', 'Failed to mark failed', { id: prompt.id })
         }
       }
     } catch (e) {
-      stats.errors++
       const msg = e instanceof Error ? e.message : String(e)
-      log('error', 'Processing exception', { id: prompt.id, error: msg })
+      const newAttempts = prompt.attempts + 1
+      const nextRetry = calculateNextRetry(newAttempts)
 
-      const nextRetry = new Date(Date.now() + 60_000).toISOString()
-      await markFailed(prompt.id, msg, prompt.attempts + 1, nextRetry)
+      log('error', 'Processing exception', {
+        id: prompt.id,
+        error: msg,
+        attempt: newAttempts,
+        will_retry: !!nextRetry
+      })
+
+      const ok = await markFailed(prompt.id, msg, newAttempts, nextRetry)
+
+      if (ok && nextRetry) {
+        stats.retried++
+      } else if (ok && !nextRetry) {
+        stats.failed++
+      } else {
+        stats.errors++
+      }
     }
   }
 
@@ -308,6 +370,7 @@ function printStats() {
     polls: stats.polls,
     processed: stats.processed,
     succeeded: stats.succeeded,
+    retried: stats.retried,
     failed: stats.failed,
     errors: stats.errors,
   })
@@ -320,6 +383,8 @@ async function pollLoop() {
     poll_interval_ms: POLL_INTERVAL_MS,
     idle_interval_ms: IDLE_INTERVAL_MS,
     max_batch_size: MAX_BATCH_SIZE,
+    max_retries: MAX_PROCESSING_RETRIES,
+    retry_backoff_base_ms: RETRY_BACKOFF_BASE_MS,
   })
 
   while (true) {

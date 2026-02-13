@@ -24,6 +24,8 @@
 
 **Arquitetura:** Frontend → Edge (Supabase) → Worker (Python em produção ou Node local/produção).
 
+**Visão completa da arquitetura** (API FastAPI, vendors, orquestrador, roadmap): [NIGHTWORKER_ARCHITECTURE.md](./NIGHTWORKER_ARCHITECTURE.md).
+
 ---
 
 ## 🎯 O que é o Night Worker?

@@ -26,3 +26,7 @@
 - Busca: `useSearch` usa `semantic-search` e `indexer` (local e/ou remoto).
 - Transcrição: Deepgram no client via `lib/audio-transcription.ts`.
 - Colaboração: `RealtimeContext` + `useRealtimeSync` (presença, cursores, chat por workspace).
+
+## Night Worker
+
+Para a arquitetura completa do subsistema Night Worker (frontend, API Layer FastAPI, workers, vendors, opções de orquestração, roadmap), ver [NIGHTWORKER_ARCHITECTURE.md](NIGHTWORKER_ARCHITECTURE.md).
