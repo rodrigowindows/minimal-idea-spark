@@ -5,6 +5,8 @@
 
 Este documento é a **fonte única de verdade** para a integração do frontend com o Night Worker. Descreve todos os endpoints disponíveis, autenticação, payloads e o fluxo completo de criação e monitoramento de prompts.
 
+**Exemplo Prático**: Uma interface mínima de demonstração deste fluxo pode ser encontrada em `/nw/simple` (implementada em `src/components/night-worker/SimpleInterface.tsx`).
+
 ---
 
 ## 🎯 Visão Geral do Fluxo
@@ -100,6 +102,22 @@ O Night Worker opera em um modelo assíncrono de 4 passos:
 | GET | `/prompts/:id` | Detalhe de prompt (com events) |
 | POST | `/prompts` | Cria novo prompt |
 | PATCH | `/prompts/:id` | Atualiza prompt (apenas worker) |
+
+---
+
+## 🏗️ Separação de Responsabilidades (Regra de Ouro)
+
+Para garantir a integridade do sistema e a segurança, as responsabilidades são estritamente separadas:
+
+1.  **Frontend (O Requisitante)**:
+    *   **Pode**: Criar prompts (POST) e consultar status/resultados (GET).
+    *   **NÃO Pode**: Alterar o status de um prompt manualmente.
+    *   **Segurança**: Se o frontend tentar fazer um `PATCH` para alterar o status, a Edge Function retornará **403 Forbidden**. Isso evita que usuários marquem tarefas como concluídas sem o processamento real.
+
+2.  **Worker (O Executor)**:
+    *   **Pode**: Consultar prompts pendentes (GET) e atualizar status para `done` ou `failed` (PATCH).
+    *   **Autenticação**: É o único que deve possuir e usar a `SUPABASE_SERVICE_ROLE_KEY`.
+    *   **Fluxo**: O status só muda através da ação do worker após o processamento da IA.
 
 ---
 

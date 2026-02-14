@@ -16,7 +16,7 @@
 | **Backend B – Worker Node one-shot** | `scripts/nightworker-worker-example.ts` para testes/cron |
 | **Backend B – Worker Python** | Já rodando em https://coder-ai.workfaraway.com; health `{"status":"ok","providers":["claude","codex"]}`; processamento real de LLMs |
 
-**Documentação:** BACKEND_API_WORKER.md, NIGHTWORKER_INTEGRATION_REVIEW.md, NIGHTWORKER_COMO_FUNCIONA.md (este guia).
+**Documentação:** [NIGHTWORKER_APIS_E_FLUXO_FRONTEND.md](./NIGHTWORKER_APIS_E_FLUXO_FRONTEND.md) (Técnico), BACKEND_API_WORKER.md, NIGHTWORKER_INTEGRATION_REVIEW.md, NIGHTWORKER_COMO_FUNCIONA.md (este guia).
 
 **Para fazer funcionar agora:** (1) Deploy da edge: `npx supabase functions deploy nightworker-prompts`. (2) Rodar um worker: Python externo (configurar para sua edge), Node local (`node --env-file=.env --experimental-strip-types scripts/nightworker-worker-daemon.ts`) ou deploy Node (systemd/docker/pm2).
 
@@ -766,6 +766,14 @@ curl -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
 ```
 
 ---
+
+### Problema: Por que não consigo alterar o status de um prompt manualmente?
+
+**Sintoma**: Você quer marcar um prompt como "Concluído" ou "Falha" direto na interface, mas não encontra o botão.
+
+**Causa**: Por design de segurança e integridade, o frontend (seu navegador) é proibido de alterar o status. Apenas o **worker** (que possui a chave mestra `service_role`) pode fazer essa alteração após processar a tarefa.
+
+**Solução**: Se o prompt está travado em "Pendente", a solução não é mudar o status manualmente, mas sim garantir que o worker esteja rodando e conseguindo se comunicar com a API. Se você tentar forçar essa alteração via código no frontend, receberá um erro `403 Forbidden`.
 
 ### Problema 2: Frontend mostra "500 Unexpected error"
 

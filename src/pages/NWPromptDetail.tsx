@@ -171,6 +171,9 @@ export default function NWPromptDetail() {
                   <div className="flex min-h-[200px] flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/60 bg-background/40 text-muted-foreground">
                     <Loader2 className="h-6 w-6 animate-spin" />
                     <p>Aguardando processamento...</p>
+                    <p className="max-w-md text-center text-[11px] text-muted-foreground/70 italic px-4">
+                      O status é atualizado automaticamente apenas pelo worker. Não é possível alterar manualmente.
+                    </p>
                     {isEdgeBackend && (
                       <p className="max-w-md text-center text-xs text-muted-foreground/90">
                         Processado pelo worker (worker.py em modo Supabase). Se estiver pendente, confira se o worker está rodando.

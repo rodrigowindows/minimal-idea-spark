@@ -24,6 +24,7 @@ import { ShortcutProvider } from "@/contexts/ShortcutContext";
 import { NetworkStatusProvider } from "@/contexts/NetworkStatusContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PriorityDashboard } from "@/components/PriorityDashboard";
+import { NightWorkerSimpleInterface } from "@/components/night-worker/SimpleInterface";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 import { Suspense, lazy, useEffect, useState } from "react";
@@ -175,6 +176,7 @@ function AppContent() {
           <Route path="/nw/logs" element={<Suspense fallback={<PageFallback />}><NWLogs /></Suspense>} />
           <Route path="/nw/settings" element={<Suspense fallback={<PageFallback />}><NWSettings /></Suspense>} />
           <Route path="/nw/connect" element={<Suspense fallback={<PageFallback />}><NWConnect /></Suspense>} />
+          <Route path="/nw/simple" element={<div className="p-8"><NightWorkerSimpleInterface /></div>} />
 
           {/* Legacy redirects for better compatibility */}
           <Route path="/prompts" element={<Navigate to="/nw/prompts" replace />} />

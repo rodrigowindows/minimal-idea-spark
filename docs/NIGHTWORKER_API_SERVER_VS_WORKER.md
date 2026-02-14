@@ -14,6 +14,9 @@ Se você vir `401 Unauthorized` nos logs do `api_server` (porta 5555), significa
 - Se o IP for externo (ex: `136.28.40.32`), são bots de internet fazendo varredura. Isso é normal e sua API os bloqueou com sucesso.
 - Se for o seu próprio worker, verifique se o `api_token` no `config.txt` da API é o mesmo que o worker está enviando.
 
+### 3. Posso alterar o status do prompt manualmente?
+**Não.** O frontend não possui permissão para realizar `PATCH` nos prompts (alterar status, resultado ou erro). Essa é uma tarefa exclusiva do **worker**. Se o frontend tentar, a Edge Function retornará `403 Forbidden`. O status é a prova de que o worker realmente processou a tarefa.
+
 ## Resumo de Responsabilidades
 
 | Componente | O que faz? |
