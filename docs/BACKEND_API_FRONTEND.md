@@ -10,6 +10,46 @@ A API A e uma **Supabase Edge Function** (`nightworker-prompts`) que gerencia o 
 **Base URL (fallback):**
 `https://coder-ai.workfaraway.com`
 
+**📚 Documentação Completa de APIs e Fluxo:**
+Ver [NIGHTWORKER_APIS_E_FLUXO_FRONTEND.md](./NIGHTWORKER_APIS_E_FLUXO_FRONTEND.md) para guia detalhado com exemplos de código, diagramas e troubleshooting.
+
+---
+
+## Fluxo Completo: Frontend → Worker
+
+```
+1. Frontend cria prompt
+   POST /prompts
+   { provider: "claude", name: "...", content: "...", target_folder: "..." }
+   ↓
+   201 { id: "uuid" }
+
+2. Edge Function salva no banco
+   INSERT INTO nw_prompts
+   (status = 'pending')
+
+3. Worker busca prompts (a cada 10-60s, dependendo da config)
+   GET /prompts?status=pending&provider=claude&limit=5
+   Authorization: Bearer {SUPABASE_SERVICE_ROLE_KEY}
+   ↓
+   200 { total: 1, prompts: [...] }
+
+4. Worker processa
+   Claude CLI / Codex CLI / OpenAI API / etc.
+
+5. Worker atualiza backend
+   PATCH /prompts/{id}
+   Authorization: Bearer {SUPABASE_SERVICE_ROLE_KEY}
+   { status: "done", result_content: "...", event_type: "done", event_message: "..." }
+   ↓
+   200 { id: "uuid", status: "done" }
+
+6. Frontend consulta resultado (polling automático a cada 15s)
+   GET /prompts/{id}
+   ↓
+   200 { status: "done", result_content: "...", events: [...] }
+```
+
 ---
 
 ## Autenticacao
@@ -308,4 +348,5 @@ O frontend implementa suporte transparente para ambos os backends:
 ### Referências
 
 - Guia completo de compatibilidade: [BACKEND_COMPATIBILITY.md](./BACKEND_COMPATIBILITY.md)
+- **Fonte da Verdade para Frontend**: NIGHTWORKER_APIS_E_FLUXO_FRONTEND.md
 - Worker API: [BACKEND_API_WORKER.md](./BACKEND_API_WORKER.md)

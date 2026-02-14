@@ -12,14 +12,14 @@ const DEFAULT_LIMIT = 20
 const MAX_LIMIT = 100
 const CACHE_MAX_AGE = 5 // seconds
 
-const VALID_PROVIDERS = new Set(['codex', 'claude', 'codex_cli', 'claude_cli', 'openai_api'])
+const VALID_PROVIDERS = new Set(['codex', 'claude', 'codex_cli', 'claude_cli', 'openai_api', 'gemini'])
 const VALID_STATUSES = new Set(['pending', 'done', 'failed'])
 const MAX_NAME_LEN = 500
 const MAX_CONTENT_LEN = 500_000
 const MAX_TARGET_FOLDER_LEN = 2000
 
 type PromptStatus = 'pending' | 'done' | 'failed'
-type Provider = 'codex' | 'claude' | 'codex_cli' | 'claude_cli' | 'openai_api'
+type Provider = 'codex' | 'claude' | 'codex_cli' | 'claude_cli' | 'openai_api' | 'gemini'
 
 interface PromptPayload {
   provider: Provider

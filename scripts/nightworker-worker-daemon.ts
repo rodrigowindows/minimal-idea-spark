@@ -1,4 +1,4 @@
-﻿/**
+﻿﻿/**
  * Night Worker Daemon: Worker contínuo com polling inteligente
  *
  * Processa prompts pending de múltiplos providers em loop infinito.
@@ -56,7 +56,8 @@ let stats = {
 }
 
 function requestId(): string {
-  return crypto.randomUUID?.() ?? \eq-\-\\
+  return crypto.randomUUID?.() ?? \
+eq-\-\\
 }
 
 function log(level: 'info' | 'warn' | 'error', msg: string, data?: Record<string, unknown>) {
@@ -67,6 +68,24 @@ function log(level: 'info' | 'warn' | 'error', msg: string, data?: Record<string
 
 function jitter(ms: number): number {
   return Math.floor(ms * (0.8 + 0.4 * Math.random()))
+}
+
+/**
+ * Decodes a JWT and checks if it has the 'service_role'.
+ * This is a simple, dependency-free check for Node.js.
+ */
+function isServiceKey(token: string): boolean {
+  if (!token || token.split('.').length < 2) return false
+  try {
+    const payloadB64 = token.split('.')[1]
+    // Use Buffer for base64 decoding in Node.js
+    const payloadJson = Buffer.from(payloadB64, 'base64').toString('utf-8')
+    const payload = JSON.parse(payloadJson)
+    return payload.role === 'service_role'
+  } catch (e) {
+    log('warn', 'Could not parse JWT token', { error: e instanceof Error ? e.message : String(e) })
+    return false // Invalid token format
+  }
 }
 
 async function api<T = unknown>(
@@ -438,6 +457,16 @@ if (!BASE || !SERVICE_ROLE_KEY) {
     has_service_role_key: !!SERVICE_ROLE_KEY,
   })
   console.error('\nSet SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or NIGHTWORKER_API_URL) in .env')
+  process.exit(1)
+}
+
+if (!isServiceKey(SERVICE_ROLE_KEY)) {
+  log('error', 'Invalid SERVICE_ROLE_KEY', {
+    msg: 'The provided SUPABASE_SERVICE_ROLE_KEY does not have the "service_role". It might be an "anon" key.',
+  })
+  console.error(
+    '\nPlease ensure SUPABASE_SERVICE_ROLE_KEY is the "service_role" key from your Supabase project settings.'
+  )
   process.exit(1)
 }
 

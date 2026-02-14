@@ -799,6 +799,8 @@ curl https://xxx.supabase.co/functions/v1/nightworker-prompts/health
 
 **Causa**: Worker está usando token errado (anon em vez de service-role).
 
+**Guia Detalhado**: [troubleshooting/TS-403-WORKER-FORBIDDEN.md](./troubleshooting/TS-403-WORKER-FORBIDDEN.md)
+
 **Solução**: Verificar `.env`:
 ```env
 # ERRADO (não funciona para PATCH)

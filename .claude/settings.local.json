@@ -20,7 +20,15 @@
       "Bash(git -C \"C:\\code\\claude-auto\" show --stat 82dbea8)",
       "Bash(git -C \"C:\\code\\claude-auto\" diff night-worker/worker.py)",
       "Bash(git -C \"C:\\code\\claude-auto\" log --all --oneline --grep=\"bug\\|fix\\|parsing\\|worker\" -10)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(git -C \"C:\\code\\claude-auto\" log --oneline -5)",
+      "Bash(git -C \"C:\\code\\claude-auto\" diff HEAD)",
+      "Bash(npx supabase functions deploy:*)",
+      "Bash(npx supabase login)",
+      "Bash(set SUPABASE_ACCESS_TOKEN=sbp_f4fa60af7af31f19e9f5c09dbdf26ea2b64dcb74)",
+      "Bash($env:SUPABASE_ACCESS_TOKEN=\"sbp_f4fa60af7af31f19e9f5c09dbdf26ea2b64dcb74\")",
+      "Bash(export SUPABASE_ACCESS_TOKEN=\"sbp_f4fa60af7af31f19e9f5c09dbdf26ea2b64dcb74\")",
+      "Bash(npx supabase link:*)"
     ],
     "deny": [],
     "ask": []
