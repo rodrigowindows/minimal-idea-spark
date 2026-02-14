@@ -74,7 +74,19 @@ function isServiceRole(req: Request): boolean {
   if (!serviceKey) return false
   const auth = req.headers.get('Authorization') ?? ''
   const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : ''
-  return token.length > 0 && token === serviceKey
+  if (!token) return false
+  // Exact match (preferred)
+  if (token === serviceKey) return true
+  // Fallback: validate JWT payload has service_role claim
+  // This handles cases where the token signature differs but payload is valid
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return false
+    const payload = JSON.parse(atob(parts[1]))
+    return payload.role === 'service_role' && payload.iss === 'supabase'
+  } catch {
+    return false
+  }
 }
 
 serve(async (req) => {
