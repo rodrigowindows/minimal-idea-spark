@@ -28,7 +28,9 @@
       "Bash(set SUPABASE_ACCESS_TOKEN=sbp_f4fa60af7af31f19e9f5c09dbdf26ea2b64dcb74)",
       "Bash($env:SUPABASE_ACCESS_TOKEN=\"sbp_f4fa60af7af31f19e9f5c09dbdf26ea2b64dcb74\")",
       "Bash(export SUPABASE_ACCESS_TOKEN=\"sbp_f4fa60af7af31f19e9f5c09dbdf26ea2b64dcb74\")",
-      "Bash(npx supabase link:*)"
+      "Bash(npx supabase link:*)",
+      "Bash(cat:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
