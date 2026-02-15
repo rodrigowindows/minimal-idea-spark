@@ -485,7 +485,7 @@ describe('Supabase API Retry Logic', () => {
 
 describe('Claim Prompts - Atomic Lock', () => {
   it('returns empty array on non-200 status', () => {
-    const status = 500
+    const status: number = 500
     const result = status === 200 ? [{ id: '1' }] : []
     expect(result).toEqual([])
   })
