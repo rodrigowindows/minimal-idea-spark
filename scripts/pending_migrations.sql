@@ -524,3 +524,93 @@ end;
 $$;
 
 
+-- === 20260217000000_nightworker_projects_and_templates.sql ===
+-- NightWorker project grouping + pipeline template persistence
+
+-- Projects table for grouping prompts.
+create table if not exists public.nw_projects (
+  id uuid primary key default gen_random_uuid(),
+  name text not null check (char_length(name) between 1 and 500),
+  description text,
+  default_target_folder text,
+  status text not null default 'active' check (status in ('active', 'archived', 'paused')),
+  sla_timeout_seconds integer not null default 300,
+  sla_max_retries integer not null default 3,
+  sla_retry_delay_seconds integer not null default 60,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_nw_projects_status on public.nw_projects (status);
+
+alter table public.nw_projects enable row level security;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'nw_projects' and policyname = 'nw_projects_select_all'
+  ) then
+    create policy nw_projects_select_all on public.nw_projects for select to anon, authenticated, service_role using (true);
+  end if;
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'nw_projects' and policyname = 'nw_projects_modify_service'
+  ) then
+    create policy nw_projects_modify_service on public.nw_projects for all to service_role using (true) with check (true);
+  end if;
+end;
+$$;
+
+grant select on public.nw_projects to anon, authenticated;
+grant all privileges on public.nw_projects to service_role;
+
+-- Pipeline templates table for reusable multi-step definitions.
+create table if not exists public.nw_pipeline_templates (
+  id uuid primary key default gen_random_uuid(),
+  name text not null check (char_length(name) between 1 and 500),
+  description text,
+  steps jsonb not null default '[]'::jsonb,
+  version integer not null default 1,
+  is_default boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.nw_pipeline_templates enable row level security;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'nw_pipeline_templates' and policyname = 'nw_pipeline_templates_select_all'
+  ) then
+    create policy nw_pipeline_templates_select_all on public.nw_pipeline_templates for select to anon, authenticated, service_role using (true);
+  end if;
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'nw_pipeline_templates' and policyname = 'nw_pipeline_templates_modify_service'
+  ) then
+    create policy nw_pipeline_templates_modify_service on public.nw_pipeline_templates for all to service_role using (true) with check (true);
+  end if;
+end;
+$$;
+
+grant select on public.nw_pipeline_templates to anon, authenticated;
+grant all privileges on public.nw_pipeline_templates to service_role;
+
+-- Link prompts to projects (optional FK).
+alter table if exists public.nw_prompts
+  add column if not exists project_id uuid references public.nw_projects(id);
+
+create index if not exists idx_nw_prompts_project_id
+  on public.nw_prompts (project_id)
+  where project_id is not null;
+
+-- Template reference on prompts (optional, for tracking which template spawned the prompt).
+alter table if exists public.nw_prompts
+  add column if not exists template_id uuid references public.nw_pipeline_templates(id);
+
+alter table if exists public.nw_prompts
+  add column if not exists template_version integer;
+
