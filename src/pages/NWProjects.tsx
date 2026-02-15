@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -23,13 +24,11 @@ import { loadPipelineTemplates } from '@/lib/nightworker/pipelineTemplates'
 import type { PipelineConfig } from '@/types/night-worker'
 import { ArrowRight, Briefcase, FolderPlus, GitBranch, Play, Plus, Send } from 'lucide-react'
 
-const runSchema = z.object({
-  template_id: z.string().min(1, 'Selecione um template'),
-  content: z.string().min(10, 'Informe o prompt base'),
-  target_folder: z.string().min(3, 'Informe a pasta alvo'),
-})
-
-type RunValues = z.infer<typeof runSchema>
+type RunValues = {
+  template_id: string
+  content: string
+  target_folder: string
+}
 
 function slug(value: string) {
   return value
@@ -47,10 +46,21 @@ function formatDate(value?: string | null) {
 }
 
 export default function NWProjects() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const templates = useMemo(() => loadPipelineTemplates(), [])
   const templateFromQuery = searchParams.get('template') ?? ''
+
+  const runSchema = useMemo(
+    () =>
+      z.object({
+        template_id: z.string().min(1, t('projects.validation.selectTemplate')),
+        content: z.string().min(10, t('projects.validation.promptMinLength')),
+        target_folder: z.string().min(3, t('projects.validation.targetFolderMinLength')),
+      }),
+    [t]
+  )
 
   const { data: projects = [], isLoading: loadingProjects } = useProjectsQuery('active')
   const createProject = useCreateProjectMutation()
@@ -107,7 +117,7 @@ export default function NWProjects() {
   const handleCreateProject = () => {
     const name = newProjectName.trim()
     if (name.length < 3) {
-      toast.error('Nome do projeto precisa ter pelo menos 3 caracteres')
+      toast.error(t('projects.toast.nameMinLength'))
       return
     }
 
@@ -119,14 +129,14 @@ export default function NWProjects() {
       },
       {
         onSuccess: (project) => {
-          toast.success('Projeto criado')
+          toast.success(t('projects.toast.created'))
           setSelectedProjectId(project.id)
           setNewProjectName('')
           setNewProjectDescription('')
           setNewProjectTarget('')
         },
         onError: () => {
-          toast.error('Falha ao criar projeto')
+          toast.error(t('projects.toast.createFailed'))
         },
       }
     )
@@ -134,13 +144,13 @@ export default function NWProjects() {
 
   const onRun = async (values: RunValues) => {
     if (!selectedProject) {
-      toast.error('Selecione um projeto')
+      toast.error(t('projects.toast.selectProject'))
       return
     }
 
     const template = templates.find((entry) => entry.id === values.template_id)
     if (!template || template.steps.length === 0) {
-      toast.error('Template invalido')
+      toast.error(t('projects.toast.invalidTemplate'))
       return
     }
 
@@ -177,10 +187,10 @@ export default function NWProjects() {
         pipeline_template_name: template.name,
       })
 
-      toast.success('Processo iniciado no projeto')
+      toast.success(t('projects.toast.processStarted'))
       navigate(`/nw/prompts/${res.id}`)
     } catch {
-      toast.error('Falha ao iniciar processo')
+      toast.error(t('projects.toast.processFailed'))
     }
   }
 
@@ -189,17 +199,15 @@ export default function NWProjects() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.1em] text-blue-200">Night Worker</p>
-          <h1 className="text-3xl font-bold text-foreground">Projetos e Processos</h1>
-          <p className="text-sm text-muted-foreground">
-            Separe fluxos por projeto e execute templates de pipeline com rastreabilidade completa.
-          </p>
+          <h1 className="text-3xl font-bold text-foreground">{t('projects.pageTitle')}</h1>
+          <p className="text-sm text-muted-foreground">{t('projects.pageDescription')}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => navigate('/nw/templates')}>
-            <GitBranch className="mr-2 h-4 w-4" /> Ver templates
+            <GitBranch className="mr-2 h-4 w-4" /> {t('projects.viewTemplates')}
           </Button>
           <Button onClick={handleCreateProject} disabled={createProject.isPending || !newProjectName.trim()}>
-            <FolderPlus className="mr-2 h-4 w-4" /> Criar projeto
+            <FolderPlus className="mr-2 h-4 w-4" /> {t('projects.createProject')}
           </Button>
         </div>
       </div>
@@ -208,49 +216,49 @@ export default function NWProjects() {
         <Card className="border border-white/10 bg-card/70 backdrop-blur">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Briefcase className="h-5 w-5" /> Projetos
+              <Briefcase className="h-5 w-5" /> {t('projects.sectionTitle')}
             </CardTitle>
-            <CardDescription>Cada projeto organiza prompts e pipelines do mesmo processo.</CardDescription>
+            <CardDescription>{t('projects.sectionDescription')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="rounded-xl border border-border/60 bg-background/40 p-3 space-y-3">
               <div className="space-y-2">
-                <Label htmlFor="project-name">Nome</Label>
+                <Label htmlFor="project-name">{t('projects.nameLabel')}</Label>
                 <Input
                   id="project-name"
                   value={newProjectName}
                   onChange={(e) => setNewProjectName(e.target.value)}
-                  placeholder="Ex.: Projeto API Checkout"
+                  placeholder={t('projects.namePlaceholder')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="project-desc">Descricao</Label>
+                <Label htmlFor="project-desc">{t('projects.descriptionLabel')}</Label>
                 <Input
                   id="project-desc"
                   value={newProjectDescription}
                   onChange={(e) => setNewProjectDescription(e.target.value)}
-                  placeholder="Objetivo do processo"
+                  placeholder={t('projects.descriptionPlaceholder')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="project-target">Pasta padrao (opcional)</Label>
+                <Label htmlFor="project-target">{t('projects.targetFolderLabel')}</Label>
                 <Input
                   id="project-target"
                   value={newProjectTarget}
                   onChange={(e) => setNewProjectTarget(e.target.value)}
-                  placeholder="C:\\code\\meu-projeto"
+                  placeholder={t('projects.targetFolderPlaceholder')}
                 />
               </div>
             </div>
 
             {loadingProjects && (
-              <p className="text-sm text-muted-foreground">Carregando projetos...</p>
+              <p className="text-sm text-muted-foreground">{t('projects.loadingProjects')}</p>
             )}
 
             {!loadingProjects && projects.length === 0 && (
               <Alert className="border-amber-500/30 bg-amber-500/10 text-amber-100">
-                <AlertTitle>Nenhum projeto ainda</AlertTitle>
-                <AlertDescription>Crie um projeto para separar e controlar o fluxo com templates.</AlertDescription>
+                <AlertTitle>{t('projects.noProjectsTitle')}</AlertTitle>
+                <AlertDescription>{t('projects.noProjectsDescription')}</AlertDescription>
               </Alert>
             )}
 
@@ -268,16 +276,16 @@ export default function NWProjects() {
                 >
                   <div className="flex items-center justify-between gap-2">
                     <p className="font-semibold text-foreground">{project.name}</p>
-                    <Badge variant="outline">{project.stats?.total ?? 0} prompts</Badge>
+                    <Badge variant="outline">{t('projects.promptsCount', { count: project.stats?.total ?? 0 })}</Badge>
                   </div>
                   {project.description && (
                     <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{project.description}</p>
                   )}
                   <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-                    <span>Pendentes: {project.stats?.pending ?? 0}</span>
-                    <span>Processando: {project.stats?.processing ?? 0}</span>
-                    <span>Done: {project.stats?.done ?? 0}</span>
-                    <span>Falhas: {project.stats?.failed ?? 0}</span>
+                    <span>{t('projects.stats.pending')} {project.stats?.pending ?? 0}</span>
+                    <span>{t('projects.stats.processing')} {project.stats?.processing ?? 0}</span>
+                    <span>{t('projects.stats.done')} {project.stats?.done ?? 0}</span>
+                    <span>{t('projects.stats.failed')} {project.stats?.failed ?? 0}</span>
                   </div>
                 </button>
               ))}
@@ -288,28 +296,28 @@ export default function NWProjects() {
         <div className="space-y-4">
           <Card className="border border-white/10 bg-card/70 backdrop-blur">
             <CardHeader>
-              <CardTitle className="text-lg">Executar Fluxo com Template</CardTitle>
+              <CardTitle className="text-lg">{t('projects.runFlowTitle')}</CardTitle>
               <CardDescription>
-                Projeto atual: {selectedProject ? <strong>{selectedProject.name}</strong> : 'selecione um projeto'}
+                {t('projects.currentProject')} {selectedProject ? <strong>{selectedProject.name}</strong> : t('projects.selectProjectPrompt')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {!selectedProject ? (
                 <Alert className="border-amber-500/30 bg-amber-500/10 text-amber-100">
-                  <AlertTitle>Selecione um projeto</AlertTitle>
-                  <AlertDescription>Escolha um projeto na coluna da esquerda para iniciar o fluxo.</AlertDescription>
+                  <AlertTitle>{t('projects.selectProjectTitle')}</AlertTitle>
+                  <AlertDescription>{t('projects.selectProjectDescription')}</AlertDescription>
                 </Alert>
               ) : (
                 <form className="space-y-4" onSubmit={runForm.handleSubmit(onRun)}>
                   <div className="space-y-2">
-                    <Label htmlFor="template_id">Template</Label>
+                    <Label htmlFor="template_id">{t('projects.templateLabel')}</Label>
                     <select
                       id="template_id"
                       className="h-10 w-full rounded-md border border-border/60 bg-background/70 px-3 text-sm"
                       value={selectedTemplateId || ''}
                       onChange={(e) => runForm.setValue('template_id', e.target.value, { shouldDirty: true })}
                     >
-                      <option value="">Selecione</option>
+                      <option value="">{t('projects.templateSelectDefault')}</option>
                       {templates.map((template) => (
                         <option key={template.id} value={template.id}>
                           {template.name}
@@ -322,15 +330,15 @@ export default function NWProjects() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="content">Prompt base</Label>
-                    <Textarea id="content" rows={8} {...runForm.register('content')} placeholder="Descreva a tarefa principal..." />
+                    <Label htmlFor="content">{t('projects.promptLabel')}</Label>
+                    <Textarea id="content" rows={8} {...runForm.register('content')} placeholder={t('projects.promptPlaceholder')} />
                     {runForm.formState.errors.content && (
                       <p className="text-xs text-red-400">{runForm.formState.errors.content.message}</p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="target_folder">Pasta alvo</Label>
+                    <Label htmlFor="target_folder">{t('projects.targetFolderFormLabel')}</Label>
                     <Input id="target_folder" {...runForm.register('target_folder')} />
                     {runForm.formState.errors.target_folder && (
                       <p className="text-xs text-red-400">{runForm.formState.errors.target_folder.message}</p>
@@ -339,7 +347,7 @@ export default function NWProjects() {
 
                   {selectedTemplate && (
                     <div className="rounded-xl border border-border/60 bg-background/40 p-3 space-y-2">
-                      <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Fluxo selecionado</p>
+                      <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">{t('projects.selectedFlow')}</p>
                       <div className="flex flex-wrap items-center gap-2">
                         {selectedTemplate.steps.map((step, index) => (
                           <div key={`${selectedTemplate.id}-${index}`} className="flex items-center gap-2">
@@ -357,11 +365,11 @@ export default function NWProjects() {
                     <Button type="submit" disabled={createPrompt.isPending || !selectedProject}>
                       {createPrompt.isPending ? (
                         <>
-                          <Send className="mr-2 h-4 w-4 animate-pulse" /> Iniciando...
+                          <Send className="mr-2 h-4 w-4 animate-pulse" /> {t('projects.starting')}
                         </>
                       ) : (
                         <>
-                          <Play className="mr-2 h-4 w-4" /> Iniciar processo
+                          <Play className="mr-2 h-4 w-4" /> {t('projects.startProcess')}
                         </>
                       )}
                     </Button>
@@ -373,14 +381,14 @@ export default function NWProjects() {
 
           <Card className="border border-white/10 bg-card/70 backdrop-blur">
             <CardHeader>
-              <CardTitle className="text-base">Prompts do Projeto</CardTitle>
-              <CardDescription>Ultimas execucoes ligadas ao projeto selecionado.</CardDescription>
+              <CardTitle className="text-base">{t('projects.projectPromptsTitle')}</CardTitle>
+              <CardDescription>{t('projects.projectPromptsDescription')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {!selectedProject && <p className="text-sm text-muted-foreground">Selecione um projeto para ver os prompts.</p>}
-              {selectedProject && promptsQuery.isLoading && <p className="text-sm text-muted-foreground">Carregando prompts...</p>}
+              {!selectedProject && <p className="text-sm text-muted-foreground">{t('projects.selectProjectForPrompts')}</p>}
+              {selectedProject && promptsQuery.isLoading && <p className="text-sm text-muted-foreground">{t('projects.loadingPrompts')}</p>}
               {selectedProject && !promptsQuery.isLoading && (promptsQuery.data?.length ?? 0) === 0 && (
-                <p className="text-sm text-muted-foreground">Nenhum prompt neste projeto ainda.</p>
+                <p className="text-sm text-muted-foreground">{t('projects.noPromptsYet')}</p>
               )}
               {selectedProject &&
                 (promptsQuery.data ?? []).slice(0, 10).map((prompt) => (
@@ -397,7 +405,7 @@ export default function NWProjects() {
                       </div>
                       <ProviderBadge provider={prompt.provider} />
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground">Atualizado: {formatDate(prompt.updated_at || prompt.created_at)}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{t('projects.updatedAt')} {formatDate(prompt.updated_at || prompt.created_at)}</p>
                   </button>
                 ))}
             </CardContent>
@@ -407,7 +415,7 @@ export default function NWProjects() {
 
       <div className="flex justify-end">
         <Button variant="outline" onClick={() => navigate('/nw/prompts')}>
-          <Plus className="mr-2 h-4 w-4" /> Abrir fila completa
+          <Plus className="mr-2 h-4 w-4" /> {t('projects.openFullQueue')}
         </Button>
       </div>
     </div>
