@@ -24,6 +24,10 @@ import { loadPipelineTemplates } from '@/lib/nightworker/pipelineTemplates'
 import type { PipelineConfig } from '@/types/night-worker'
 import { ArrowRight, Briefcase, FolderPlus, GitBranch, Play, Plus, Send } from 'lucide-react'
 
+const PROMPT_NAME_MAX_LENGTH = 500
+const RECENT_PROMPTS_LIMIT = 10
+const PROJECT_NAME_MIN_LENGTH = 3
+
 type RunValues = {
   template_id: string
   content: string
@@ -121,7 +125,7 @@ export default function NWProjects() {
 
   const handleCreateProject = () => {
     const name = newProjectName.trim()
-    if (name.length < 3) {
+    if (name.length < PROJECT_NAME_MIN_LENGTH) {
       toast.error(t('projects.toast.nameMinLength'))
       return
     }
@@ -174,7 +178,7 @@ export default function NWProjects() {
       .join('')
 
     const promptName =
-      slug(`${selectedProject.name}-${template.name}-step1-${firstStep.role}`).slice(0, 500) ||
+      slug(`${selectedProject.name}-${template.name}-step1-${firstStep.role}`).slice(0, PROMPT_NAME_MAX_LENGTH) ||
       `pipeline-step1-${firstStep.provider}`
 
     try {
@@ -396,7 +400,7 @@ export default function NWProjects() {
                 <p className="text-sm text-muted-foreground">{t('projects.noPromptsYet')}</p>
               )}
               {selectedProject &&
-                (promptsQuery.data ?? []).slice(0, 10).map((prompt) => (
+                (promptsQuery.data ?? []).slice(0, RECENT_PROMPTS_LIMIT).map((prompt) => (
                   <button
                     key={prompt.id}
                     type="button"
