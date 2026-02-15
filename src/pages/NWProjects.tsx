@@ -189,7 +189,7 @@ export default function NWProjects() {
         target_folder: values.target_folder,
         queue_stage: 'prioritized',
         project_id: selectedProject.id,
-        pipeline_config: pipelineConfig as unknown as Record<string, unknown>,
+        pipeline_config: pipelineConfig,
         pipeline_id: pipelineId,
         pipeline_step: 1,
         pipeline_total_steps: template.steps.length,
