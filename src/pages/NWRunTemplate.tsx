@@ -76,7 +76,7 @@ export default function NWRunTemplate() {
         name: promptName,
         content: renderedContent,
         target_folder: values.target_folder,
-        pipeline_config: pipelineConfig,
+        pipeline_config: pipelineConfig as unknown as Record<string, unknown>,
         pipeline_id: pipelineId,
         pipeline_step: 1,
         pipeline_total_steps: template.steps.length,
