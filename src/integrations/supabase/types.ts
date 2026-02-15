@@ -268,12 +268,18 @@ export type Database = {
       nw_prompts: {
         Row: {
           attempts: number | null
+          cloned_from: string | null
           content: string
           created_at: string
           error: string | null
           id: string
           name: string
           next_retry_at: string | null
+          pipeline_config: Json | null
+          pipeline_id: string | null
+          pipeline_step: number | null
+          pipeline_template_name: string | null
+          pipeline_total_steps: number | null
           provider: string
           result_content: string | null
           result_path: string | null
@@ -283,12 +289,18 @@ export type Database = {
         }
         Insert: {
           attempts?: number | null
+          cloned_from?: string | null
           content: string
           created_at?: string
           error?: string | null
           id?: string
           name: string
           next_retry_at?: string | null
+          pipeline_config?: Json | null
+          pipeline_id?: string | null
+          pipeline_step?: number | null
+          pipeline_template_name?: string | null
+          pipeline_total_steps?: number | null
           provider: string
           result_content?: string | null
           result_path?: string | null
@@ -298,12 +310,18 @@ export type Database = {
         }
         Update: {
           attempts?: number | null
+          cloned_from?: string | null
           content?: string
           created_at?: string
           error?: string | null
           id?: string
           name?: string
           next_retry_at?: string | null
+          pipeline_config?: Json | null
+          pipeline_id?: string | null
+          pipeline_step?: number | null
+          pipeline_template_name?: string | null
+          pipeline_total_steps?: number | null
           provider?: string
           result_content?: string | null
           result_path?: string | null
@@ -418,12 +436,18 @@ export type Database = {
         Args: { p_limit?: number; p_provider: string; p_worker_id: string }
         Returns: {
           attempts: number | null
+          cloned_from: string | null
           content: string
           created_at: string
           error: string | null
           id: string
           name: string
           next_retry_at: string | null
+          pipeline_config: Json | null
+          pipeline_id: string | null
+          pipeline_step: number | null
+          pipeline_template_name: string | null
+          pipeline_total_steps: number | null
           provider: string
           result_content: string | null
           result_path: string | null
