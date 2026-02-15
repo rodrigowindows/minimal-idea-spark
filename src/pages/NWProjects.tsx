@@ -51,6 +51,7 @@ export default function NWProjects() {
   const [searchParams] = useSearchParams()
   const templates = useMemo(() => loadPipelineTemplates(), [])
   const templateFromQuery = searchParams.get('template') ?? ''
+  const projectFromQuery = searchParams.get('project') ?? ''
 
   const runSchema = useMemo(
     () =>
@@ -90,9 +91,13 @@ export default function NWProjects() {
 
   useEffect(() => {
     if (!projects.length) return
+    if (projectFromQuery && projects.some((entry) => entry.id === projectFromQuery)) {
+      setSelectedProjectId(projectFromQuery)
+      return
+    }
     if (selectedProjectId && projects.some((entry) => entry.id === selectedProjectId)) return
     setSelectedProjectId(projects[0].id)
-  }, [projects, selectedProjectId])
+  }, [projectFromQuery, projects, selectedProjectId])
 
   useEffect(() => {
     const fallbackTemplateId = templates[0]?.id ?? ''
