@@ -313,6 +313,27 @@ export type Database = {
         }
         Relationships: []
       }
+      nw_worker_heartbeats: {
+        Row: {
+          last_seen: string
+          provider: string
+          status: string
+          worker_id: string
+        }
+        Insert: {
+          last_seen?: string
+          provider: string
+          status?: string
+          worker_id: string
+        }
+        Update: {
+          last_seen?: string
+          provider?: string
+          status?: string
+          worker_id?: string
+        }
+        Relationships: []
+      }
       opportunities: {
         Row: {
           created_at: string
@@ -393,7 +414,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      claim_prompts: {
+        Args: { p_limit?: number; p_provider: string; p_worker_id: string }
+        Returns: {
+          attempts: number | null
+          content: string
+          created_at: string
+          error: string | null
+          id: string
+          name: string
+          next_retry_at: string | null
+          provider: string
+          result_content: string | null
+          result_path: string | null
+          status: string
+          target_folder: string | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "nw_prompts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
     }
     Enums: {
       [_ in never]: never
