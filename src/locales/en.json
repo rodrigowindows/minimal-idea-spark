@@ -112,7 +112,11 @@
       "invalidTemplate": "Invalid template",
       "processStarted": "Process started in project",
       "processFailed": "Failed to start process"
-    }
+    },
+    "pauseProject": "Pause project",
+    "resumeProject": "Resume project",
+    "pausedBadge": "Paused",
+    "pausedMessage": "This project is paused. Prompts won't be processed until resumed."
   },
   "breadcrumbs": {
     "opportunities": "Opportunities",

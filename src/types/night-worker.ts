@@ -2,7 +2,7 @@ export type NightWorkerProvider = 'codex' | 'claude' | 'gemini' | string;
 
 export type PromptStatus = 'pending' | 'processing' | 'done' | 'failed';
 export type QueueStage = 'backlog' | 'prioritized';
-export type ProjectStatus = 'active' | 'archived';
+export type ProjectStatus = 'active' | 'archived' | 'paused';
 
 /** Single step in a pipeline template */
 export interface PipelineStep {

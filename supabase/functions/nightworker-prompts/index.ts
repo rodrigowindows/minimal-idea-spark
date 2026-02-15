@@ -15,7 +15,7 @@ const CACHE_MAX_AGE = 5 // seconds
 const VALID_PROVIDERS = new Set(['codex', 'claude', 'codex_cli', 'claude_cli', 'openai_api', 'gemini', 'gemini_cli'])
 const VALID_STATUSES = new Set(['pending', 'processing', 'done', 'failed'])
 const VALID_QUEUE_STAGES = new Set(['backlog', 'prioritized'])
-const VALID_PROJECT_STATUSES = new Set(['active', 'archived'])
+const VALID_PROJECT_STATUSES = new Set(['active', 'archived', 'paused'])
 const VALID_WORKER_STATUSES = new Set(['active', 'paused', 'error'])
 const WORKER_TOKEN_SCOPES = new Set(['claim', 'patch', 'heartbeat'])
 const MAX_NAME_LEN = 500
@@ -25,7 +25,7 @@ const MAX_TARGET_FOLDER_LEN = 2000
 type PromptStatus = 'pending' | 'processing' | 'done' | 'failed'
 type Provider = 'codex' | 'claude' | 'codex_cli' | 'claude_cli' | 'openai_api' | 'gemini' | 'gemini_cli'
 type QueueStage = 'backlog' | 'prioritized'
-type ProjectStatus = 'active' | 'archived'
+type ProjectStatus = 'active' | 'archived' | 'paused'
 
 interface PromptPayload {
   provider: Provider

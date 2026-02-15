@@ -112,7 +112,11 @@
       "invalidTemplate": "Template invÃ¡lido",
       "processStarted": "Processo iniciado no projeto",
       "processFailed": "Falha ao iniciar processo"
-    }
+    },
+    "pauseProject": "Pausar projeto",
+    "resumeProject": "Retomar projeto",
+    "pausedBadge": "Pausado",
+    "pausedMessage": "Este projeto estÃ¡ pausado. Prompts nÃ£o serÃ£o processados atÃ© retomar."
   },
   "onboarding": {
     "dontShowAgain": "Não mostrar novamente",

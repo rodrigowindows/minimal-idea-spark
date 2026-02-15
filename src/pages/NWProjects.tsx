@@ -19,9 +19,10 @@ import {
   useCreatePromptMutation,
   useProjectPromptsQuery,
   useProjectsQuery,
+  useUpdateProjectMutation,
 } from '@/hooks/useNightWorkerApi'
 import { loadPipelineTemplates } from '@/lib/nightworker/pipelineTemplates'
-import type { PipelineConfig } from '@/types/night-worker'
+import type { NightWorkerProject, PipelineConfig } from '@/types/night-worker'
 import { ArrowRight, Briefcase, FolderPlus, GitBranch, Play, Plus, Send } from 'lucide-react'
 
 const PROMPT_NAME_MAX_LENGTH = 500
@@ -67,8 +68,10 @@ export default function NWProjects() {
     [t]
   )
 
-  const { data: projects = [], isLoading: loadingProjects } = useProjectsQuery('active')
+  const { data: allProjects = [], isLoading: loadingProjects } = useProjectsQuery('all')
+  const projects = useMemo(() => allProjects.filter((entry) => entry.status !== 'archived'), [allProjects])
   const createProject = useCreateProjectMutation()
+  const updateProject = useUpdateProjectMutation()
   const createPrompt = useCreatePromptMutation()
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>('')
@@ -156,6 +159,10 @@ export default function NWProjects() {
       toast.error(t('projects.toast.selectProject'))
       return
     }
+    if (selectedProject.status === 'paused') {
+      toast.error(t('projects.pausedMessage'))
+      return
+    }
 
     const template = templates.find((entry) => entry.id === values.template_id)
     if (!template || template.steps.length === 0) {
@@ -201,6 +208,14 @@ export default function NWProjects() {
     } catch {
       toast.error(t('projects.toast.processFailed'))
     }
+  }
+
+  const handleToggleProjectStatus = (project: NightWorkerProject) => {
+    const nextStatus = project.status === 'paused' ? 'active' : 'paused'
+    updateProject.mutate({
+      id: project.id,
+      status: nextStatus,
+    })
   }
 
   return (
@@ -273,19 +288,49 @@ export default function NWProjects() {
 
             <div className="space-y-2">
               {projects.map((project) => (
-                <button
+                <div
                   key={project.id}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setSelectedProjectId(project.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      setSelectedProjectId(project.id)
+                    }
+                  }}
                   className={`w-full rounded-xl border p-3 text-left transition ${
                     selectedProjectId === project.id
                       ? 'border-blue-500/50 bg-blue-500/10'
-                      : 'border-border/60 bg-background/40 hover:border-blue-400/40'
+                      : project.status === 'paused'
+                        ? 'border-amber-500/40 bg-amber-500/5 opacity-75 hover:border-amber-400/50'
+                        : 'border-border/60 bg-background/40 hover:border-blue-400/40'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <p className="font-semibold text-foreground">{project.name}</p>
-                    <Badge variant="outline">{t('projects.promptsCount', { count: project.stats?.total ?? 0 })}</Badge>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-foreground">{project.name}</p>
+                      {project.status === 'paused' && (
+                        <Badge className="border-amber-500/50 bg-amber-500/20 text-amber-100" variant="outline">
+                          {t('projects.pausedBadge')}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">{t('projects.promptsCount', { count: project.stats?.total ?? 0 })}</Badge>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          handleToggleProjectStatus(project)
+                        }}
+                        disabled={updateProject.isPending}
+                      >
+                        {project.status === 'paused' ? t('projects.resumeProject') : t('projects.pauseProject')}
+                      </Button>
+                    </div>
                   </div>
                   {project.description && (
                     <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{project.description}</p>
@@ -296,7 +341,7 @@ export default function NWProjects() {
                     <span>{t('projects.stats.done')} {project.stats?.done ?? 0}</span>
                     <span>{t('projects.stats.failed')} {project.stats?.failed ?? 0}</span>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           </CardContent>
@@ -318,6 +363,12 @@ export default function NWProjects() {
                 </Alert>
               ) : (
                 <form className="space-y-4" onSubmit={runForm.handleSubmit(onRun)}>
+                  {selectedProject.status === 'paused' && (
+                    <Alert className="border-amber-500/30 bg-amber-500/10 text-amber-100">
+                      <AlertDescription>{t('projects.pausedMessage')}</AlertDescription>
+                    </Alert>
+                  )}
+
                   <div className="space-y-2">
                     <Label htmlFor="template_id">{t('projects.templateLabel')}</Label>
                     <select
@@ -371,7 +422,7 @@ export default function NWProjects() {
                   )}
 
                   <div className="flex justify-end">
-                    <Button type="submit" disabled={createPrompt.isPending || !selectedProject}>
+                    <Button type="submit" disabled={createPrompt.isPending || !selectedProject || selectedProject.status === 'paused'}>
                       {createPrompt.isPending ? (
                         <>
                           <Send className="mr-2 h-4 w-4 animate-pulse" /> {t('projects.starting')}

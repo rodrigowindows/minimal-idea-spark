@@ -55,12 +55,13 @@ function normalizePromptItem(item: any): PromptItem {
 }
 
 function normalizeProjectItem(item: any): NightWorkerProject {
+  const status = item.status === 'archived' || item.status === 'paused' ? item.status : 'active'
   return {
     id: item.id,
     name: item.name ?? 'sem-nome',
     description: item.description ?? null,
     default_target_folder: item.default_target_folder ?? null,
-    status: item.status === 'archived' ? 'archived' : 'active',
+    status,
     created_at: item.created_at ?? new Date().toISOString(),
     updated_at: item.updated_at ?? item.created_at ?? new Date().toISOString(),
     stats: item.stats
@@ -233,7 +234,7 @@ export function usePipelinePromptsQuery(pipelineId?: string | null) {
   })
 }
 
-export function useProjectsQuery(status: 'active' | 'archived' | 'all' = 'active') {
+export function useProjectsQuery(status: 'active' | 'archived' | 'paused' | 'all' = 'active') {
   const { apiFetch, isConnected, config } = useNightWorker()
   return useQuery<NightWorkerProject[]>({
     queryKey: ['nightworker', 'projects', status, config.baseUrl],
@@ -304,7 +305,7 @@ export function useCreateProjectMutation() {
       name: string
       description?: string | null
       default_target_folder?: string | null
-      status?: 'active' | 'archived'
+      status?: 'active' | 'archived' | 'paused'
     }) =>
       apiFetch<NightWorkerProject>('/projects', {
         method: 'POST',
@@ -325,7 +326,7 @@ export function useUpdateProjectMutation() {
       name?: string
       description?: string | null
       default_target_folder?: string | null
-      status?: 'active' | 'archived'
+      status?: 'active' | 'archived' | 'paused'
     }) =>
       apiFetch<NightWorkerProject>(`/projects/${body.id}`, {
         method: 'PATCH',
