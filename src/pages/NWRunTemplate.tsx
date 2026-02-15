@@ -1,5 +1,5 @@
-import { useEffect, useMemo } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useMemo } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -36,11 +36,9 @@ function slug(value: string) {
 
 export default function NWRunTemplate() {
   const { id } = useParams<{ id: string }>()
-  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const createPrompt = useCreatePromptMutation()
   const { data: projects = [] } = useProjectsQuery('active')
-  const projectFromQuery = searchParams.get('project_id') ?? ''
 
   const template = useMemo(() => {
     const templates = loadPipelineTemplates()
@@ -56,23 +54,6 @@ export default function NWRunTemplate() {
     },
   })
   const selectedProjectId = form.watch('project_id')
-
-  useEffect(() => {
-    if (!projects.length) return
-
-    if (projectFromQuery && projects.some((project) => project.id === projectFromQuery)) {
-      form.setValue('project_id', projectFromQuery)
-      const selected = projects.find((project) => project.id === projectFromQuery)
-      if (selected?.default_target_folder) {
-        form.setValue('target_folder', selected.default_target_folder)
-      }
-      return
-    }
-
-    if (!form.getValues('project_id')) {
-      form.setValue('project_id', '')
-    }
-  }, [form, projectFromQuery, projects])
 
   const selectedProject = useMemo(() => {
     return projects.find((project) => project.id === selectedProjectId) ?? null
