@@ -11,20 +11,16 @@ type ColumnId = (typeof COLUMN_IDS)[number]
 interface PromptsKanbanProps {
   prompts: PromptItem[]
   prioritizedIds: string[]
-  doingIds: string[]
   onMoveToBacklog: (id: string) => void
   onMoveToPrioritized: (id: string, index?: number) => void
-  onMoveToDoing: (id: string) => void
   onReorderPrioritized: (ids: string[]) => void
 }
 
 export const PromptsKanban = memo(function PromptsKanban({
   prompts,
   prioritizedIds,
-  doingIds,
   onMoveToBacklog,
   onMoveToPrioritized,
-  onMoveToDoing,
   onReorderPrioritized,
 }: PromptsKanbanProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -44,25 +40,24 @@ export const PromptsKanban = memo(function PromptsKanban({
     const processing = prompts.filter((p) => p.status === 'processing')
     const pendingById = new Map(pending.map((p) => [p.id, p] as const))
     const prioritizedSet = new Set(prioritizedIds)
-    const doingSet = new Set(doingIds)
 
-    // Backlog: pending prompts not in prioritized or doing
-    const backlog = pending.filter((p) => !prioritizedSet.has(p.id) && !doingSet.has(p.id))
+    // Backlog: pending prompts not in prioritized queue
+    const backlog = pending.filter((p) => !prioritizedSet.has(p.id))
 
     // Prioritized: maintain order from prioritizedIds
     const prioritized = prioritizedIds
       .map((id) => pendingById.get(id))
       .filter((p): p is PromptItem => p !== undefined)
 
-    // Doing: prompts explicitly in doingIds plus server-side processing prompts
-    const doing = [...processing, ...pending.filter((p) => doingSet.has(p.id))]
+    // Doing reflects backend status only.
+    const doing = processing
 
     // Done/Failed: read-only columns
     const done = prompts.filter((p) => p.status === 'done')
     const failed = prompts.filter((p) => p.status === 'failed')
 
     return { backlog, prioritized, doing, done, failed }
-  }, [prompts, prioritizedIds, doingIds])
+  }, [prompts, prioritizedIds])
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     setActiveId(event.active.id as string)
@@ -78,7 +73,7 @@ export const PromptsKanban = memo(function PromptsKanban({
       const activeId = active.id as string
       const overId = over.id as string
 
-      const sourceColumn = getColumnForId(activeId, columns, prioritizedIds, doingIds)
+      const sourceColumn = getColumnForId(activeId, columns, prioritizedIds)
       const isColumnDrop = (COLUMN_IDS as readonly string[]).includes(overId)
       const isKnownPromptDrop = Object.values(columns).some((items) => items.some((p) => p.id === overId))
       if (!isColumnDrop && !isKnownPromptDrop) return
@@ -86,9 +81,9 @@ export const PromptsKanban = memo(function PromptsKanban({
       // When dropping on a card, over.id is the prompt id; resolve which column that card is in
       const destColumn: ColumnId = isColumnDrop
         ? (overId as ColumnId)
-        : getColumnForId(overId, columns, prioritizedIds, doingIds)
+        : getColumnForId(overId, columns, prioritizedIds)
 
-      if (destColumn === 'done' || destColumn === 'failed') return
+      if (destColumn === 'done' || destColumn === 'failed' || destColumn === 'doing') return
       if (sourceColumn === destColumn && sourceColumn !== 'prioritized') return
 
       // Reorder within prioritized: dropped on another card in same column
@@ -104,14 +99,13 @@ export const PromptsKanban = memo(function PromptsKanban({
       // Move between columns
       if (sourceColumn !== destColumn) {
         if (destColumn === 'backlog') onMoveToBacklog(activeId)
-        else if (destColumn === 'doing') onMoveToDoing(activeId)
         else if (destColumn === 'prioritized') {
           const index = columns.prioritized.findIndex((p) => p.id === overId)
           onMoveToPrioritized(activeId, index >= 0 ? index : undefined)
         }
       }
     },
-    [columns, prioritizedIds, doingIds, onMoveToBacklog, onMoveToPrioritized, onMoveToDoing, onReorderPrioritized]
+    [columns, prioritizedIds, onMoveToBacklog, onMoveToPrioritized, onReorderPrioritized]
   )
 
   const handleDragCancel = useCallback(() => {
@@ -152,8 +146,8 @@ export const PromptsKanban = memo(function PromptsKanban({
           id="doing"
           title="Doing"
           prompts={columns.doing}
-          isDraggable
-          isDroppable
+          isDraggable={false}
+          isDroppable={false}
           color="orange"
         />
         <KanbanColumn
@@ -184,10 +178,8 @@ export const PromptsKanban = memo(function PromptsKanban({
 function getColumnForId(
   id: string,
   columns: { backlog: PromptItem[]; prioritized: PromptItem[]; doing: PromptItem[]; done: PromptItem[]; failed: PromptItem[] },
-  prioritizedIds: string[],
-  doingIds: string[]
+  prioritizedIds: string[]
 ): ColumnId {
-  if (doingIds.includes(id)) return 'doing'
   if (prioritizedIds.includes(id)) return 'prioritized'
   if (columns.doing.some((p) => p.id === id)) return 'doing'
   if (columns.done.some((p) => p.id === id)) return 'done'

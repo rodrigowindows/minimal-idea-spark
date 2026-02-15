@@ -41,8 +41,8 @@ export const KanbanColumn = memo(function KanbanColumn({
     <Card
       ref={setNodeRef}
       role="region"
-      aria-label={`Coluna ${title}, ${prompts.length} itens${!isDroppable ? '. Alterado apenas pelo worker.' : ''}`}
-      title={!isDroppable ? 'Alterado apenas pelo worker' : undefined}
+      aria-label={`Coluna ${title}, ${prompts.length} itens${!isDroppable ? '. Alterado apenas pelo backend.' : ''}`}
+      title={!isDroppable ? 'Alterado apenas pelo backend' : undefined}
       className={`flex-shrink-0 w-80 border ${
         isOver && isDroppable ? colorClasses[color as keyof typeof colorClasses] : 'border-border/60'
       } bg-background/40 transition-colors`}
@@ -57,28 +57,28 @@ export const KanbanColumn = memo(function KanbanColumn({
           </Badge>
         </div>
         {id === 'doing' && (
-          <p className="text-xs text-muted-foreground mt-1" title="Coluna apenas para sua ordem">
-            Doing é só para sua ordem. O processamento é feito pelo worker (worker.py); confira se está rodando.
+          <p className="mt-1 text-xs text-muted-foreground" title="Processamento real no backend">
+            Doing shows prompts with status processing in the backend.
           </p>
         )}
         {!isDroppable && (
-          <p className="text-xs text-muted-foreground mt-1" title="Alterado apenas pelo worker">
+          <p className="mt-1 text-xs text-muted-foreground" title="Alterado apenas pelo backend">
             Somente leitura
           </p>
         )}
       </CardHeader>
       <CardContent className="max-h-[600px] overflow-y-auto">
         {prompts.length === 0 ? (
-          <div className="text-center py-8 text-sm text-muted-foreground">
+          <div className="py-8 text-center text-sm text-muted-foreground">
             Nenhum prompt
           </div>
         ) : (
           <SortableContext items={prompts.map((p) => p.id)} strategy={verticalListSortingStrategy}>
             {prompts.map((prompt) => (
-              <KanbanCard 
-                key={prompt.id} 
-                prompt={prompt} 
-                isDraggable={isDraggable} 
+              <KanbanCard
+                key={prompt.id}
+                prompt={prompt}
+                isDraggable={isDraggable}
                 isProcessing={id === 'doing'}
               />
             ))}

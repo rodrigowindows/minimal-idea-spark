@@ -1,6 +1,7 @@
 export type NightWorkerProvider = 'codex' | 'claude' | 'gemini' | string;
 
 export type PromptStatus = 'pending' | 'processing' | 'done' | 'failed';
+export type QueueStage = 'backlog' | 'prioritized';
 
 /** Item returned in the GET /prompts list */
 export interface PromptListItem {
@@ -29,6 +30,9 @@ export interface PromptItem {
   name: string;
   provider: NightWorkerProvider;
   status: PromptStatus;
+  queue_stage?: QueueStage;
+  priority_order?: number | null;
+  cloned_from?: string | null;
   content?: string;
   target_folder?: string;
   created_at?: string;
@@ -89,6 +93,9 @@ export interface HealthResponse {
   uptime?: string;
   version?: string;
   pending?: number;
+  pending_prioritized?: number;
+  pending_backlog?: number;
+  processing?: number;
   processedToday?: number;
   failures?: number;
   workers?: Array<{

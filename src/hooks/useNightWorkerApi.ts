@@ -90,6 +90,9 @@ export function usePromptsQuery(pollMs = 15000, options: UsePromptsQueryOptions 
           name: item.name ?? item.filename?.replace(/\.txt$/i, '') ?? 'sem-nome',
           provider: item.provider,
           status: item.status,
+          queue_stage: item.queue_stage ?? (item.status === 'pending' ? 'prioritized' : undefined),
+          priority_order: item.priority_order ?? null,
+          cloned_from: item.cloned_from ?? null,
           content: item.content,
           target_folder: item.target_folder,
           created_at: item.created_at,
@@ -148,6 +151,9 @@ export function usePromptStatusQuery(id?: string) {
           name: (raw as any).name ?? raw.filename?.replace(/\.txt$/i, '') ?? 'sem-nome',
           provider: raw.provider,
           status: raw.status,
+          queue_stage: (raw as any).queue_stage ?? (raw.status === 'pending' ? 'prioritized' : undefined),
+          priority_order: (raw as any).priority_order ?? null,
+          cloned_from: (raw as any).cloned_from ?? null,
           content: raw.content ?? null,
           target_folder: (raw as any).target_folder ?? null,
           created_at: (raw as any).created_at,
@@ -169,6 +175,9 @@ export function usePromptStatusQuery(id?: string) {
               name: fallback.filename?.replace(/\.txt$/i, '') ?? 'sem-nome',
               provider: fallback.provider,
               status: fallback.status,
+              queue_stage: fallback.queue_stage ?? (fallback.status === 'pending' ? 'prioritized' : undefined),
+              priority_order: fallback.priority_order ?? null,
+              cloned_from: fallback.cloned_from ?? null,
               content: fallback.content ?? null,
               target_folder: fallback.target_folder ?? null,
               created_at: fallback.created_at ?? null,
@@ -210,6 +219,91 @@ export function useCreatePromptMutation() {
     onSuccess: () => {
       client.invalidateQueries({ queryKey: PROMPTS_KEY_BASE })
     },
+  })
+}
+
+export function useMovePromptMutation() {
+  const { apiFetch } = useNightWorker()
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { id: string; stage: 'backlog' | 'prioritized'; priority_order?: number | null }) =>
+      apiFetch(`/prompts/${body.id}/move`, {
+        method: 'POST',
+        body: JSON.stringify({ stage: body.stage, priority_order: body.priority_order ?? undefined }),
+      }),
+    onSuccess: (_data, vars) => {
+      client.invalidateQueries({ queryKey: PROMPTS_KEY_BASE })
+      client.invalidateQueries({ queryKey: ['nightworker', 'prompt', vars.id] })
+    },
+  })
+}
+
+export function useReorderPrioritizedMutation() {
+  const { apiFetch } = useNightWorker()
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (ids: string[]) =>
+      apiFetch('/prompts/reorder', {
+        method: 'POST',
+        body: JSON.stringify({ ids }),
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: PROMPTS_KEY_BASE })
+    },
+  })
+}
+
+export function useEditPromptMutation() {
+  const { apiFetch } = useNightWorker()
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { id: string; name?: string; content?: string; target_folder?: string | null }) =>
+      apiFetch(`/prompts/${body.id}/edit`, {
+        method: 'POST',
+        body: JSON.stringify({
+          name: body.name,
+          content: body.content,
+          target_folder: body.target_folder,
+        }),
+      }),
+    onSuccess: (_data, vars) => {
+      client.invalidateQueries({ queryKey: PROMPTS_KEY_BASE })
+      client.invalidateQueries({ queryKey: ['nightworker', 'prompt', vars.id] })
+    },
+  })
+}
+
+export function useReprocessPromptMutation() {
+  const { apiFetch } = useNightWorker()
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { id: string; name?: string }) =>
+      apiFetch<{ id: string }>(`/prompts/${body.id}/reprocess`, {
+        method: 'POST',
+        body: JSON.stringify({ name: body.name }),
+      }),
+    onSuccess: (_data, vars) => {
+      client.invalidateQueries({ queryKey: PROMPTS_KEY_BASE })
+      client.invalidateQueries({ queryKey: ['nightworker', 'prompt', vars.id] })
+    },
+  })
+}
+
+export function useCreateWorkerTokenMutation() {
+  const { apiFetch } = useNightWorker()
+  return useMutation({
+    mutationFn: (body: { worker_name: string; scopes?: string[]; expires_in_hours?: number; notes?: string }) =>
+      apiFetch<{
+        id: string
+        worker_name: string
+        scopes: string[]
+        created_at: string
+        expires_at: string | null
+        token: string
+      }>('/worker-tokens', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
   })
 }
 

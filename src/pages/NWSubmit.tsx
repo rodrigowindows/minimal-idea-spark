@@ -16,7 +16,7 @@ import { toast } from 'sonner'
 import { Bot, RotateCcw, Send, Sparkles, Wand2 } from 'lucide-react'
 
 const schema = z.object({
-  provider: z.enum(['codex', 'claude']),
+  provider: z.enum(['codex', 'claude', 'gemini']),
   name: z.string().min(3, 'Mínimo de 3 caracteres').regex(/^[a-z0-9-]+$/, 'Use apenas letras, números e hifens'),
   target_folder: z.string().min(3, 'Informe a pasta alvo'),
   content: z.string().min(10, 'Informe o prompt'),
@@ -77,8 +77,8 @@ export default function NWSubmit() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Provider</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(['codex', 'claude'] as const).map((provider) => {
+                  <div className="grid grid-cols-3 gap-2">
+                    {(['codex', 'claude', 'gemini'] as const).map((provider) => {
                       const active = selectedProvider === provider
                       const Icon = provider === 'codex' ? Bot : Sparkles
                       return (
@@ -96,7 +96,9 @@ export default function NWSubmit() {
                           <Icon className="h-5 w-5" aria-hidden />
                           <div className="flex flex-col">
                             <span className="text-sm font-semibold capitalize">{provider}</span>
-                            <span className="text-xs text-muted-foreground">{provider === 'codex' ? 'Codex CLI' : 'Claude CLI'}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {provider === 'codex' ? 'Codex CLI' : provider === 'claude' ? 'Claude CLI' : 'Gemini CLI'}
+                            </span>
                           </div>
                         </button>
                       )

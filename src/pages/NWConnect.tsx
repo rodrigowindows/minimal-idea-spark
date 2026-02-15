@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useNightWorker } from '@/contexts/NightWorkerContext'
 import { toast } from 'sonner'
-import { CheckCircle2, Eye, EyeOff, Link2, Loader2, Lock, XCircle } from 'lucide-react'
+import { CheckCircle2, Copy, Eye, EyeOff, Link2, Loader2, Lock, XCircle } from 'lucide-react'
 
 type HealthInfo = { version?: string; providers?: string[] }
 
@@ -23,6 +23,8 @@ export default function NWConnect() {
   const [showToken, setShowToken] = useState(false)
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<'idle' | 'success' | 'health-fail' | 'auth-fail'>('idle')
+  const [workerName, setWorkerName] = useState('worker-cli')
+  const [creatingWorkerToken, setCreatingWorkerToken] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -86,6 +88,46 @@ export default function NWConnect() {
       })
     } finally {
       setTesting(false)
+    }
+  }
+
+  const handleGenerateWorkerToken = async () => {
+    const cleanUrl = baseUrl.replace(/\/+$/, '')
+    const bearer = token.trim()
+    if (!bearer) {
+      toast.error('Informe um token com permissao admin para gerar token de worker')
+      return
+    }
+    if (!workerName.trim()) {
+      toast.error('Informe um nome para o worker token')
+      return
+    }
+
+    setCreatingWorkerToken(true)
+    try {
+      const res = await fetch(`${cleanUrl}/worker-tokens`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${bearer}`,
+        },
+        body: JSON.stringify({
+          worker_name: workerName.trim(),
+          scopes: ['claim', 'patch', 'heartbeat'],
+          expires_in_hours: 24 * 30,
+        }),
+      })
+      const payload = await res.json().catch(() => ({}))
+      if (!res.ok || !payload?.token) {
+        throw new Error(payload?.error || `Falha ao gerar token (${res.status})`)
+      }
+
+      setTokenInput(payload.token)
+      toast.success('Token de worker gerado e preenchido no campo Token Bearer')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Falha ao gerar token de worker')
+    } finally {
+      setCreatingWorkerToken(false)
     }
   }
 
@@ -160,6 +202,33 @@ export default function NWConnect() {
                 </button>
               </div>
               <p className="text-xs text-muted-foreground">Seu token e salvo apenas no navegador (localStorage).</p>
+            </div>
+
+            <div className="space-y-2 rounded-lg border border-border/60 bg-background/40 p-3">
+              <Label className="text-sm font-semibold">Gerar token de worker</Label>
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  value={workerName}
+                  onChange={(e) => setWorkerName(e.target.value)}
+                  placeholder="nome do worker"
+                  className="w-full max-w-xs bg-background/70"
+                />
+                <Button type="button" variant="outline" onClick={handleGenerateWorkerToken} disabled={creatingWorkerToken}>
+                  {creatingWorkerToken ? 'Gerando...' : 'Gerar token'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigator.clipboard.writeText(token)}
+                  disabled={!token}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Use esse mesmo token no worker via <code>SUPABASE_WORKER_TOKEN</code>.
+              </p>
             </div>
 
             {testResult !== 'idle' && (

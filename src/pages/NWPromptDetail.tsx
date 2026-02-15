@@ -1,16 +1,18 @@
-﻿import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { StatusBadge } from '@/components/night-worker/StatusBadge'
 import { ProviderBadge } from '@/components/night-worker/ProviderBadge'
-import { useCreatePromptMutation, usePromptStatusQuery } from '@/hooks/useNightWorkerApi'
+import { useEditPromptMutation, usePromptStatusQuery, useReprocessPromptMutation } from '@/hooks/useNightWorkerApi'
 import { useNightWorker } from '@/contexts/NightWorkerContext'
 import { toast } from 'sonner'
-import { ArrowLeft, Copy, ExternalLink, Loader2, RefreshCw, Send } from 'lucide-react'
+import { ArrowLeft, Copy, ExternalLink, Loader2, Pencil, RefreshCw, Save, Send } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 
 export default function NWPromptDetail() {
   const { id } = useParams<{ id: string }>()
@@ -18,22 +20,25 @@ export default function NWPromptDetail() {
   const { isConnected, config } = useNightWorker()
   const isEdgeBackend = config.baseUrl.includes('supabase.co')
   const { data, isLoading, isError, error, refetch, isFetching } = usePromptStatusQuery(id)
-  const resend = useCreatePromptMutation()
+  const editMutation = useEditPromptMutation()
+  const reprocessMutation = useReprocessPromptMutation()
+
+  const [isEditing, setIsEditing] = useState(false)
+  const [draftName, setDraftName] = useState('')
+  const [draftContent, setDraftContent] = useState('')
+  const [draftTargetFolder, setDraftTargetFolder] = useState('')
 
   useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.info('[NightWorker][PromptDetail] state', {
-        id,
-        isConnected,
-        isLoading,
-        isFetching,
-        isError,
-        hasData: !!data,
-        status: data?.status,
-        error: error ? String(error) : null,
-      })
+    if (data) {
+      setDraftName(data.name || '')
+      setDraftContent(data.content || '')
+      setDraftTargetFolder(data.target_folder || '')
+      setIsEditing(false)
     }
-  }, [id, isConnected, isLoading, isFetching, isError, !!data, data?.status, error])
+  }, [data])
+
+  const canEdit = data?.status === 'pending'
+  const canReprocess = data?.status === 'done' || data?.status === 'failed'
 
   const handleCopy = (text?: string | null) => {
     if (!text) return
@@ -41,24 +46,41 @@ export default function NWPromptDetail() {
     toast.success('Copiado para a area de transferencia')
   }
 
-  const handleResend = async () => {
-    if (!data?.content) {
-      toast.error('Conteudo nao disponivel para reenviar.')
-      return
-    }
-    try {
-      const payload = {
-        provider: data.provider || 'codex',
-        name: `${data.name}-retry`,
-        content: data.content,
-        target_folder: data.target_folder || '',
+  const handleSaveEdit = () => {
+    if (!id || !canEdit) return
+    editMutation.mutate(
+      {
+        id,
+        name: draftName.trim(),
+        content: draftContent,
+        target_folder: draftTargetFolder.trim() || null,
+      },
+      {
+        onSuccess: () => {
+          toast.success('Prompt atualizado')
+          setIsEditing(false)
+        },
+        onError: () => {
+          toast.error('Falha ao atualizar prompt')
+        },
       }
-      const { id: newId } = await resend.mutateAsync(payload)
-      toast.success('Reenviado', { description: `Novo ID: ${newId}` })
-      navigate(`/nw/prompts/${newId}`)
-    } catch {
-      toast.error('Falha ao reenviar')
-    }
+    )
+  }
+
+  const handleReprocess = () => {
+    if (!id || !canReprocess) return
+    reprocessMutation.mutate(
+      { id },
+      {
+        onSuccess: (res) => {
+          toast.success('Prompt reprocessado')
+          if (res?.id) navigate(`/nw/prompts/${res.id}`)
+        },
+        onError: () => {
+          toast.error('Falha ao reprocessar')
+        },
+      }
+    )
   }
 
   if (!id) return null
@@ -73,6 +95,7 @@ export default function NWPromptDetail() {
           </AlertDescription>
         </Alert>
       )}
+
       {isError && (
         <Alert className="mb-4 border-red-500/40 bg-red-500/10 text-red-100">
           <AlertTitle>Erro ao carregar prompt</AlertTitle>
@@ -94,6 +117,7 @@ export default function NWPromptDetail() {
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {data && <StatusBadge status={data.status} pulse={data.status === 'pending' || data.status === 'processing'} />}
               {data && <ProviderBadge provider={data.provider} />}
+              {data?.cloned_from && <Badge variant="outline">Reprocessado</Badge>}
               <Badge variant="outline" className="font-mono text-xs">ID: {id}</Badge>
             </div>
           </div>
@@ -118,23 +142,62 @@ export default function NWPromptDetail() {
                   <CardTitle>Prompt Enviado</CardTitle>
                   <CardDescription>Conteudo original</CardDescription>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => handleCopy(data.content)}>
-                  <Copy className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="icon" onClick={() => handleCopy(isEditing ? draftContent : data.content)}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  {canEdit && !isEditing && (
+                    <Button variant="outline" size="icon" onClick={() => setIsEditing(true)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="rounded-xl border border-border/60 bg-background/50 p-4">
-                  <ReactMarkdown className="prose prose-invert max-w-none text-sm leading-relaxed">
-                    {data.content || '_Sem conteudo disponivel_'}
-                  </ReactMarkdown>
-                </div>
-                <div className="grid gap-3 md:grid-cols-2 text-sm">
+                {isEditing ? (
+                  <div className="space-y-3 rounded-xl border border-border/60 bg-background/50 p-4">
+                    <Input value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder="Nome do prompt" />
+                    <Input value={draftTargetFolder} onChange={(e) => setDraftTargetFolder(e.target.value)} placeholder="Pasta alvo" />
+                    <Textarea
+                      rows={14}
+                      value={draftContent}
+                      onChange={(e) => setDraftContent(e.target.value)}
+                      placeholder="Conteudo do prompt"
+                    />
+                    <div className="flex gap-2">
+                      <Button onClick={handleSaveEdit} disabled={editMutation.isPending || !draftName.trim() || !draftContent.trim()}>
+                        <Save className="mr-2 h-4 w-4" /> Salvar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setDraftName(data.name || '')
+                          setDraftContent(data.content || '')
+                          setDraftTargetFolder(data.target_folder || '')
+                          setIsEditing(false)
+                        }}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-border/60 bg-background/50 p-4">
+                    <ReactMarkdown className="prose prose-invert max-w-none text-sm leading-relaxed">
+                      {data.content || '_Sem conteudo disponivel_'}
+                    </ReactMarkdown>
+                  </div>
+                )}
+
+                <div className="grid gap-3 text-sm md:grid-cols-2">
                   <MetaItem label="Pasta alvo" value={data.target_folder || '-'} />
                   <MetaItem label="Tamanho" value={`${data.content?.length ?? 0} chars`} />
                   <MetaItem label="Provider" value={data.provider} />
                   <MetaItem label="Atualizado" value={formatDate(data.updated_at || data.created_at)} />
                   <MetaItem label="Tentativas" value={data.attempts ?? 0} />
                   <MetaItem label="Proximo retry" value={formatDate(data.next_retry_at)} />
+                  <MetaItem label="Stage" value={data.queue_stage || '-'} />
+                  <MetaItem label="Prioridade" value={data.priority_order ?? '-'} />
                 </div>
               </CardContent>
             </Card>
@@ -172,15 +235,12 @@ export default function NWPromptDetail() {
                   <div className="flex min-h-[200px] flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/60 bg-background/40 text-muted-foreground">
                     <Loader2 className="h-6 w-6 animate-spin" />
                     <p>{data.status === 'processing' ? 'Processando no worker...' : 'Aguardando processamento...'}</p>
-                    <p className="max-w-md text-center text-[11px] text-muted-foreground/70 italic px-4">
-                      O status e atualizado automaticamente apenas pelo worker. Nao e possivel alterar manualmente.
-                    </p>
                     {isEdgeBackend ? (
-                      <p className="max-w-md text-center text-xs text-muted-foreground/90">
+                      <p className="max-w-md px-4 text-center text-xs text-muted-foreground/90">
                         Processado pelo worker (worker.py em modo Supabase). Se estiver parado, confira se o worker esta rodando.
                       </p>
                     ) : (
-                      <p className="max-w-md text-center text-xs text-muted-foreground/90">
+                      <p className="max-w-md px-4 text-center text-xs text-muted-foreground/90">
                         Processado pelo worker (worker.py lendo input/). Confira se o worker esta rodando.
                       </p>
                     )}
@@ -216,9 +276,11 @@ export default function NWPromptDetail() {
               <Button variant="outline" onClick={() => navigate('/nw/prompts')}>
                 <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para lista
               </Button>
-              <Button onClick={handleResend} disabled={resend.isPending}>
-                <Send className="mr-2 h-4 w-4" /> Reenviar
-              </Button>
+              {canReprocess && (
+                <Button onClick={handleReprocess} disabled={reprocessMutation.isPending}>
+                  <Send className="mr-2 h-4 w-4" /> Reprocessar
+                </Button>
+              )}
             </div>
           </div>
         </>
@@ -231,7 +293,7 @@ function MetaItem({ label, value }: { label: string; value?: string | number | n
   return (
     <div className="rounded-lg border border-border/60 bg-background/50 p-3">
       <p className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
-      <p className="text-foreground font-semibold">{value ?? '-'}</p>
+      <p className="font-semibold text-foreground">{value ?? '-'}</p>
     </div>
   )
 }

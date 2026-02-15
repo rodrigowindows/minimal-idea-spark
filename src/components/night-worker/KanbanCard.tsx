@@ -42,11 +42,11 @@ export const KanbanCard = memo(function KanbanCard({ prompt, isDraggable, isProc
       style={style}
       aria-label={`Prompt ${prompt.name}`}
       className={`mb-2 border transition-all duration-500 ${
-        isProcessing 
-          ? 'border-blue-500/60 bg-blue-500/5 shadow-[0_0_15px_rgba(59,130,246,0.1)] animate-pulse' 
+        isProcessing
+          ? 'border-blue-500/60 bg-blue-500/5 shadow-[0_0_15px_rgba(59,130,246,0.1)] animate-pulse'
           : 'border-border/60 bg-card/80'
       } hover:border-blue-500/40 ${
-        isDragging ? 'shadow-xl cursor-grabbing' : isDraggable ? 'cursor-grab' : ''
+        isDragging ? 'cursor-grabbing shadow-xl' : isDraggable ? 'cursor-grab' : ''
       }`}
     >
       <CardContent className="p-3">
@@ -57,32 +57,32 @@ export const KanbanCard = memo(function KanbanCard({ prompt, isDraggable, isProc
               {...attributes}
               {...listeners}
               aria-label={`Arrastar prompt ${prompt.name}`}
-              className="mt-1 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing"
+              className="mt-1 cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing"
             >
               <GripVertical className="h-4 w-4" />
             </button>
           )}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
+          <div className="min-w-0 flex-1">
+            <div className="mb-1 flex items-center gap-2">
               <StatusBadge status={prompt.status} pulse={prompt.status === 'pending' && !isProcessing} />
               <ProviderBadge provider={prompt.provider} />
               {isProcessing && (
-                <Badge variant="secondary" className="h-5 gap-1 bg-blue-500/20 text-blue-300 border-blue-500/30 px-1.5 animate-pulse">
+                <Badge variant="secondary" className="h-5 gap-1 border-blue-500/30 bg-blue-500/20 px-1.5 text-blue-300 animate-pulse">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   <span className="text-[10px] font-bold uppercase tracking-wider">Processando</span>
                 </Badge>
               )}
-              {!isProcessing && prompt.status === 'pending' && prompt.has_result === false && (prompt as any).events?.length > 0 && (
-                <Badge variant="outline" className="h-5 bg-emerald-500/10 text-emerald-400 border-emerald-500/30 px-1.5">
-                  <span className="text-[10px] font-bold uppercase tracking-wider">Recebido</span>
+              {prompt.cloned_from && (
+                <Badge variant="outline" className="h-5 border-emerald-500/30 bg-emerald-500/10 px-1.5 text-emerald-400">
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Reprocessado</span>
                 </Badge>
               )}
             </div>
-            <h4 className="text-sm font-semibold text-foreground truncate mb-1">
+            <h4 className="mb-1 truncate text-sm font-semibold text-foreground">
               {prompt.name}
             </h4>
-            <p className="text-xs text-muted-foreground truncate font-mono">
-              {prompt.target_folder || '—'}
+            <p className="truncate font-mono text-xs text-muted-foreground">
+              {prompt.target_folder || '-'}
             </p>
             <Button
               variant="ghost"

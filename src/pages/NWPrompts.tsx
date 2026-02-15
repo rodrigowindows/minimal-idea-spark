@@ -8,9 +8,13 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StatusBadge } from '@/components/night-worker/StatusBadge'
 import { ProviderBadge } from '@/components/night-worker/ProviderBadge'
 import { PromptsKanban } from '@/components/night-worker/PromptsKanban'
-import { useCreatePromptMutation, useHealthQuery, usePromptsQuery } from '@/hooks/useNightWorkerApi'
-import { useNightWorker } from '@/contexts/NightWorkerContext'
-import { useKanbanState } from '@/hooks/useKanbanState'
+import {
+  useHealthQuery,
+  useMovePromptMutation,
+  usePromptsQuery,
+  useReorderPrioritizedMutation,
+  useReprocessPromptMutation,
+} from '@/hooks/useNightWorkerApi'
 import type { PromptItem } from '@/types/night-worker'
 import { Filter, Info, Kanban, List, Loader2, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
@@ -20,10 +24,11 @@ const PAGE_SIZE = 20
 
 export default function NWPrompts() {
   const navigate = useNavigate()
-  const { apiFetch } = useNightWorker()
   const { data: health } = useHealthQuery()
   const { data, isLoading, isError, error, refetch, isFetching } = usePromptsQuery(15000)
-  const resendMutation = useCreatePromptMutation()
+  const movePromptMutation = useMovePromptMutation()
+  const reorderPrioritizedMutation = useReorderPrioritizedMutation()
+  const reprocessMutation = useReprocessPromptMutation()
 
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'processing' | 'done' | 'failed'>('all')
@@ -33,7 +38,20 @@ export default function NWPrompts() {
   const [toDate, setToDate] = useState('')
   const [page, setPage] = useState(1)
 
-  const kanban = useKanbanState(data)
+  const kanbanPrompts = useMemo(() => data ?? [], [data])
+  const prioritizedIds = useMemo(() => {
+    return kanbanPrompts
+      .filter((p) => p.status === 'pending' && p.queue_stage === 'prioritized')
+      .sort((a, b) => {
+        const aOrder = a.priority_order ?? Number.MAX_SAFE_INTEGER
+        const bOrder = b.priority_order ?? Number.MAX_SAFE_INTEGER
+        if (aOrder !== bOrder) return aOrder - bOrder
+        const aCreated = new Date(a.created_at || 0).getTime()
+        const bCreated = new Date(b.created_at || 0).getTime()
+        return aCreated - bCreated
+      })
+      .map((p) => p.id)
+  }, [kanbanPrompts])
 
   const filtered = useMemo(() => {
     return (data || [])
@@ -65,24 +83,35 @@ export default function NWPrompts() {
     setPage(1)
   }
 
-  const handleResend = async (prompt: PromptItem) => {
-    try {
-      const detail = await apiFetch<PromptItem>(`/prompts/${prompt.id}`)
-      const content = detail.content || prompt.content
-      if (!content) {
-        toast.error('Nao ha conteudo para reenviar.')
-        return
+  const handleMoveToBacklog = (id: string) => {
+    movePromptMutation.mutate(
+      { id, stage: 'backlog' },
+      { onError: () => toast.error('Falha ao mover para backlog') }
+    )
+  }
+
+  const handleMoveToPrioritized = (id: string, index?: number) => {
+    const ordered = prioritizedIds.filter((pid) => pid !== id)
+    const insertAt = index === undefined ? ordered.length : Math.max(0, Math.min(index, ordered.length))
+    ordered.splice(insertAt, 0, id)
+    reorderPrioritizedMutation.mutate(ordered, { onError: () => toast.error('Falha ao reordenar fila priorizada') })
+  }
+
+  const handleReorderPrioritized = (ids: string[]) => {
+    reorderPrioritizedMutation.mutate(ids, { onError: () => toast.error('Falha ao salvar ordem priorizada') })
+  }
+
+  const handleReprocess = (prompt: PromptItem) => {
+    reprocessMutation.mutate(
+      { id: prompt.id },
+      {
+        onSuccess: (res) => {
+          toast.success('Prompt reprocessado')
+          if (res?.id) navigate(`/nw/prompts/${res.id}`)
+        },
+        onError: () => toast.error('Falha ao reprocessar'),
       }
-      await resendMutation.mutateAsync({
-        provider: detail.provider || prompt.provider,
-        name: `${prompt.name}-retry`,
-        content,
-        target_folder: detail.target_folder || prompt.target_folder || '',
-      })
-      toast.success('Prompt reenviado')
-    } catch {
-      toast.error('Falha ao reenviar')
-    }
+    )
   }
 
   return (
@@ -134,8 +163,8 @@ export default function NWPrompts() {
         <Alert className="mb-4 border-blue-500/20 bg-blue-500/5 text-blue-200 py-2">
           <Info className="h-4 w-4" />
           <AlertDescription className="text-[11px] italic">
-            Nota: As colunas <strong>Priorizado</strong> e <strong>Doing</strong> sao apenas organizadores visuais locais.
-            O processamento real e feito pelo <code>worker.py</code> em ordem de criacao.
+            Backlog nao executa. Apenas prompts em <strong>Priorizado</strong> entram no claim do worker.
+            A coluna <strong>Doing</strong> mostra somente status <code>processing</code> real do backend.
           </AlertDescription>
         </Alert>
       )}
@@ -171,9 +200,6 @@ export default function NWPrompts() {
 
         <div className="flex items-center gap-2 ml-auto">
           <Button variant="ghost" size="sm" onClick={handleClear}>Limpar</Button>
-          {viewMode === 'kanban' && (
-            <Button variant="ghost" size="sm" onClick={kanban.clearKanban} className="text-amber-400">Reset Kanban</Button>
-          )}
         </div>
       </div>
 
@@ -186,13 +212,11 @@ export default function NWPrompts() {
 
       {viewMode === 'kanban' && !isLoading && (
         <PromptsKanban
-          prompts={filtered}
-          prioritizedIds={kanban.prioritizedIds}
-          doingIds={kanban.doingIds}
-          onMoveToBacklog={kanban.moveToBacklog}
-          onMoveToPrioritized={kanban.moveToPrioritized}
-          onMoveToDoing={kanban.moveToDoing}
-          onReorderPrioritized={kanban.reorderPrioritized}
+          prompts={kanbanPrompts}
+          prioritizedIds={prioritizedIds}
+          onMoveToBacklog={handleMoveToBacklog}
+          onMoveToPrioritized={handleMoveToPrioritized}
+          onReorderPrioritized={handleReorderPrioritized}
         />
       )}
 
@@ -228,9 +252,9 @@ export default function NWPrompts() {
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button variant="ghost" size="sm" onClick={() => navigate(`/nw/prompts/${prompt.id}`)}>Ver</Button>
-                        {prompt.status === 'failed' && (
-                          <Button variant="outline" size="sm" onClick={() => handleResend(prompt)} disabled={resendMutation.isPending}>
-                            Reenviar
+                        {(prompt.status === 'done' || prompt.status === 'failed') && (
+                          <Button variant="outline" size="sm" onClick={() => handleReprocess(prompt)} disabled={reprocessMutation.isPending}>
+                            Reprocessar
                           </Button>
                         )}
                       </div>
