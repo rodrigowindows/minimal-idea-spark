@@ -233,39 +233,6 @@ export type Database = {
         }
         Relationships: []
       }
-      nw_pipeline_templates: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          is_default: boolean
-          name: string
-          steps: Json
-          updated_at: string
-          version: number
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_default?: boolean
-          name: string
-          steps?: Json
-          updated_at?: string
-          version?: number
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_default?: boolean
-          name?: string
-          steps?: Json
-          updated_at?: string
-          version?: number
-        }
-        Relationships: []
-      }
       nw_projects: {
         Row: {
           created_at: string
@@ -434,10 +401,43 @@ export type Database = {
             foreignKeyName: "nw_prompts_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
-            referencedRelation: "nw_pipeline_templates"
+            referencedRelation: "nw_templates"
             referencedColumns: ["id"]
           },
         ]
+      }
+      nw_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_default: boolean
+          name: string
+          steps: Json
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          name: string
+          steps?: Json
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          steps?: Json
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
       }
       nw_worker_heartbeats: {
         Row: {
