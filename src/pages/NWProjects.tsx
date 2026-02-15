@@ -28,6 +28,9 @@ import { ArrowRight, Briefcase, FolderPlus, GitBranch, Play, Plus, Send } from '
 const PROMPT_NAME_MAX_LENGTH = 500
 const RECENT_PROMPTS_LIMIT = 10
 const PROJECT_NAME_MIN_LENGTH = 3
+const DEFAULT_SLA_TIMEOUT_SECONDS = 300
+const DEFAULT_SLA_MAX_RETRIES = 3
+const DEFAULT_SLA_RETRY_DELAY_SECONDS = 60
 
 type RunValues = {
   template_id: string
@@ -78,6 +81,9 @@ export default function NWProjects() {
   const [newProjectName, setNewProjectName] = useState('')
   const [newProjectDescription, setNewProjectDescription] = useState('')
   const [newProjectTarget, setNewProjectTarget] = useState('')
+  const [newProjectSlaTimeoutSeconds, setNewProjectSlaTimeoutSeconds] = useState(DEFAULT_SLA_TIMEOUT_SECONDS)
+  const [newProjectSlaMaxRetries, setNewProjectSlaMaxRetries] = useState(DEFAULT_SLA_MAX_RETRIES)
+  const [newProjectSlaRetryDelaySeconds, setNewProjectSlaRetryDelaySeconds] = useState(DEFAULT_SLA_RETRY_DELAY_SECONDS)
 
   const selectedProject = useMemo(
     () => projects.find((entry) => entry.id === selectedProjectId) ?? null,
@@ -138,6 +144,9 @@ export default function NWProjects() {
         name,
         description: newProjectDescription.trim() || null,
         default_target_folder: newProjectTarget.trim() || null,
+        sla_timeout_seconds: newProjectSlaTimeoutSeconds,
+        sla_max_retries: newProjectSlaMaxRetries,
+        sla_retry_delay_seconds: newProjectSlaRetryDelaySeconds,
       },
       {
         onSuccess: (project) => {
@@ -146,6 +155,9 @@ export default function NWProjects() {
           setNewProjectName('')
           setNewProjectDescription('')
           setNewProjectTarget('')
+          setNewProjectSlaTimeoutSeconds(DEFAULT_SLA_TIMEOUT_SECONDS)
+          setNewProjectSlaMaxRetries(DEFAULT_SLA_MAX_RETRIES)
+          setNewProjectSlaRetryDelaySeconds(DEFAULT_SLA_RETRY_DELAY_SECONDS)
         },
         onError: () => {
           toast.error(t('projects.toast.createFailed'))
@@ -273,6 +285,43 @@ export default function NWProjects() {
                   placeholder={t('projects.targetFolderPlaceholder')}
                 />
               </div>
+              <details className="rounded-lg border border-border/50 bg-background/30 p-3">
+                <summary className="cursor-pointer text-sm font-medium text-foreground">
+                  {t('projects.slaSettingsTitle')}
+                </summary>
+                <div className="mt-3 grid gap-3 md:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="project-sla-timeout">{t('projects.slaTimeoutLabel')}</Label>
+                    <Input
+                      id="project-sla-timeout"
+                      type="number"
+                      min={1}
+                      value={newProjectSlaTimeoutSeconds}
+                      onChange={(e) => setNewProjectSlaTimeoutSeconds(Math.max(1, Number(e.target.value) || DEFAULT_SLA_TIMEOUT_SECONDS))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="project-sla-retries">{t('projects.slaMaxRetriesLabel')}</Label>
+                    <Input
+                      id="project-sla-retries"
+                      type="number"
+                      min={0}
+                      value={newProjectSlaMaxRetries}
+                      onChange={(e) => setNewProjectSlaMaxRetries(Math.max(0, Number(e.target.value) || DEFAULT_SLA_MAX_RETRIES))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="project-sla-delay">{t('projects.slaRetryDelayLabel')}</Label>
+                    <Input
+                      id="project-sla-delay"
+                      type="number"
+                      min={1}
+                      value={newProjectSlaRetryDelaySeconds}
+                      onChange={(e) => setNewProjectSlaRetryDelaySeconds(Math.max(1, Number(e.target.value) || DEFAULT_SLA_RETRY_DELAY_SECONDS))}
+                    />
+                  </div>
+                </div>
+              </details>
             </div>
 
             {loadingProjects && (

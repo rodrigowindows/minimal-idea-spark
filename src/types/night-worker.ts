@@ -42,6 +42,9 @@ export interface NightWorkerProject {
   description?: string | null;
   default_target_folder?: string | null;
   status: ProjectStatus;
+  sla_timeout_seconds?: number;
+  sla_max_retries?: number;
+  sla_retry_delay_seconds?: number;
   created_at: string;
   updated_at: string;
   stats?: ProjectStats;

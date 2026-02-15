@@ -116,7 +116,11 @@
     "pauseProject": "Pause project",
     "resumeProject": "Resume project",
     "pausedBadge": "Paused",
-    "pausedMessage": "This project is paused. Prompts won't be processed until resumed."
+    "pausedMessage": "This project is paused. Prompts won't be processed until resumed.",
+    "slaSettingsTitle": "SLA Settings",
+    "slaTimeoutLabel": "Timeout (seconds)",
+    "slaMaxRetriesLabel": "Max retries",
+    "slaRetryDelayLabel": "Retry delay (seconds)"
   },
   "breadcrumbs": {
     "opportunities": "Opportunities",

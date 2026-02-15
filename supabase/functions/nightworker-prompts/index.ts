@@ -632,6 +632,33 @@ async function handleProjectCreate(supabase: any, body: Record<string, unknown>,
       ? sanitizeText(body.default_target_folder.slice(0, MAX_TARGET_FOLDER_LEN))
       : null)
 
+  let slaTimeoutSeconds = 300
+  if (body.sla_timeout_seconds !== undefined) {
+    const parsed = Number(body.sla_timeout_seconds)
+    if (!Number.isFinite(parsed) || parsed < 1) {
+      return json({ error: 'sla_timeout_seconds must be a positive integer' }, 400, { requestId: rid })
+    }
+    slaTimeoutSeconds = Math.floor(parsed)
+  }
+
+  let slaMaxRetries = 3
+  if (body.sla_max_retries !== undefined) {
+    const parsed = Number(body.sla_max_retries)
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return json({ error: 'sla_max_retries must be a non-negative integer' }, 400, { requestId: rid })
+    }
+    slaMaxRetries = Math.floor(parsed)
+  }
+
+  let slaRetryDelaySeconds = 60
+  if (body.sla_retry_delay_seconds !== undefined) {
+    const parsed = Number(body.sla_retry_delay_seconds)
+    if (!Number.isFinite(parsed) || parsed < 1) {
+      return json({ error: 'sla_retry_delay_seconds must be a positive integer' }, 400, { requestId: rid })
+    }
+    slaRetryDelaySeconds = Math.floor(parsed)
+  }
+
   const { data, error } = await supabase
     .from('nw_projects')
     .insert({
@@ -639,6 +666,9 @@ async function handleProjectCreate(supabase: any, body: Record<string, unknown>,
       description,
       default_target_folder: defaultTarget,
       status,
+      sla_timeout_seconds: slaTimeoutSeconds,
+      sla_max_retries: slaMaxRetries,
+      sla_retry_delay_seconds: slaRetryDelaySeconds,
     })
     .select('*')
     .single()
@@ -693,6 +723,30 @@ async function handleProjectUpdate(supabase: any, id: string, body: Record<strin
       return json({ error: `status must be one of: ${[...VALID_PROJECT_STATUSES].join(', ')}` }, 400, { requestId: rid })
     }
     allowed.status = rawStatus
+  }
+
+  if (body.sla_timeout_seconds !== undefined) {
+    const parsed = Number(body.sla_timeout_seconds)
+    if (!Number.isFinite(parsed) || parsed < 1) {
+      return json({ error: 'sla_timeout_seconds must be a positive integer' }, 400, { requestId: rid })
+    }
+    allowed.sla_timeout_seconds = Math.floor(parsed)
+  }
+
+  if (body.sla_max_retries !== undefined) {
+    const parsed = Number(body.sla_max_retries)
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return json({ error: 'sla_max_retries must be a non-negative integer' }, 400, { requestId: rid })
+    }
+    allowed.sla_max_retries = Math.floor(parsed)
+  }
+
+  if (body.sla_retry_delay_seconds !== undefined) {
+    const parsed = Number(body.sla_retry_delay_seconds)
+    if (!Number.isFinite(parsed) || parsed < 1) {
+      return json({ error: 'sla_retry_delay_seconds must be a positive integer' }, 400, { requestId: rid })
+    }
+    allowed.sla_retry_delay_seconds = Math.floor(parsed)
   }
 
   if (Object.keys(allowed).length === 0) {

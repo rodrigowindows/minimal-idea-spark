@@ -62,6 +62,9 @@ function normalizeProjectItem(item: any): NightWorkerProject {
     description: item.description ?? null,
     default_target_folder: item.default_target_folder ?? null,
     status,
+    sla_timeout_seconds: Number(item.sla_timeout_seconds ?? 300),
+    sla_max_retries: Number(item.sla_max_retries ?? 3),
+    sla_retry_delay_seconds: Number(item.sla_retry_delay_seconds ?? 60),
     created_at: item.created_at ?? new Date().toISOString(),
     updated_at: item.updated_at ?? item.created_at ?? new Date().toISOString(),
     stats: item.stats
@@ -306,6 +309,9 @@ export function useCreateProjectMutation() {
       description?: string | null
       default_target_folder?: string | null
       status?: 'active' | 'archived' | 'paused'
+      sla_timeout_seconds?: number
+      sla_max_retries?: number
+      sla_retry_delay_seconds?: number
     }) =>
       apiFetch<NightWorkerProject>('/projects', {
         method: 'POST',
@@ -327,6 +333,9 @@ export function useUpdateProjectMutation() {
       description?: string | null
       default_target_folder?: string | null
       status?: 'active' | 'archived' | 'paused'
+      sla_timeout_seconds?: number
+      sla_max_retries?: number
+      sla_retry_delay_seconds?: number
     }) =>
       apiFetch<NightWorkerProject>(`/projects/${body.id}`, {
         method: 'PATCH',
@@ -335,6 +344,9 @@ export function useUpdateProjectMutation() {
           description: body.description,
           default_target_folder: body.default_target_folder,
           status: body.status,
+          sla_timeout_seconds: body.sla_timeout_seconds,
+          sla_max_retries: body.sla_max_retries,
+          sla_retry_delay_seconds: body.sla_retry_delay_seconds,
         }),
       }),
     onSuccess: (_data, vars) => {

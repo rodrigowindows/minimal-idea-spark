@@ -116,7 +116,11 @@
     "pauseProject": "Pausar proyecto",
     "resumeProject": "Reanudar proyecto",
     "pausedBadge": "Pausado",
-    "pausedMessage": "Este proyecto estÃ¡ pausado. Los prompts no serÃ¡n procesados hasta reanudarlo."
+    "pausedMessage": "Este proyecto estÃ¡ pausado. Los prompts no serÃ¡n procesados hasta reanudarlo.",
+    "slaSettingsTitle": "ConfiguraciÃ³n de SLA",
+    "slaTimeoutLabel": "Timeout (segundos)",
+    "slaMaxRetriesLabel": "MÃ¡ximo de retries",
+    "slaRetryDelayLabel": "Retraso de retry (segundos)"
   },
   "breadcrumbs": {
     "opportunities": "Oportunidades",

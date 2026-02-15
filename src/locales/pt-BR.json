@@ -116,7 +116,11 @@
     "pauseProject": "Pausar projeto",
     "resumeProject": "Retomar projeto",
     "pausedBadge": "Pausado",
-    "pausedMessage": "Este projeto estÃ¡ pausado. Prompts nÃ£o serÃ£o processados atÃ© retomar."
+    "pausedMessage": "Este projeto estÃ¡ pausado. Prompts nÃ£o serÃ£o processados atÃ© retomar.",
+    "slaSettingsTitle": "ConfiguraÃ§Ãµes de SLA",
+    "slaTimeoutLabel": "Timeout (segundos)",
+    "slaMaxRetriesLabel": "MÃ¡ximo de retries",
+    "slaRetryDelayLabel": "Atraso de retry (segundos)"
   },
   "onboarding": {
     "dontShowAgain": "Não mostrar novamente",
