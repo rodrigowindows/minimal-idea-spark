@@ -7,117 +7,20 @@
  * to ensure the TypeScript frontend understands every status transition.
  */
 import { describe, it, expect } from 'vitest'
-
-// ── Status types matching the Python worker ──────────────────────────────
-
-type ProviderResult = true | false | 'RATE_LIMIT' | 'TOO_LONG'
-type PromptStatus = 'pending' | 'processing' | 'done' | 'failed'
-
-// ── Helper: simulate provider return-code logic (mirrors claude.py / codex.py) ──
-
-function detectProviderResult(
-  returnCode: number,
-  stderr: string,
-  stdout: string,
-): ProviderResult {
-  if (returnCode === 0) return true
-
-  const combined = (stderr + ' ' + stdout).toLowerCase()
-
-  if (['rate_limit', 'quota', 'token', 'hit your limit'].some((k) => combined.includes(k))) {
-    return 'RATE_LIMIT'
-  }
-
-  if (combined.includes('too long')) {
-    return 'TOO_LONG'
-  }
-
-  return false
-}
-
-// ── Helper: map provider result to DB status (mirrors worker.py:371-415) ──
-
-function mapResultToStatus(result: ProviderResult): PromptStatus {
-  if (result === true) return 'done'
-  if (result === 'RATE_LIMIT') return 'failed'
-  if (result === 'TOO_LONG') return 'failed'
-  return 'failed'
-}
-
-// ── Helper: format prompt (mirrors base.py:29-39) ──
-
-function formatPrompt(promptText: string, filesContent: string): string {
-  if (filesContent) {
-    return `${promptText}\n\n---\n\n${filesContent}`
-  }
-  return promptText
-}
-
-// ── Helper: detect if stdin should be used for codex (mirrors codex.py:50) ──
-
-function shouldUseStdin(prompt: string): boolean {
-  return prompt.length > 8000
-}
-
-// ── Helper: pipeline step chaining (mirrors worker.py:417-515) ──
-
-interface PipelineConfig {
-  steps: Array<{ provider: string; role: string; instruction: string }>
-  original_input: string
-  template_name?: string
-  target_folder?: string
-}
-
-function getNextPipelineStep(
-  currentStep: number,
-  totalSteps: number,
-  config: PipelineConfig,
-  previousResult: string,
-): { provider: string; content: string; name: string } | null {
-  const nextStepNum = currentStep + 1
-  if (nextStepNum > totalSteps) return null
-
-  const nextIdx = nextStepNum - 1
-  if (nextIdx >= config.steps.length) return null
-
-  const stepDef = config.steps[nextIdx]
-  if (!stepDef || !stepDef.provider) return null
-
-  const PIPELINE_MAX_RESULT_INJECT = 120_000
-  const truncated = previousResult.slice(0, PIPELINE_MAX_RESULT_INJECT)
-  let content = (stepDef.instruction || '{previous_result}')
-    .replace('{previous_result}', truncated)
-    .replace('{input}', config.original_input)
-  content = content.slice(0, 500_000)
-
-  const role = stepDef.role || stepDef.provider
-  const templateName = config.template_name || 'pipeline'
-  const name = `${templateName}-step${nextStepNum}-${role}`.toLowerCase().replace(/ /g, '-').slice(0, 500)
-
-  return { provider: stepDef.provider, content, name }
-}
-
-// ── Helper: heartbeat status (mirrors worker.py:279-286) ──
-
-function getWorkerStatus(now: Date, startTime: string, endTime: string): 'active' | 'paused' {
-  const [startH, startM] = startTime.split(':').map(Number)
-  const [endH, endM] = endTime.split(':').map(Number)
-  const nowMinutes = now.getHours() * 60 + now.getMinutes()
-  const startMinutes = startH * 60 + startM
-  const endMinutes = endH * 60 + endM
-
-  if (startMinutes > endMinutes) {
-    return nowMinutes >= startMinutes || nowMinutes <= endMinutes ? 'active' : 'paused'
-  }
-  return nowMinutes >= startMinutes && nowMinutes <= endMinutes ? 'active' : 'paused'
-}
-
-// ── Helper: rate limit retry (mirrors worker.py:309-314, 397-400) ──
-
-function isRateLimited(retryTime: Date | null, now: Date): boolean {
-  if (!retryTime) return false
-  return now < retryTime
-}
+import {
+  detectProviderResult,
+  mapResultToStatus,
+  formatPrompt,
+  shouldUseStdin,
+  getNextPipelineStep,
+  getWorkerStatus,
+  isRateLimited,
+  MAX_PATCH_RETRIES,
+  MAX_STORE_LENGTH,
+  MAX_ERROR_LENGTH,
+  STALL_THRESHOLD_MS,
+  type PipelineConfig,
+} from '@/test/mocks/night-worker'
 
 // ══════════════════════════════════════════════════════════════════════════
 // TESTS
@@ -263,7 +166,7 @@ describe('Pipeline Step Chaining', () => {
     const bigResult = 'x'.repeat(200_000)
     const next = getNextPipelineStep(1, 3, config, bigResult)
     expect(next).not.toBeNull()
-    expect(next!.content.length).toBeLessThanOrEqual(500_000)
+    expect(next!.content.length).toBeLessThanOrEqual(MAX_STORE_LENGTH)
   })
 
   it('truncates final content to 500k chars', () => {
@@ -277,7 +180,7 @@ describe('Pipeline Step Chaining', () => {
     }
     const next = getNextPipelineStep(1, 2, configBig, 'result')
     expect(next).not.toBeNull()
-    expect(next!.content.length).toBeLessThanOrEqual(500_000)
+    expect(next!.content.length).toBeLessThanOrEqual(MAX_STORE_LENGTH)
   })
 
   it('uses {previous_result} as default instruction when instruction is empty', () => {
@@ -348,13 +251,10 @@ describe('Rate Limit Retry Logic', () => {
 
 describe('Status Transition Flow', () => {
   it('follows pending → processing → done flow', () => {
-    const statuses: PromptStatus[] = []
+    const statuses: string[] = []
 
-    // Step 1: prompt created
     statuses.push('pending')
-    // Step 2: worker claims it
     statuses.push('processing')
-    // Step 3: provider succeeds
     const result = detectProviderResult(0, '', 'output')
     statuses.push(mapResultToStatus(result))
 
@@ -362,7 +262,7 @@ describe('Status Transition Flow', () => {
   })
 
   it('follows pending → processing → failed flow on error', () => {
-    const statuses: PromptStatus[] = []
+    const statuses: string[] = []
 
     statuses.push('pending')
     statuses.push('processing')
@@ -373,7 +273,7 @@ describe('Status Transition Flow', () => {
   })
 
   it('follows pending → processing → failed flow on rate limit', () => {
-    const statuses: PromptStatus[] = []
+    const statuses: string[] = []
 
     statuses.push('pending')
     statuses.push('processing')
@@ -385,7 +285,7 @@ describe('Status Transition Flow', () => {
   })
 
   it('follows pending → processing → failed flow on too long', () => {
-    const statuses: PromptStatus[] = []
+    const statuses: string[] = []
 
     statuses.push('pending')
     statuses.push('processing')
@@ -421,20 +321,18 @@ describe('Heartbeat JSON Structure', () => {
 describe('Result Content Limits', () => {
   it('truncates result_content to 500k chars for DB', () => {
     const bigResult = 'x'.repeat(600_000)
-    const truncated = bigResult.slice(0, 500_000)
-    expect(truncated.length).toBe(500_000)
+    const truncated = bigResult.slice(0, MAX_STORE_LENGTH)
+    expect(truncated.length).toBe(MAX_STORE_LENGTH)
   })
 
   it('truncates error messages to 5000 chars', () => {
     const bigError = 'e'.repeat(10_000)
-    const truncated = bigError.slice(0, 5000)
-    expect(truncated.length).toBe(5000)
+    const truncated = bigError.slice(0, MAX_ERROR_LENGTH)
+    expect(truncated.length).toBe(MAX_ERROR_LENGTH)
   })
 })
 
 describe('Supabase API Retry Logic', () => {
-  const MAX_PATCH_RETRIES = 3
-
   it('succeeds on first attempt', () => {
     const attempts: number[] = []
     for (let i = 0; i < MAX_PATCH_RETRIES; i++) {
@@ -518,10 +416,9 @@ describe('Stalled Prompt Recovery', () => {
   it('detects stalled prompts after 10 minutes', () => {
     const processingStarted = new Date('2026-02-15T10:00:00Z')
     const now = new Date('2026-02-15T10:11:00Z')
-    const stallThresholdMs = 10 * 60 * 1000 // 10 minutes
 
     const elapsed = now.getTime() - processingStarted.getTime()
-    const isStalled = elapsed > stallThresholdMs
+    const isStalled = elapsed > STALL_THRESHOLD_MS
 
     expect(isStalled).toBe(true)
   })
@@ -529,10 +426,9 @@ describe('Stalled Prompt Recovery', () => {
   it('does NOT detect stalled prompts before 10 minutes', () => {
     const processingStarted = new Date('2026-02-15T10:00:00Z')
     const now = new Date('2026-02-15T10:09:00Z')
-    const stallThresholdMs = 10 * 60 * 1000
 
     const elapsed = now.getTime() - processingStarted.getTime()
-    const isStalled = elapsed > stallThresholdMs
+    const isStalled = elapsed > STALL_THRESHOLD_MS
 
     expect(isStalled).toBe(false)
   })

@@ -33,10 +33,13 @@ jobs:
         run: |
           echo "## Night Worker Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Tests cover:" >> $GITHUB_STEP_SUMMARY
+          echo "### Coverage Areas" >> $GITHUB_STEP_SUMMARY
           echo "- Provider status detection (return codes, rate limits, timeouts)" >> $GITHUB_STEP_SUMMARY
+          echo "- Pipeline E2E flow (Gemini→Codex→Claude cross-model I/O)" >> $GITHUB_STEP_SUMMARY
           echo "- Pipeline chaining logic (step transitions, content truncation)" >> $GITHUB_STEP_SUMMARY
-          echo "- UI components (StatusBadge, ProviderBadge, NightWorkerContext)" >> $GITHUB_STEP_SUMMARY
+          echo "- API hooks (useNightWorkerApi: queries, mutations, normalizers)" >> $GITHUB_STEP_SUMMARY
+          echo "- UI components (StatusBadge, ProviderBadge, KanbanCard, MetricCard, WorkerCard)" >> $GITHUB_STEP_SUMMARY
+          echo "- NightWorkerContext (tokens, config, ApiError)" >> $GITHUB_STEP_SUMMARY
           echo "- Pipeline templates (loading, saving, normalization)" >> $GITHUB_STEP_SUMMARY
           echo "- Supabase API retry logic (backoff, error codes)" >> $GITHUB_STEP_SUMMARY
 
