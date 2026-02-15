@@ -233,6 +233,78 @@ export type Database = {
         }
         Relationships: []
       }
+      nw_pipeline_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_default: boolean
+          name: string
+          steps: Json
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          name: string
+          steps?: Json
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          steps?: Json
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      nw_projects: {
+        Row: {
+          created_at: string
+          default_target_folder: string | null
+          description: string | null
+          id: string
+          name: string
+          sla_max_retries: number
+          sla_retry_delay_seconds: number
+          sla_timeout_seconds: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_target_folder?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          sla_max_retries?: number
+          sla_retry_delay_seconds?: number
+          sla_timeout_seconds?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_target_folder?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          sla_max_retries?: number
+          sla_retry_delay_seconds?: number
+          sla_timeout_seconds?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       nw_prompt_events: {
         Row: {
           created_at: string
@@ -280,12 +352,19 @@ export type Database = {
           pipeline_step: number | null
           pipeline_template_name: string | null
           pipeline_total_steps: number | null
+          priority_order: number | null
+          processing_started_at: string | null
+          project_id: string | null
           provider: string
+          queue_stage: string
           result_content: string | null
           result_path: string | null
           status: string
           target_folder: string | null
+          template_id: string | null
+          template_version: number | null
           updated_at: string
+          worker_id: string | null
         }
         Insert: {
           attempts?: number | null
@@ -301,12 +380,19 @@ export type Database = {
           pipeline_step?: number | null
           pipeline_template_name?: string | null
           pipeline_total_steps?: number | null
+          priority_order?: number | null
+          processing_started_at?: string | null
+          project_id?: string | null
           provider: string
+          queue_stage?: string
           result_content?: string | null
           result_path?: string | null
           status?: string
           target_folder?: string | null
+          template_id?: string | null
+          template_version?: number | null
           updated_at?: string
+          worker_id?: string | null
         }
         Update: {
           attempts?: number | null
@@ -322,14 +408,36 @@ export type Database = {
           pipeline_step?: number | null
           pipeline_template_name?: string | null
           pipeline_total_steps?: number | null
+          priority_order?: number | null
+          processing_started_at?: string | null
+          project_id?: string | null
           provider?: string
+          queue_stage?: string
           result_content?: string | null
           result_path?: string | null
           status?: string
           target_folder?: string | null
+          template_id?: string | null
+          template_version?: number | null
           updated_at?: string
+          worker_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "nw_prompts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "nw_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nw_prompts_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "nw_pipeline_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       nw_worker_heartbeats: {
         Row: {
@@ -349,6 +457,42 @@ export type Database = {
           provider?: string
           status?: string
           worker_id?: string
+        }
+        Relationships: []
+      }
+      nw_worker_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          last_used_at: string | null
+          notes: string | null
+          revoked_at: string | null
+          scopes: string[]
+          token_hash: string
+          worker_name: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          notes?: string | null
+          revoked_at?: string | null
+          scopes?: string[]
+          token_hash: string
+          worker_name: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          notes?: string | null
+          revoked_at?: string | null
+          scopes?: string[]
+          token_hash?: string
+          worker_name?: string
         }
         Relationships: []
       }
@@ -448,12 +592,60 @@ export type Database = {
           pipeline_step: number | null
           pipeline_template_name: string | null
           pipeline_total_steps: number | null
+          priority_order: number | null
+          processing_started_at: string | null
+          project_id: string | null
           provider: string
+          queue_stage: string
           result_content: string | null
           result_path: string | null
           status: string
           target_folder: string | null
+          template_id: string | null
+          template_version: number | null
           updated_at: string
+          worker_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "nw_prompts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      reorder_prioritized_prompts: {
+        Args: { p_ids: string[] }
+        Returns: number
+      }
+      reset_stalled_prompts: {
+        Args: never
+        Returns: {
+          attempts: number | null
+          cloned_from: string | null
+          content: string
+          created_at: string
+          error: string | null
+          id: string
+          name: string
+          next_retry_at: string | null
+          pipeline_config: Json | null
+          pipeline_id: string | null
+          pipeline_step: number | null
+          pipeline_template_name: string | null
+          pipeline_total_steps: number | null
+          priority_order: number | null
+          processing_started_at: string | null
+          project_id: string | null
+          provider: string
+          queue_stage: string
+          result_content: string | null
+          result_path: string | null
+          status: string
+          target_folder: string | null
+          template_id: string | null
+          template_version: number | null
+          updated_at: string
+          worker_id: string | null
         }[]
         SetofOptions: {
           from: "*"
