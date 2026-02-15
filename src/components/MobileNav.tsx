@@ -63,6 +63,7 @@ const moreNavItems = [
   { to: '/templates', icon: FileText, labelKey: 'nav.templates' },
   { to: '/images', icon: Image, labelKey: 'nav.images' },
   { to: '/nw', icon: Moon, labelKey: 'nav.nightWorker' },
+  { to: '/nw/projects', icon: ListChecks, labelKey: 'nav.nwProjects' },
   { to: '/nw/templates', icon: GitBranch, labelKey: 'nav.nwPipelines' },
   { to: '/version-history', icon: History, labelKey: 'nav.versionHistory' },
   { to: '/notifications', icon: Bell, labelKey: 'nav.notifications' },

@@ -1,5 +1,5 @@
-﻿import { useMemo } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useMemo } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { ProviderBadge } from '@/components/night-worker/ProviderBadge'
-import { useCreatePromptMutation } from '@/hooks/useNightWorkerApi'
+import { useCreatePromptMutation, useProjectsQuery } from '@/hooks/useNightWorkerApi'
 import { loadPipelineTemplates } from '@/lib/nightworker/pipelineTemplates'
 import type { PipelineConfig } from '@/types/night-worker'
 import { toast } from 'sonner'
@@ -20,6 +20,7 @@ import { ArrowLeft, Play, Send } from 'lucide-react'
 const schema = z.object({
   content: z.string().min(10, 'Informe o prompt base'),
   target_folder: z.string().min(3, 'Informe a pasta alvo'),
+  project_id: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -35,8 +36,11 @@ function slug(value: string) {
 
 export default function NWRunTemplate() {
   const { id } = useParams<{ id: string }>()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const createPrompt = useCreatePromptMutation()
+  const { data: projects = [] } = useProjectsQuery('active')
+  const projectFromQuery = searchParams.get('project_id') ?? ''
 
   const template = useMemo(() => {
     const templates = loadPipelineTemplates()
@@ -48,8 +52,31 @@ export default function NWRunTemplate() {
     defaultValues: {
       content: '',
       target_folder: 'C:\\code\\meu-projeto',
+      project_id: '',
     },
   })
+  const selectedProjectId = form.watch('project_id')
+
+  useEffect(() => {
+    if (!projects.length) return
+
+    if (projectFromQuery && projects.some((project) => project.id === projectFromQuery)) {
+      form.setValue('project_id', projectFromQuery)
+      const selected = projects.find((project) => project.id === projectFromQuery)
+      if (selected?.default_target_folder) {
+        form.setValue('target_folder', selected.default_target_folder)
+      }
+      return
+    }
+
+    if (!form.getValues('project_id')) {
+      form.setValue('project_id', '')
+    }
+  }, [form, projectFromQuery, projects])
+
+  const selectedProject = useMemo(() => {
+    return projects.find((project) => project.id === selectedProjectId) ?? null
+  }, [projects, selectedProjectId])
 
   const onSubmit = async (values: FormValues) => {
     if (!template || template.steps.length === 0) return
@@ -82,11 +109,12 @@ export default function NWRunTemplate() {
         pipeline_total_steps: template.steps.length,
         pipeline_template_name: template.name,
         queue_stage: 'prioritized',
+        project_id: values.project_id?.trim() ? values.project_id : null,
       })
 
       toast.success('Pipeline iniciado')
       navigate(`/nw/prompts/${res.id}`)
-    } catch (error) {
+    } catch {
       toast.error('Falha ao iniciar pipeline')
     }
   }
@@ -141,6 +169,35 @@ export default function NWRunTemplate() {
                 <Input id="target_folder" {...form.register('target_folder')} />
                 {form.formState.errors.target_folder && (
                   <p className="text-xs text-red-400">{form.formState.errors.target_folder.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="project_id">Projeto (opcional)</Label>
+                <select
+                  id="project_id"
+                  className="h-10 w-full rounded-md border border-border/60 bg-background/70 px-3 text-sm"
+                  value={selectedProjectId || ''}
+                  onChange={(e) => {
+                    const next = e.target.value
+                    form.setValue('project_id', next, { shouldDirty: true })
+                    if (next) {
+                      const project = projects.find((entry) => entry.id === next)
+                      if (project?.default_target_folder) {
+                        form.setValue('target_folder', project.default_target_folder)
+                      }
+                    }
+                  }}
+                >
+                  <option value="">Sem projeto</option>
+                  {projects.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+                {selectedProject?.description && (
+                  <p className="text-xs text-muted-foreground">{selectedProject.description}</p>
                 )}
               </div>
 

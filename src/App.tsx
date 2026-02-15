@@ -67,6 +67,7 @@ const NWSettings = lazy(() => import("@/pages/NWSettings"));
 const NWConnect = lazy(() => import("@/pages/NWConnect"));
 const NWTemplates = lazy(() => import("@/pages/NWTemplates"));
 const NWRunTemplate = lazy(() => import("@/pages/NWRunTemplate"));
+const NWProjects = lazy(() => import("@/pages/NWProjects"));
 const NWTestDashboard = lazy(() => import("@/pages/NWTestDashboard"));
 
 // Auth & shared pages
@@ -183,6 +184,7 @@ function AppContent() {
           <Route path="/nw/submit" element={<Suspense fallback={<PageFallback />}><NWSubmit /></Suspense>} />
           <Route path="/nw/prompts/:id" element={<Suspense fallback={<PageFallback />}><NWPromptDetail /></Suspense>} />
           <Route path="/nw/prompts" element={<Suspense fallback={<PageFallback />}><NWPrompts /></Suspense>} />
+          <Route path="/nw/projects" element={<Suspense fallback={<PageFallback />}><NWProjects /></Suspense>} />
           <Route path="/nw/templates" element={<Suspense fallback={<PageFallback />}><NWTemplates /></Suspense>} />
           <Route path="/nw/templates/:id/run" element={<Suspense fallback={<PageFallback />}><NWRunTemplate /></Suspense>} />
           <Route path="/nw/logs" element={<Suspense fallback={<PageFallback />}><NWLogs /></Suspense>} />

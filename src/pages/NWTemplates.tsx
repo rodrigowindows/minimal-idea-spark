@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { ProviderBadge } from '@/components/night-worker/ProviderBadge'
 import { toast } from 'sonner'
-import { ArrowDown, ArrowUp, GitBranch, Pencil, Play, Plus, Save, Trash2, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Briefcase, GitBranch, Pencil, Play, Plus, Save, Trash2, X } from 'lucide-react'
 import type { NightWorkerProvider, PipelineStep, PipelineTemplate } from '@/types/night-worker'
 import { loadPipelineTemplates, savePipelineTemplates } from '@/lib/nightworker/pipelineTemplates'
 
@@ -178,9 +178,14 @@ export default function NWTemplates() {
           <h1 className="text-3xl font-bold text-foreground">Pipeline Templates</h1>
           <p className="text-sm text-muted-foreground">Crie fluxos multi-step e execute com prioridade automatica.</p>
         </div>
-        <Button onClick={openCreate} className="gap-2">
-          <Plus className="h-4 w-4" /> Novo Template
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => navigate('/nw/projects')} className="gap-2">
+            <Briefcase className="h-4 w-4" /> Projetos
+          </Button>
+          <Button onClick={openCreate} className="gap-2">
+            <Plus className="h-4 w-4" /> Novo Template
+          </Button>
+        </div>
       </div>
 
       {draft && (
@@ -323,7 +328,7 @@ export default function NWTemplates() {
               </div>
 
               <div className="flex flex-wrap justify-end gap-2">
-                <Button variant="outline" onClick={() => navigate(`/nw/templates/${template.id}/run`)}>
+                <Button variant="outline" onClick={() => navigate(`/nw/projects?template=${template.id}`)}>
                   <Play className="mr-2 h-4 w-4" /> Executar
                 </Button>
                 <Button variant="outline" onClick={() => openEdit(template)}>
