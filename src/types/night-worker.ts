@@ -17,6 +17,8 @@ export interface PipelineTemplate {
   name: string;
   description: string;
   steps: PipelineStep[];
+  version?: number;
+  is_default?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -97,6 +99,8 @@ export interface PromptItem {
   pipeline_total_steps?: number | null;
   pipeline_template_name?: string | null;
   project_id?: string | null;
+  template_id?: string | null;
+  template_version?: number | null;
 }
 
 /** Response from GET /prompts */

@@ -4,7 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-request-id, x-worker-id',
-  'Access-Control-Allow-Methods': 'GET,POST,PATCH,OPTIONS',
+  'Access-Control-Allow-Methods': 'GET,POST,PATCH,DELETE,OPTIONS',
 }
 
 const MAX_BODY_BYTES = 1024 * 1024 // 1 MB
@@ -40,6 +40,14 @@ interface PromptPayload {
   pipeline_total_steps?: number | null
   pipeline_template_name?: string | null
   project_id?: string | null
+  template_id?: string | null
+  template_version?: number | null
+}
+
+interface TemplateStepPayload {
+  provider: Provider
+  role: string
+  instruction: string
 }
 
 type AuthPrincipal =
@@ -194,6 +202,7 @@ serve(async (req) => {
   const promptDetailMatch = route.match(/^\/prompts\/([^/]+)$/)
   const promptActionMatch = route.match(/^\/prompts\/([^/]+)\/(move|edit|reprocess)$/)
   const projectDetailMatch = route.match(/^\/projects\/([^/]+)$/)
+  const templateDetailMatch = route.match(/^\/templates\/([^/]+)$/)
 
   log('info', 'request', { rid, method: req.method, route })
 
@@ -215,6 +224,8 @@ serve(async (req) => {
       resp = await handleHealth(supabase, rid)
     } else if (req.method === 'GET' && route === '/projects') {
       resp = await handleProjectList(supabase, url, rid)
+    } else if (req.method === 'GET' && route === '/templates') {
+      resp = await handleTemplateList(supabase, rid)
     } else if (req.method === 'GET' && projectDetailMatch) {
       const id = projectDetailMatch[1]
       if (!isValidUUID(id)) {
@@ -293,6 +304,18 @@ serve(async (req) => {
           resp = parsed.err
         } else {
           resp = await handleProjectCreate(supabase, parsed.body, rid)
+        }
+      }
+    } else if (req.method === 'POST' && route === '/templates') {
+      const raw = await readBody(req, rid)
+      if (raw.err) {
+        resp = raw.err
+      } else {
+        const parsed = parseJsonObject(raw.body, rid)
+        if (parsed.err) {
+          resp = parsed.err
+        } else {
+          resp = await handleTemplateCreate(supabase, parsed.body, rid)
         }
       }
     } else if (req.method === 'POST' && route === '/prompts/reorder') {
@@ -379,6 +402,30 @@ serve(async (req) => {
             resp = await handleProjectUpdate(supabase, id, parsed.body, rid)
           }
         }
+      }
+    } else if (req.method === 'PATCH' && templateDetailMatch) {
+      const id = templateDetailMatch[1]
+      if (!isValidUUID(id)) {
+        resp = json({ error: 'Invalid template ID format' }, 400, { requestId: rid })
+      } else {
+        const raw = await readBody(req, rid)
+        if (raw.err) {
+          resp = raw.err
+        } else {
+          const parsed = parseJsonObject(raw.body, rid)
+          if (parsed.err) {
+            resp = parsed.err
+          } else {
+            resp = await handleTemplateUpdate(supabase, id, parsed.body, rid)
+          }
+        }
+      }
+    } else if (req.method === 'DELETE' && templateDetailMatch) {
+      const id = templateDetailMatch[1]
+      if (!isValidUUID(id)) {
+        resp = json({ error: 'Invalid template ID format' }, 400, { requestId: rid })
+      } else {
+        resp = await handleTemplateDelete(supabase, id, rid)
       }
     } else {
       resp = json({ error: 'Not Found' }, 404, { requestId: rid })
@@ -771,6 +818,176 @@ async function handleProjectUpdate(supabase: any, id: string, body: Record<strin
   return json(data, 200, { requestId: rid })
 }
 
+function validateTemplateSteps(input: unknown): { steps?: TemplateStepPayload[]; error?: string } {
+  if (!Array.isArray(input) || input.length === 0) {
+    return { error: 'steps must be a non-empty array' }
+  }
+
+  const steps: TemplateStepPayload[] = []
+  for (const rawStep of input) {
+    if (!rawStep || typeof rawStep !== 'object' || Array.isArray(rawStep)) {
+      return { error: 'each step must be an object' }
+    }
+    const step = rawStep as Record<string, unknown>
+    const provider = typeof step.provider === 'string' ? step.provider.trim() : ''
+    const role = typeof step.role === 'string' ? sanitizeText(step.role.trim()) : ''
+    const instruction = typeof step.instruction === 'string' ? sanitizeText(step.instruction) : ''
+
+    if (!provider || !VALID_PROVIDERS.has(provider)) {
+      return { error: `step provider must be one of: ${[...VALID_PROVIDERS].join(', ')}` }
+    }
+    if (!role) return { error: 'step role is required' }
+    if (!instruction) return { error: 'step instruction is required' }
+    if (instruction.length > MAX_CONTENT_LEN) {
+      return { error: `step instruction must be at most ${MAX_CONTENT_LEN} characters` }
+    }
+
+    steps.push({
+      provider: provider as Provider,
+      role: role.slice(0, 120),
+      instruction,
+    })
+  }
+  return { steps }
+}
+
+async function handleTemplateList(supabase: any, rid: string) {
+  const { data, error } = await supabase
+    .from('nw_templates')
+    .select('*')
+    .order('updated_at', { ascending: false })
+
+  if (error) {
+    if (error.code === '42P01') {
+      return json({ error: 'nw_templates table not found. Apply latest migrations first.' }, 501, { requestId: rid })
+    }
+    throw error
+  }
+
+  return json({ templates: data ?? [] }, 200, { requestId: rid, cache: true })
+}
+
+async function handleTemplateCreate(supabase: any, body: Record<string, unknown>, rid: string) {
+  const name = typeof body.name === 'string' ? sanitizeText(body.name.trim()) : ''
+  if (name.length < 3) return json({ error: 'name is required (min 3 chars)' }, 400, { requestId: rid })
+  if (name.length > MAX_NAME_LEN) return json({ error: `name must be at most ${MAX_NAME_LEN} characters` }, 400, { requestId: rid })
+
+  let description: string | null = null
+  if (body.description !== undefined) {
+    if (body.description === null || body.description === '') {
+      description = null
+    } else if (typeof body.description === 'string') {
+      description = sanitizeText(body.description.slice(0, 5000))
+    } else {
+      return json({ error: 'description must be a string or null' }, 400, { requestId: rid })
+    }
+  }
+
+  const { steps, error: stepsError } = validateTemplateSteps(body.steps)
+  if (stepsError || !steps) {
+    return json({ error: stepsError ?? 'Invalid steps payload' }, 400, { requestId: rid })
+  }
+
+  const isDefault = body.is_default === undefined ? false : Boolean(body.is_default)
+
+  const { data, error } = await supabase
+    .from('nw_templates')
+    .insert({
+      name,
+      description,
+      steps,
+      is_default: isDefault,
+    })
+    .select('*')
+    .single()
+
+  if (error) {
+    if (error.code === '42P01') {
+      return json({ error: 'nw_templates table not found. Apply latest migrations first.' }, 501, { requestId: rid })
+    }
+    throw error
+  }
+
+  return json(data, 201, { requestId: rid })
+}
+
+async function handleTemplateUpdate(supabase: any, id: string, body: Record<string, unknown>, rid: string) {
+  const allowed: Record<string, unknown> = {}
+
+  if (body.name !== undefined) {
+    if (typeof body.name !== 'string' || !body.name.trim()) {
+      return json({ error: 'name must be a non-empty string' }, 400, { requestId: rid })
+    }
+    const safeName = sanitizeText(body.name.trim())
+    if (safeName.length > MAX_NAME_LEN) {
+      return json({ error: `name must be at most ${MAX_NAME_LEN} characters` }, 400, { requestId: rid })
+    }
+    allowed.name = safeName
+  }
+
+  if (body.description !== undefined) {
+    if (body.description === null || body.description === '') {
+      allowed.description = null
+    } else if (typeof body.description === 'string') {
+      allowed.description = sanitizeText(body.description.slice(0, 5000))
+    } else {
+      return json({ error: 'description must be string or null' }, 400, { requestId: rid })
+    }
+  }
+
+  if (body.steps !== undefined) {
+    const { steps, error: stepsError } = validateTemplateSteps(body.steps)
+    if (stepsError || !steps) {
+      return json({ error: stepsError ?? 'Invalid steps payload' }, 400, { requestId: rid })
+    }
+    allowed.steps = steps
+  }
+
+  if (body.is_default !== undefined) {
+    allowed.is_default = Boolean(body.is_default)
+  }
+
+  if (Object.keys(allowed).length === 0) {
+    return json({ error: 'No valid fields to update' }, 400, { requestId: rid })
+  }
+
+  const { data, error } = await supabase
+    .from('nw_templates')
+    .update(allowed)
+    .eq('id', id)
+    .select('*')
+    .single()
+
+  if (error) {
+    if (error.code === '42P01') {
+      return json({ error: 'nw_templates table not found. Apply latest migrations first.' }, 501, { requestId: rid })
+    }
+    if (error.code === 'PGRST116') return json({ error: 'Template not found' }, 404, { requestId: rid })
+    throw error
+  }
+
+  return json(data, 200, { requestId: rid })
+}
+
+async function handleTemplateDelete(supabase: any, id: string, rid: string) {
+  const { data, error } = await supabase
+    .from('nw_templates')
+    .delete()
+    .eq('id', id)
+    .select('id')
+    .single()
+
+  if (error) {
+    if (error.code === '42P01') {
+      return json({ error: 'nw_templates table not found. Apply latest migrations first.' }, 501, { requestId: rid })
+    }
+    if (error.code === 'PGRST116') return json({ error: 'Template not found' }, 404, { requestId: rid })
+    throw error
+  }
+
+  return json({ id: data.id, deleted: true }, 200, { requestId: rid })
+}
+
 async function handleClaim(supabase: any, body: Record<string, unknown>, workerId: string, rid: string) {
   const providerValue = typeof body.provider === 'string'
     ? body.provider.trim()
@@ -957,6 +1174,33 @@ function validateCreate(body: unknown): { ok: true; payload: PromptPayload } | {
     }
   }
 
+  let template_id: string | null | undefined = undefined
+  if (b.template_id !== undefined) {
+    if (b.template_id === null) {
+      template_id = null
+    } else if (typeof b.template_id === 'string' && isValidUUID(b.template_id)) {
+      template_id = b.template_id
+    } else {
+      return { ok: false, status: 400, error: 'template_id must be a valid UUID or null' }
+    }
+  }
+
+  let template_version: number | null | undefined = undefined
+  if (b.template_version !== undefined) {
+    if (b.template_version === null) {
+      template_version = null
+    } else {
+      const parsedVersion = Number(b.template_version)
+      if (!Number.isFinite(parsedVersion) || parsedVersion < 1) {
+        return { ok: false, status: 400, error: 'template_version must be a positive integer or null' }
+      }
+      template_version = Math.floor(parsedVersion)
+    }
+  }
+  if (template_version !== undefined && template_version !== null && !template_id) {
+    return { ok: false, status: 400, error: 'template_id is required when template_version is set' }
+  }
+
   let pipeline_id: string | null | undefined = undefined
   let pipeline_step: number | null | undefined = undefined
   let pipeline_total_steps: number | null | undefined = undefined
@@ -1022,6 +1266,8 @@ function validateCreate(body: unknown): { ok: true; payload: PromptPayload } | {
       queue_stage,
       priority_order,
       project_id,
+      template_id,
+      template_version,
       pipeline_config,
       pipeline_id,
       pipeline_step,
@@ -1073,6 +1319,12 @@ async function handleCreate(supabase: any, body: PromptPayload, rid: string) {
   if (validated.payload.project_id !== undefined) {
     insertData.project_id = validated.payload.project_id
   }
+  if (validated.payload.template_id !== undefined) {
+    insertData.template_id = validated.payload.template_id
+  }
+  if (validated.payload.template_version !== undefined) {
+    insertData.template_version = validated.payload.template_version
+  }
   if (validated.payload.pipeline_id) {
     insertData.pipeline_id = validated.payload.pipeline_id
     insertData.pipeline_step = validated.payload.pipeline_step ?? null
@@ -1089,6 +1341,9 @@ async function handleCreate(supabase: any, body: PromptPayload, rid: string) {
   if (error) {
     if (error.code === '23503' && validated.payload.project_id) {
       return json({ error: 'project_id not found' }, 400, { requestId: rid })
+    }
+    if (error.code === '23503' && validated.payload.template_id) {
+      return json({ error: 'template_id not found' }, 400, { requestId: rid })
     }
     if (
       error.code === '23505' &&
@@ -1276,7 +1531,7 @@ async function handleEditPrompt(supabase: any, id: string, body: Record<string, 
 async function handleReprocessPrompt(supabase: any, id: string, body: Record<string, unknown>, rid: string) {
   const { data: source, error: sourceError } = await supabase
     .from('nw_prompts')
-    .select('id, name, provider, content, target_folder, status, project_id, pipeline_config, pipeline_id, pipeline_step, pipeline_total_steps, pipeline_template_name')
+    .select('id, name, provider, content, target_folder, status, project_id, template_id, template_version, pipeline_config, pipeline_id, pipeline_step, pipeline_total_steps, pipeline_template_name')
     .eq('id', id)
     .single()
   if (sourceError) {
@@ -1315,6 +1570,10 @@ async function handleReprocessPrompt(supabase: any, id: string, body: Record<str
   }
   if (source.project_id) {
     cloneData.project_id = source.project_id
+  }
+  if (source.template_id) {
+    cloneData.template_id = source.template_id
+    cloneData.template_version = source.template_version
   }
   if (source.pipeline_id) {
     cloneData.pipeline_id = source.pipeline_id

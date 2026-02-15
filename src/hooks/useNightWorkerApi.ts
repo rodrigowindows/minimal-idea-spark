@@ -1,18 +1,22 @@
 import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNightWorker, ApiError } from '@/contexts/NightWorkerContext'
+import { getDefaultPipelineTemplates, loadPipelineTemplates, PIPELINE_TEMPLATES_STORAGE_KEY } from '@/lib/nightworker/pipelineTemplates'
 import type {
   CreatePromptResponse,
   HealthResponse,
   LogEntry,
   NightWorkerProject,
   PipelineConfig,
+  PipelineTemplate,
   PromptDetail,
   PromptItem,
   PromptsListResponse,
 } from '@/types/night-worker'
 
 const PROMPTS_KEY_BASE = ['nightworker', 'prompts'] as const
+const TEMPLATES_KEY_BASE = ['nightworker', 'templates'] as const
+const TEMPLATE_MIGRATION_DONE_KEY = 'nightworker_templates_db_migrated_v1'
 
 function promptsQueryKey(baseUrl: string) {
   return [...PROMPTS_KEY_BASE, baseUrl] as const
@@ -51,7 +55,23 @@ function normalizePromptItem(item: any): PromptItem {
     pipeline_total_steps: item.pipeline_total_steps ?? null,
     pipeline_template_name: item.pipeline_template_name ?? null,
     project_id: item.project_id ?? null,
+    template_id: item.template_id ?? null,
+    template_version: item.template_version ?? null,
   } satisfies PromptItem
+}
+
+function normalizeTemplateItem(item: any): PipelineTemplate {
+  const steps = Array.isArray(item.steps) ? item.steps : []
+  return {
+    id: String(item.id),
+    name: typeof item.name === 'string' ? item.name : 'template',
+    description: typeof item.description === 'string' ? item.description : '',
+    steps,
+    version: Number(item.version ?? 1),
+    is_default: Boolean(item.is_default ?? false),
+    created_at: item.created_at ?? new Date().toISOString(),
+    updated_at: item.updated_at ?? item.created_at ?? new Date().toISOString(),
+  } satisfies PipelineTemplate
 }
 
 function normalizeProjectItem(item: any): NightWorkerProject {
@@ -252,6 +272,67 @@ export function useProjectsQuery(status: 'active' | 'archived' | 'paused' | 'all
   })
 }
 
+export function useTemplatesQuery() {
+  const { apiFetch, isConnected, config } = useNightWorker()
+
+  return useQuery<PipelineTemplate[]>({
+    queryKey: [...TEMPLATES_KEY_BASE, config.baseUrl],
+    queryFn: async () => {
+      const fetchTemplates = async () => {
+        const raw = await apiFetch<{ templates?: any[] } | any[]>('/templates')
+        const items = Array.isArray(raw) ? raw : raw.templates ?? []
+        return items.map((item) => normalizeTemplateItem(item))
+      }
+
+      try {
+        const templates = await fetchTemplates()
+        if (templates.length > 0) return templates
+
+        const fallbackTemplates = typeof window !== 'undefined'
+          ? (localStorage.getItem(PIPELINE_TEMPLATES_STORAGE_KEY) ? loadPipelineTemplates() : getDefaultPipelineTemplates())
+          : getDefaultPipelineTemplates()
+
+        if (fallbackTemplates.length > 0) {
+          for (const template of fallbackTemplates) {
+            await apiFetch('/templates', {
+              method: 'POST',
+              body: JSON.stringify({
+                name: template.name,
+                description: template.description,
+                steps: template.steps,
+                is_default: Boolean(template.is_default),
+              }),
+            })
+          }
+
+          if (typeof window !== 'undefined') {
+            if (localStorage.getItem(PIPELINE_TEMPLATES_STORAGE_KEY)) {
+              localStorage.removeItem(PIPELINE_TEMPLATES_STORAGE_KEY)
+              console.log(`[NW] Migrated ${fallbackTemplates.length} templates from localStorage to database.`)
+            }
+            localStorage.setItem(TEMPLATE_MIGRATION_DONE_KEY, '1')
+          }
+
+          return await fetchTemplates()
+        }
+
+        return templates
+      } catch (error) {
+        if (error instanceof ApiError && (error.status === 404 || error.status === 501)) {
+          return loadPipelineTemplates()
+        }
+        if (typeof window !== 'undefined') {
+          return loadPipelineTemplates()
+        }
+        throw error
+      }
+    },
+    enabled: isConnected,
+    staleTime: 5000,
+    refetchInterval: 30000,
+  })
+}
+
 export function useProjectPromptsQuery(projectId?: string | null, limit = 30) {
   const { apiFetch, isConnected, config } = useNightWorker()
   return useQuery<PromptItem[]>({
@@ -272,6 +353,55 @@ export function useProjectPromptsQuery(projectId?: string | null, limit = 30) {
   })
 }
 
+export function useCreateTemplateMutation() {
+  const { apiFetch } = useNightWorker()
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { name: string; description?: string | null; steps: unknown[]; is_default?: boolean }) =>
+      apiFetch<PipelineTemplate>('/templates', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: TEMPLATES_KEY_BASE })
+    },
+  })
+}
+
+export function useUpdateTemplateMutation() {
+  const { apiFetch } = useNightWorker()
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { id: string; name?: string; description?: string | null; steps?: unknown[]; is_default?: boolean }) =>
+      apiFetch<PipelineTemplate>(`/templates/${body.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: body.name,
+          description: body.description,
+          steps: body.steps,
+          is_default: body.is_default,
+        }),
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: TEMPLATES_KEY_BASE })
+    },
+  })
+}
+
+export function useDeleteTemplateMutation() {
+  const { apiFetch } = useNightWorker()
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { id: string }) =>
+      apiFetch<{ id: string; deleted: boolean }>(`/templates/${body.id}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: TEMPLATES_KEY_BASE })
+    },
+  })
+}
+
 export function useCreatePromptMutation() {
   const { apiFetch } = useNightWorker()
   const client = useQueryClient()
@@ -289,6 +419,8 @@ export function useCreatePromptMutation() {
       queue_stage?: 'backlog' | 'prioritized'
       priority_order?: number | null
       project_id?: string | null
+      template_id?: string | null
+      template_version?: number | null
     }) =>
       apiFetch<CreatePromptResponse>('/prompts', {
         method: 'POST',

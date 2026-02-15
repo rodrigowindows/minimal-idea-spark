@@ -11,8 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { ProviderBadge } from '@/components/night-worker/ProviderBadge'
-import { useCreatePromptMutation, useProjectsQuery } from '@/hooks/useNightWorkerApi'
-import { loadPipelineTemplates } from '@/lib/nightworker/pipelineTemplates'
+import { useCreatePromptMutation, useProjectsQuery, useTemplatesQuery } from '@/hooks/useNightWorkerApi'
 import type { PipelineConfig } from '@/types/night-worker'
 import { toast } from 'sonner'
 import { ArrowLeft, Play, Send } from 'lucide-react'
@@ -34,16 +33,21 @@ function slug(value: string) {
     .replace(/^-|-$/g, '')
 }
 
+function isUuid(value?: string | null) {
+  if (!value) return false
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+}
+
 export default function NWRunTemplate() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const createPrompt = useCreatePromptMutation()
   const { data: projects = [] } = useProjectsQuery('active')
+  const { data: templates = [], isLoading: loadingTemplates } = useTemplatesQuery()
 
   const template = useMemo(() => {
-    const templates = loadPipelineTemplates()
     return templates.find((entry) => entry.id === id) ?? null
-  }, [id])
+  }, [id, templates])
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -77,6 +81,7 @@ export default function NWRunTemplate() {
       .join(values.content)
       .split('{previous_result}')
       .join('')
+    const templateId = isUuid(template.id) ? template.id : null
 
     try {
       const res = await createPrompt.mutateAsync({
@@ -85,6 +90,8 @@ export default function NWRunTemplate() {
         content: renderedContent,
         target_folder: values.target_folder,
         pipeline_config: pipelineConfig,
+        template_id: templateId,
+        template_version: templateId ? (template.version ?? 1) : null,
         pipeline_id: pipelineId,
         pipeline_step: 1,
         pipeline_total_steps: template.steps.length,
@@ -98,6 +105,20 @@ export default function NWRunTemplate() {
     } catch {
       toast.error('Falha ao iniciar pipeline')
     }
+  }
+
+  if (loadingTemplates) {
+    return (
+      <div className="space-y-4 px-4 pb-10 md:px-8">
+        <Button variant="ghost" onClick={() => navigate('/nw/templates')}>
+          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+        </Button>
+        <Alert className="border-blue-500/40 bg-blue-500/10 text-blue-100">
+          <AlertTitle>Carregando template</AlertTitle>
+          <AlertDescription>Aguarde enquanto os templates sao carregados.</AlertDescription>
+        </Alert>
+      </div>
+    )
   }
 
   if (!template) {

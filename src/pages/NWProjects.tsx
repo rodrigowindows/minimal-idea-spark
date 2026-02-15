@@ -19,9 +19,9 @@ import {
   useCreatePromptMutation,
   useProjectPromptsQuery,
   useProjectsQuery,
+  useTemplatesQuery,
   useUpdateProjectMutation,
 } from '@/hooks/useNightWorkerApi'
-import { loadPipelineTemplates } from '@/lib/nightworker/pipelineTemplates'
 import type { NightWorkerProject, PipelineConfig } from '@/types/night-worker'
 import { ArrowRight, Briefcase, FolderPlus, GitBranch, Play, Plus, Send } from 'lucide-react'
 
@@ -53,11 +53,16 @@ function formatDate(value?: string | null) {
   return Number.isNaN(d.getTime()) ? value : d.toLocaleString()
 }
 
+function isUuid(value?: string | null) {
+  if (!value) return false
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+}
+
 export default function NWProjects() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const templates = useMemo(() => loadPipelineTemplates(), [])
+  const { data: templates = [] } = useTemplatesQuery()
   const templateFromQuery = searchParams.get('template') ?? ''
   const projectFromQuery = searchParams.get('project') ?? ''
 
@@ -195,6 +200,7 @@ export default function NWProjects() {
       .join(values.content)
       .split('{previous_result}')
       .join('')
+    const templateId = isUuid(template.id) ? template.id : null
 
     const promptName =
       slug(`${selectedProject.name}-${template.name}-step1-${firstStep.role}`).slice(0, PROMPT_NAME_MAX_LENGTH) ||
@@ -208,6 +214,8 @@ export default function NWProjects() {
         target_folder: values.target_folder,
         queue_stage: 'prioritized',
         project_id: selectedProject.id,
+        template_id: templateId,
+        template_version: templateId ? (template.version ?? 1) : null,
         pipeline_config: pipelineConfig,
         pipeline_id: pipelineId,
         pipeline_step: 1,

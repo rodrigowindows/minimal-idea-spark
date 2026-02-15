@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,7 +10,12 @@ import { ProviderBadge } from '@/components/night-worker/ProviderBadge'
 import { toast } from 'sonner'
 import { ArrowDown, ArrowUp, Briefcase, GitBranch, Pencil, Play, Plus, Save, Trash2, X } from 'lucide-react'
 import type { NightWorkerProvider, PipelineStep, PipelineTemplate } from '@/types/night-worker'
-import { loadPipelineTemplates, savePipelineTemplates } from '@/lib/nightworker/pipelineTemplates'
+import {
+  useCreateTemplateMutation,
+  useDeleteTemplateMutation,
+  useTemplatesQuery,
+  useUpdateTemplateMutation,
+} from '@/hooks/useNightWorkerApi'
 
 interface TemplateDraft {
   id?: string
@@ -39,19 +44,12 @@ function createEmptyDraft(): TemplateDraft {
 
 export default function NWTemplates() {
   const navigate = useNavigate()
-  const [templates, setTemplates] = useState<PipelineTemplate[]>([])
-  const [loaded, setLoaded] = useState(false)
   const [draft, setDraft] = useState<TemplateDraft | null>(null)
-
-  useEffect(() => {
-    setTemplates(loadPipelineTemplates())
-    setLoaded(true)
-  }, [])
-
-  useEffect(() => {
-    if (!loaded) return
-    savePipelineTemplates(templates)
-  }, [loaded, templates])
+  const templatesQuery = useTemplatesQuery()
+  const createTemplate = useCreateTemplateMutation()
+  const updateTemplate = useUpdateTemplateMutation()
+  const deleteTemplate = useDeleteTemplateMutation()
+  const templates = templatesQuery.data ?? []
 
   const orderedTemplates = useMemo(
     () => templates.slice().sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()),
@@ -128,36 +126,31 @@ export default function NWTemplates() {
       return
     }
 
-    const now = new Date().toISOString()
-
     if (draft.id) {
-      setTemplates((prev) =>
-        prev.map((template) =>
-          template.id === draft.id
-            ? {
-                ...template,
-                name,
-                description: draft.description.trim(),
-                steps,
-                updated_at: now,
-              }
-            : template
-        )
-      )
-      toast.success('Template atualizado')
-    } else {
-      setTemplates((prev) => [
+      updateTemplate.mutate(
         {
-          id: crypto.randomUUID(),
+          id: draft.id,
           name,
           description: draft.description.trim(),
           steps,
-          created_at: now,
-          updated_at: now,
         },
-        ...prev,
-      ])
-      toast.success('Template criado')
+        {
+          onSuccess: () => toast.success('Template atualizado'),
+          onError: () => toast.error('Falha ao atualizar template'),
+        }
+      )
+    } else {
+      createTemplate.mutate(
+        {
+          name,
+          description: draft.description.trim(),
+          steps,
+        },
+        {
+          onSuccess: () => toast.success('Template criado'),
+          onError: () => toast.error('Falha ao criar template'),
+        }
+      )
     }
 
     setDraft(null)
@@ -166,8 +159,13 @@ export default function NWTemplates() {
   const removeTemplate = (template: PipelineTemplate) => {
     const ok = window.confirm(`Excluir template "${template.name}"?`)
     if (!ok) return
-    setTemplates((prev) => prev.filter((t) => t.id !== template.id))
-    toast.success('Template excluido')
+    deleteTemplate.mutate(
+      { id: template.id },
+      {
+        onSuccess: () => toast.success('Template excluido'),
+        onError: () => toast.error('Falha ao excluir template'),
+      }
+    )
   }
 
   return (
@@ -187,6 +185,18 @@ export default function NWTemplates() {
           </Button>
         </div>
       </div>
+
+      {templatesQuery.isLoading && (
+        <Card className="border border-white/10 bg-card/70 backdrop-blur">
+          <CardContent className="py-6 text-sm text-muted-foreground">Carregando templates...</CardContent>
+        </Card>
+      )}
+
+      {!templatesQuery.isLoading && orderedTemplates.length === 0 && (
+        <Card className="border border-amber-500/30 bg-amber-500/10">
+          <CardContent className="py-6 text-sm text-amber-100">Nenhum template encontrado.</CardContent>
+        </Card>
+      )}
 
       {draft && (
         <Card className="border border-blue-500/30 bg-card/80 backdrop-blur">
@@ -298,7 +308,10 @@ export default function NWTemplates() {
             <CardHeader>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <CardTitle className="text-xl">{template.name}</CardTitle>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    {template.name}
+                    <Badge variant="outline">v{template.version ?? 1}</Badge>
+                  </CardTitle>
                   <CardDescription>{template.description || 'Sem descricao'}</CardDescription>
                 </div>
                 <Badge variant="outline" className="gap-1">
@@ -331,10 +344,10 @@ export default function NWTemplates() {
                 <Button variant="outline" onClick={() => navigate(`/nw/projects?template=${template.id}`)}>
                   <Play className="mr-2 h-4 w-4" /> Executar
                 </Button>
-                <Button variant="outline" onClick={() => openEdit(template)}>
+                <Button variant="outline" onClick={() => openEdit(template)} disabled={updateTemplate.isPending}>
                   <Pencil className="mr-2 h-4 w-4" /> Editar
                 </Button>
-                <Button variant="destructive" onClick={() => removeTemplate(template)}>
+                <Button variant="destructive" onClick={() => removeTemplate(template)} disabled={deleteTemplate.isPending}>
                   <Trash2 className="mr-2 h-4 w-4" /> Excluir
                 </Button>
               </div>
