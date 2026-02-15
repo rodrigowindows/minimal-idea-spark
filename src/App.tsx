@@ -67,6 +67,7 @@ const NWSettings = lazy(() => import("@/pages/NWSettings"));
 const NWConnect = lazy(() => import("@/pages/NWConnect"));
 const NWTemplates = lazy(() => import("@/pages/NWTemplates"));
 const NWRunTemplate = lazy(() => import("@/pages/NWRunTemplate"));
+const NWTestDashboard = lazy(() => import("@/pages/NWTestDashboard"));
 
 // Auth & shared pages
 const AcceptInvite = lazy(() => import("@/pages/AcceptInvite").then((m) => ({ default: m.AcceptInvite })));
@@ -188,6 +189,7 @@ function AppContent() {
           <Route path="/nw/settings" element={<Suspense fallback={<PageFallback />}><NWSettings /></Suspense>} />
           <Route path="/nw/connect" element={<Suspense fallback={<PageFallback />}><NWConnect /></Suspense>} />
           <Route path="/nw/simple" element={<div className="p-8"><NightWorkerSimpleInterface /></div>} />
+          <Route path="/nw/tests" element={<Suspense fallback={<PageFallback />}><NWTestDashboard /></Suspense>} />
 
           {/* Legacy redirects for better compatibility */}
           <Route path="/prompts" element={<Navigate to="/nw/prompts" replace />} />

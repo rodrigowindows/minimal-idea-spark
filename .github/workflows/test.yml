@@ -28,6 +28,18 @@ jobs:
       - name: Run unit & integration tests with coverage
         run: npm run test:coverage
 
+      - name: Night Worker test summary
+        if: always()
+        run: |
+          echo "## Night Worker Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Tests cover:" >> $GITHUB_STEP_SUMMARY
+          echo "- Provider status detection (return codes, rate limits, timeouts)" >> $GITHUB_STEP_SUMMARY
+          echo "- Pipeline chaining logic (step transitions, content truncation)" >> $GITHUB_STEP_SUMMARY
+          echo "- UI components (StatusBadge, ProviderBadge, NightWorkerContext)" >> $GITHUB_STEP_SUMMARY
+          echo "- Pipeline templates (loading, saving, normalization)" >> $GITHUB_STEP_SUMMARY
+          echo "- Supabase API retry logic (backoff, error codes)" >> $GITHUB_STEP_SUMMARY
+
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4

@@ -5,6 +5,7 @@ import type {
   CreatePromptResponse,
   HealthResponse,
   LogEntry,
+  NightWorkerProject,
   PromptDetail,
   PromptItem,
   PromptsListResponse,
@@ -48,7 +49,29 @@ function normalizePromptItem(item: any): PromptItem {
     pipeline_step: item.pipeline_step ?? null,
     pipeline_total_steps: item.pipeline_total_steps ?? null,
     pipeline_template_name: item.pipeline_template_name ?? null,
+    project_id: item.project_id ?? null,
   } satisfies PromptItem
+}
+
+function normalizeProjectItem(item: any): NightWorkerProject {
+  return {
+    id: item.id,
+    name: item.name ?? 'sem-nome',
+    description: item.description ?? null,
+    default_target_folder: item.default_target_folder ?? null,
+    status: item.status === 'archived' ? 'archived' : 'active',
+    created_at: item.created_at ?? new Date().toISOString(),
+    updated_at: item.updated_at ?? item.created_at ?? new Date().toISOString(),
+    stats: item.stats
+      ? {
+          total: Number(item.stats.total ?? 0),
+          pending: Number(item.stats.pending ?? 0),
+          processing: Number(item.stats.processing ?? 0),
+          done: Number(item.stats.done ?? 0),
+          failed: Number(item.stats.failed ?? 0),
+        }
+      : undefined,
+  }
 }
 
 export function useHealthQuery() {
@@ -209,6 +232,41 @@ export function usePipelinePromptsQuery(pipelineId?: string | null) {
   })
 }
 
+export function useProjectsQuery(status: 'active' | 'archived' | 'all' = 'active') {
+  const { apiFetch, isConnected, config } = useNightWorker()
+  return useQuery<NightWorkerProject[]>({
+    queryKey: ['nightworker', 'projects', status, config.baseUrl],
+    queryFn: async () => {
+      const raw = await apiFetch<{ projects?: any[] } | any[]>(`/projects?status=${status}&include_stats=1`)
+      const items = Array.isArray(raw) ? raw : raw.projects ?? []
+      return items.map((item) => normalizeProjectItem(item))
+    },
+    enabled: isConnected,
+    staleTime: 5000,
+    refetchInterval: 15000,
+  })
+}
+
+export function useProjectPromptsQuery(projectId?: string | null, limit = 30) {
+  const { apiFetch, isConnected, config } = useNightWorker()
+  return useQuery<PromptItem[]>({
+    queryKey: ['nightworker', 'project-prompts', projectId, limit, config.baseUrl],
+    queryFn: async () => {
+      const raw = await apiFetch<PromptsListResponse | PromptItem[]>(
+        `/prompts?project_id=${projectId}&limit=${Math.max(1, Math.min(100, limit))}`
+      )
+      const items = Array.isArray(raw) ? raw : (raw as PromptsListResponse).prompts ?? []
+      return items.map((item: any) => normalizePromptItem(item))
+    },
+    enabled: isConnected && !!projectId,
+    refetchInterval: (query) => {
+      const hasActive = query.state.data?.some((p) => p.status === 'pending' || p.status === 'processing')
+      return hasActive ? 10000 : 30000
+    },
+    staleTime: 5000,
+  })
+}
+
 export function useCreatePromptMutation() {
   const { apiFetch } = useNightWorker()
   const client = useQueryClient()
@@ -225,6 +283,7 @@ export function useCreatePromptMutation() {
       pipeline_template_name?: string
       queue_stage?: 'backlog' | 'prioritized'
       priority_order?: number | null
+      project_id?: string | null
     }) =>
       apiFetch<CreatePromptResponse>('/prompts', {
         method: 'POST',
@@ -232,6 +291,53 @@ export function useCreatePromptMutation() {
       }),
     onSuccess: () => {
       client.invalidateQueries({ queryKey: PROMPTS_KEY_BASE })
+    },
+  })
+}
+
+export function useCreateProjectMutation() {
+  const { apiFetch } = useNightWorker()
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (body: {
+      name: string
+      description?: string | null
+      default_target_folder?: string | null
+      status?: 'active' | 'archived'
+    }) =>
+      apiFetch<NightWorkerProject>('/projects', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ['nightworker', 'projects'] })
+    },
+  })
+}
+
+export function useUpdateProjectMutation() {
+  const { apiFetch } = useNightWorker()
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (body: {
+      id: string
+      name?: string
+      description?: string | null
+      default_target_folder?: string | null
+      status?: 'active' | 'archived'
+    }) =>
+      apiFetch<NightWorkerProject>(`/projects/${body.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: body.name,
+          description: body.description,
+          default_target_folder: body.default_target_folder,
+          status: body.status,
+        }),
+      }),
+    onSuccess: (_data, vars) => {
+      client.invalidateQueries({ queryKey: ['nightworker', 'projects'] })
+      client.invalidateQueries({ queryKey: ['nightworker', 'project-prompts', vars.id] })
     },
   })
 }

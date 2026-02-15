@@ -15,6 +15,7 @@ const CACHE_MAX_AGE = 5 // seconds
 const VALID_PROVIDERS = new Set(['codex', 'claude', 'codex_cli', 'claude_cli', 'openai_api', 'gemini', 'gemini_cli'])
 const VALID_STATUSES = new Set(['pending', 'processing', 'done', 'failed'])
 const VALID_QUEUE_STAGES = new Set(['backlog', 'prioritized'])
+const VALID_PROJECT_STATUSES = new Set(['active', 'archived'])
 const VALID_WORKER_STATUSES = new Set(['active', 'paused', 'error'])
 const WORKER_TOKEN_SCOPES = new Set(['claim', 'patch', 'heartbeat'])
 const MAX_NAME_LEN = 500
@@ -24,6 +25,7 @@ const MAX_TARGET_FOLDER_LEN = 2000
 type PromptStatus = 'pending' | 'processing' | 'done' | 'failed'
 type Provider = 'codex' | 'claude' | 'codex_cli' | 'claude_cli' | 'openai_api' | 'gemini' | 'gemini_cli'
 type QueueStage = 'backlog' | 'prioritized'
+type ProjectStatus = 'active' | 'archived'
 
 interface PromptPayload {
   provider: Provider
@@ -37,6 +39,7 @@ interface PromptPayload {
   pipeline_step?: number | null
   pipeline_total_steps?: number | null
   pipeline_template_name?: string | null
+  project_id?: string | null
 }
 
 type AuthPrincipal =
@@ -190,6 +193,7 @@ serve(async (req) => {
   const route = '/' + rest.join('/')
   const promptDetailMatch = route.match(/^\/prompts\/([^/]+)$/)
   const promptActionMatch = route.match(/^\/prompts\/([^/]+)\/(move|edit|reprocess)$/)
+  const projectDetailMatch = route.match(/^\/projects\/([^/]+)$/)
 
   log('info', 'request', { rid, method: req.method, route })
 
@@ -209,6 +213,15 @@ serve(async (req) => {
   try {
     if (req.method === 'GET' && route === '/health') {
       resp = await handleHealth(supabase, rid)
+    } else if (req.method === 'GET' && route === '/projects') {
+      resp = await handleProjectList(supabase, url, rid)
+    } else if (req.method === 'GET' && projectDetailMatch) {
+      const id = projectDetailMatch[1]
+      if (!isValidUUID(id)) {
+        resp = json({ error: 'Invalid project ID format' }, 400, { requestId: rid })
+      } else {
+        resp = await handleProjectGet(supabase, id, rid)
+      }
     } else if (req.method === 'GET' && (route === '/' || route === '/prompts')) {
       resp = await handleList(supabase, url, rid)
     } else if (req.method === 'GET' && promptDetailMatch) {
@@ -268,6 +281,18 @@ serve(async (req) => {
           } else {
             resp = await handleCreateWorkerToken(supabase, parsed.body, rid)
           }
+        }
+      }
+    } else if (req.method === 'POST' && route === '/projects') {
+      const raw = await readBody(req, rid)
+      if (raw.err) {
+        resp = raw.err
+      } else {
+        const parsed = parseJsonObject(raw.body, rid)
+        if (parsed.err) {
+          resp = parsed.err
+        } else {
+          resp = await handleProjectCreate(supabase, parsed.body, rid)
         }
       }
     } else if (req.method === 'POST' && route === '/prompts/reorder') {
@@ -335,6 +360,23 @@ serve(async (req) => {
             } else {
               resp = await handleUpdate(supabase, id, parsed.body, rid)
             }
+          }
+        }
+      }
+    } else if (req.method === 'PATCH' && projectDetailMatch) {
+      const id = projectDetailMatch[1]
+      if (!isValidUUID(id)) {
+        resp = json({ error: 'Invalid project ID format' }, 400, { requestId: rid })
+      } else {
+        const raw = await readBody(req, rid)
+        if (raw.err) {
+          resp = raw.err
+        } else {
+          const parsed = parseJsonObject(raw.body, rid)
+          if (parsed.err) {
+            resp = parsed.err
+          } else {
+            resp = await handleProjectUpdate(supabase, id, parsed.body, rid)
           }
         }
       }
@@ -476,6 +518,205 @@ async function handleHealth(supabase: any, rid: string) {
   )
 }
 
+async function handleProjectList(supabase: any, url: URL, rid: string) {
+  const statusParam = (url.searchParams.get('status') ?? 'active').trim().toLowerCase()
+  const includePromptStats = (url.searchParams.get('include_stats') ?? '').trim() === '1'
+
+  if (statusParam !== 'all' && !VALID_PROJECT_STATUSES.has(statusParam)) {
+    return json({ error: `Invalid project status. Must be one of: all, ${[...VALID_PROJECT_STATUSES].join(', ')}` }, 400, { requestId: rid })
+  }
+
+  let query = supabase
+    .from('nw_projects')
+    .select('*')
+    .order('updated_at', { ascending: false })
+
+  if (statusParam !== 'all') query = query.eq('status', statusParam)
+
+  const { data, error } = await query
+  if (error) {
+    if (error.code === '42P01') {
+      return json({ error: 'nw_projects table not found. Apply latest migrations first.' }, 501, { requestId: rid })
+    }
+    throw error
+  }
+
+  const projects = data ?? []
+  if (!includePromptStats || projects.length === 0) {
+    return json({ projects }, 200, { requestId: rid, cache: true })
+  }
+
+  const ids = projects.map((p: { id: string }) => p.id)
+  const { data: promptRows, error: promptError } = await supabase
+    .from('nw_prompts')
+    .select('project_id, status')
+    .in('project_id', ids)
+
+  if (promptError && promptError.code !== '42P01') throw promptError
+  const rows = promptError ? [] : (promptRows ?? [])
+
+  const statsByProject = new Map<string, Record<string, number>>()
+  for (const row of rows as Array<{ project_id: string; status: PromptStatus }>) {
+    const projectId = row.project_id
+    const current = statsByProject.get(projectId) ?? { total: 0, pending: 0, processing: 0, done: 0, failed: 0 }
+    current.total += 1
+    if (row.status === 'pending') current.pending += 1
+    if (row.status === 'processing') current.processing += 1
+    if (row.status === 'done') current.done += 1
+    if (row.status === 'failed') current.failed += 1
+    statsByProject.set(projectId, current)
+  }
+
+  const withStats = projects.map((project: { id: string }) => ({
+    ...project,
+    stats: statsByProject.get(project.id) ?? { total: 0, pending: 0, processing: 0, done: 0, failed: 0 },
+  }))
+
+  return json({ projects: withStats }, 200, { requestId: rid, cache: true })
+}
+
+async function handleProjectGet(supabase: any, id: string, rid: string) {
+  const { data, error } = await supabase
+    .from('nw_projects')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (error) {
+    if (error.code === '42P01') {
+      return json({ error: 'nw_projects table not found. Apply latest migrations first.' }, 501, { requestId: rid })
+    }
+    if (error.code === 'PGRST116') return json({ error: 'Project not found' }, 404, { requestId: rid })
+    throw error
+  }
+
+  const { data: promptRows, error: promptError } = await supabase
+    .from('nw_prompts')
+    .select('status')
+    .eq('project_id', id)
+
+  if (promptError && promptError.code !== '42P01') throw promptError
+  const rows = promptError ? [] : (promptRows ?? [])
+  const stats = { total: 0, pending: 0, processing: 0, done: 0, failed: 0 }
+  for (const row of rows as Array<{ status: PromptStatus }>) {
+    stats.total += 1
+    if (row.status === 'pending') stats.pending += 1
+    if (row.status === 'processing') stats.processing += 1
+    if (row.status === 'done') stats.done += 1
+    if (row.status === 'failed') stats.failed += 1
+  }
+
+  return json({ ...data, stats }, 200, { requestId: rid, cache: true })
+}
+
+async function handleProjectCreate(supabase: any, body: Record<string, unknown>, rid: string) {
+  const name = typeof body.name === 'string' ? sanitizeText(body.name.trim()) : ''
+  if (name.length < 3) return json({ error: 'name is required (min 3 chars)' }, 400, { requestId: rid })
+  if (name.length > MAX_NAME_LEN) return json({ error: `name must be at most ${MAX_NAME_LEN} characters` }, 400, { requestId: rid })
+
+  let status: ProjectStatus = 'active'
+  if (body.status !== undefined) {
+    const rawStatus = typeof body.status === 'string' ? body.status.trim().toLowerCase() : ''
+    if (!VALID_PROJECT_STATUSES.has(rawStatus)) {
+      return json({ error: `status must be one of: ${[...VALID_PROJECT_STATUSES].join(', ')}` }, 400, { requestId: rid })
+    }
+    status = rawStatus as ProjectStatus
+  }
+
+  const description = body.description === null
+    ? null
+    : (typeof body.description === 'string' ? sanitizeText(body.description.slice(0, 5000)) : null)
+  const defaultTarget = body.default_target_folder === null
+    ? null
+    : (typeof body.default_target_folder === 'string'
+      ? sanitizeText(body.default_target_folder.slice(0, MAX_TARGET_FOLDER_LEN))
+      : null)
+
+  const { data, error } = await supabase
+    .from('nw_projects')
+    .insert({
+      name,
+      description,
+      default_target_folder: defaultTarget,
+      status,
+    })
+    .select('*')
+    .single()
+
+  if (error) {
+    if (error.code === '42P01') {
+      return json({ error: 'nw_projects table not found. Apply latest migrations first.' }, 501, { requestId: rid })
+    }
+    throw error
+  }
+
+  return json(data, 201, { requestId: rid })
+}
+
+async function handleProjectUpdate(supabase: any, id: string, body: Record<string, unknown>, rid: string) {
+  const allowed: Record<string, unknown> = {}
+
+  if (body.name !== undefined) {
+    if (typeof body.name !== 'string' || !body.name.trim()) {
+      return json({ error: 'name must be a non-empty string' }, 400, { requestId: rid })
+    }
+    const safeName = sanitizeText(body.name.trim())
+    if (safeName.length > MAX_NAME_LEN) {
+      return json({ error: `name must be at most ${MAX_NAME_LEN} characters` }, 400, { requestId: rid })
+    }
+    allowed.name = safeName
+  }
+
+  if (body.description !== undefined) {
+    if (body.description === null || body.description === '') {
+      allowed.description = null
+    } else if (typeof body.description === 'string') {
+      allowed.description = sanitizeText(body.description.slice(0, 5000))
+    } else {
+      return json({ error: 'description must be string or null' }, 400, { requestId: rid })
+    }
+  }
+
+  if (body.default_target_folder !== undefined) {
+    if (body.default_target_folder === null || body.default_target_folder === '') {
+      allowed.default_target_folder = null
+    } else if (typeof body.default_target_folder === 'string') {
+      allowed.default_target_folder = sanitizeText(body.default_target_folder.slice(0, MAX_TARGET_FOLDER_LEN))
+    } else {
+      return json({ error: 'default_target_folder must be string or null' }, 400, { requestId: rid })
+    }
+  }
+
+  if (body.status !== undefined) {
+    const rawStatus = typeof body.status === 'string' ? body.status.trim().toLowerCase() : ''
+    if (!VALID_PROJECT_STATUSES.has(rawStatus)) {
+      return json({ error: `status must be one of: ${[...VALID_PROJECT_STATUSES].join(', ')}` }, 400, { requestId: rid })
+    }
+    allowed.status = rawStatus
+  }
+
+  if (Object.keys(allowed).length === 0) {
+    return json({ error: 'No valid fields to update' }, 400, { requestId: rid })
+  }
+
+  const { data, error } = await supabase
+    .from('nw_projects')
+    .update(allowed)
+    .eq('id', id)
+    .select('*')
+    .single()
+
+  if (error) {
+    if (error.code === '42P01') {
+      return json({ error: 'nw_projects table not found. Apply latest migrations first.' }, 501, { requestId: rid })
+    }
+    if (error.code === 'PGRST116') return json({ error: 'Project not found' }, 404, { requestId: rid })
+    throw error
+  }
+
+  return json(data, 200, { requestId: rid })
+}
+
 async function handleClaim(supabase: any, body: Record<string, unknown>, workerId: string, rid: string) {
   const providerValue = typeof body.provider === 'string'
     ? body.provider.trim()
@@ -553,6 +794,7 @@ async function handleList(supabase: any, url: URL, rid: string) {
   const provider = url.searchParams.get('provider') ?? undefined
   const queueStage = url.searchParams.get('queue_stage') ?? url.searchParams.get('stage') ?? undefined
   const pipelineId = url.searchParams.get('pipeline_id') ?? undefined
+  const projectId = url.searchParams.get('project_id') ?? undefined
   const from = url.searchParams.get('from')
   const to = url.searchParams.get('to')
   const limitRaw = Number(url.searchParams.get('limit') ?? DEFAULT_LIMIT)
@@ -573,6 +815,9 @@ async function handleList(supabase: any, url: URL, rid: string) {
   if (pipelineId && !isValidUUID(pipelineId)) {
     return json({ error: 'Invalid pipeline_id format' }, 400, { requestId: rid })
   }
+  if (projectId && !isValidUUID(projectId)) {
+    return json({ error: 'Invalid project_id format' }, 400, { requestId: rid })
+  }
 
   let query = supabase.from('nw_prompts').select('*', { count: 'exact' })
 
@@ -580,6 +825,7 @@ async function handleList(supabase: any, url: URL, rid: string) {
   if (provider) query = query.eq('provider', provider)
   if (queueStage) query = query.eq('queue_stage', queueStage)
   if (pipelineId) query = query.eq('pipeline_id', pipelineId)
+  if (projectId) query = query.eq('project_id', projectId)
   if (from) query = query.gte('created_at', from)
   if (to) query = query.lte('created_at', to)
   if (pipelineId) {
@@ -594,7 +840,7 @@ async function handleList(supabase: any, url: URL, rid: string) {
   const { data, error, count } = await query
   if (error) throw error
   const total = count ?? data?.length ?? 0
-  log('info', 'list', { rid, status: status || 'all', provider: provider || 'all', pipeline_id: pipelineId || null, total, limit, offset })
+  log('info', 'list', { rid, status: status || 'all', provider: provider || 'all', pipeline_id: pipelineId || null, project_id: projectId || null, total, limit, offset })
   return json({ total, prompts: data ?? [] }, 200, { requestId: rid, cache: true })
 }
 
@@ -644,6 +890,17 @@ function validateCreate(body: unknown): { ok: true; payload: PromptPayload } | {
     priority_order = Math.floor(parsedOrder)
   } else if (b.priority_order === null) {
     priority_order = null
+  }
+
+  let project_id: string | null | undefined = undefined
+  if (b.project_id !== undefined) {
+    if (b.project_id === null) {
+      project_id = null
+    } else if (typeof b.project_id === 'string' && isValidUUID(b.project_id)) {
+      project_id = b.project_id
+    } else {
+      return { ok: false, status: 400, error: 'project_id must be a valid UUID or null' }
+    }
   }
 
   let pipeline_id: string | null | undefined = undefined
@@ -710,6 +967,7 @@ function validateCreate(body: unknown): { ok: true; payload: PromptPayload } | {
       target_folder,
       queue_stage,
       priority_order,
+      project_id,
       pipeline_config,
       pipeline_id,
       pipeline_step,
@@ -758,6 +1016,9 @@ async function handleCreate(supabase: any, body: PromptPayload, rid: string) {
     queue_stage: queueStage,
     priority_order: priorityOrder,
   }
+  if (validated.payload.project_id !== undefined) {
+    insertData.project_id = validated.payload.project_id
+  }
   if (validated.payload.pipeline_id) {
     insertData.pipeline_id = validated.payload.pipeline_id
     insertData.pipeline_step = validated.payload.pipeline_step ?? null
@@ -772,6 +1033,9 @@ async function handleCreate(supabase: any, body: PromptPayload, rid: string) {
     .select()
     .single()
   if (error) {
+    if (error.code === '23503' && validated.payload.project_id) {
+      return json({ error: 'project_id not found' }, 400, { requestId: rid })
+    }
     if (
       error.code === '23505' &&
       validated.payload.pipeline_id &&
@@ -958,7 +1222,7 @@ async function handleEditPrompt(supabase: any, id: string, body: Record<string, 
 async function handleReprocessPrompt(supabase: any, id: string, body: Record<string, unknown>, rid: string) {
   const { data: source, error: sourceError } = await supabase
     .from('nw_prompts')
-    .select('id, name, provider, content, target_folder, status, pipeline_config, pipeline_id, pipeline_step, pipeline_total_steps, pipeline_template_name')
+    .select('id, name, provider, content, target_folder, status, project_id, pipeline_config, pipeline_id, pipeline_step, pipeline_total_steps, pipeline_template_name')
     .eq('id', id)
     .single()
   if (sourceError) {
@@ -994,6 +1258,9 @@ async function handleReprocessPrompt(supabase: any, id: string, body: Record<str
     error: null,
     worker_id: null,
     processing_started_at: null,
+  }
+  if (source.project_id) {
+    cloneData.project_id = source.project_id
   }
   if (source.pipeline_id) {
     cloneData.pipeline_id = source.pipeline_id
@@ -1135,6 +1402,15 @@ function validatePatch(
       allowed.pipeline_config = body.pipeline_config
     } else {
       return { allowed: {}, error: 'pipeline_config must be an object or null' }
+    }
+  }
+  if (body.project_id !== undefined) {
+    if (body.project_id === null) {
+      allowed.project_id = null
+    } else if (typeof body.project_id === 'string' && isValidUUID(body.project_id)) {
+      allowed.project_id = body.project_id
+    } else {
+      return { allowed: {}, error: 'project_id must be a valid UUID or null' }
     }
   }
   if (body.pipeline_id !== undefined) {

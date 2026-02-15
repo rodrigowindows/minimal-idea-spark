@@ -2,6 +2,7 @@ export type NightWorkerProvider = 'codex' | 'claude' | 'gemini' | string;
 
 export type PromptStatus = 'pending' | 'processing' | 'done' | 'failed';
 export type QueueStage = 'backlog' | 'prioritized';
+export type ProjectStatus = 'active' | 'archived';
 
 /** Single step in a pipeline template */
 export interface PipelineStep {
@@ -25,6 +26,25 @@ export interface PipelineConfig {
   template_version: number;
   steps: PipelineStep[];
   original_input: string;
+}
+
+export interface ProjectStats {
+  total: number;
+  pending: number;
+  processing: number;
+  done: number;
+  failed: number;
+}
+
+export interface NightWorkerProject {
+  id: string;
+  name: string;
+  description?: string | null;
+  default_target_folder?: string | null;
+  status: ProjectStatus;
+  created_at: string;
+  updated_at: string;
+  stats?: ProjectStats;
 }
 
 /** Item returned in the GET /prompts list */
@@ -73,6 +93,7 @@ export interface PromptItem {
   pipeline_step?: number | null;
   pipeline_total_steps?: number | null;
   pipeline_template_name?: string | null;
+  project_id?: string | null;
 }
 
 /** Response from GET /prompts */
