@@ -14,7 +14,7 @@ interface PromptsKanbanProps {
   onMoveToBacklog: (id: string) => void
   onMoveToPrioritized: (id: string, index?: number) => void
   onReorderPrioritized: (ids: string[]) => void
-  onReprocess?: (prompt: PromptItem) => void
+  onReprocess?: (prompt: PromptItem, destination?: 'backlog' | 'prioritized') => void
   isReprocessing?: boolean
 }
 
@@ -94,7 +94,7 @@ export const PromptsKanban = memo(function PromptsKanban({
       if ((sourceColumn === 'done' || sourceColumn === 'failed') && (destColumn === 'backlog' || destColumn === 'prioritized')) {
         if (onReprocess) {
           const prompt = prompts.find((p) => p.id === activeId)
-          if (prompt) onReprocess(prompt)
+          if (prompt) onReprocess(prompt, destColumn)
         }
         return
       }

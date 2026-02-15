@@ -101,13 +101,32 @@ export default function NWPrompts() {
     reorderPrioritizedMutation.mutate(ids, { onError: () => toast.error('Falha ao salvar ordem priorizada') })
   }
 
-  const handleReprocess = (prompt: PromptItem) => {
+  const handleReprocess = (prompt: PromptItem, destination?: 'backlog' | 'prioritized') => {
+    const isDragAction = destination !== undefined
+    const targetStage = destination ?? 'prioritized'
+
     reprocessMutation.mutate(
       { id: prompt.id },
       {
         onSuccess: (res) => {
+          if (!res?.id) {
+            toast.success('Prompt reprocessado')
+            return
+          }
+
+          if (targetStage === 'backlog') {
+            movePromptMutation.mutate(
+              { id: res.id, stage: 'backlog' },
+              {
+                onSuccess: () => toast.success('Prompt reprocessado para Backlog'),
+                onError: () => toast.error('Reprocessado, mas falhou ao mover clone para Backlog'),
+              }
+            )
+            return
+          }
+
           toast.success('Prompt reprocessado')
-          if (res?.id) navigate(`/nw/prompts/${res.id}`)
+          if (!isDragAction) navigate(`/nw/prompts/${res.id}`)
         },
         onError: () => toast.error('Falha ao reprocessar'),
       }

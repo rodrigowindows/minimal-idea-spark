@@ -51,11 +51,14 @@ export const KanbanCard = memo(function KanbanCard({ prompt, isDraggable, isProc
   }
 
   const isFinal = prompt.status === 'done' || prompt.status === 'failed'
+  const dragFromWholeCard = isDraggable && isFinal
 
   return (
     <Card
       ref={setNodeRef}
       style={style}
+      {...(dragFromWholeCard ? attributes : {})}
+      {...(dragFromWholeCard ? listeners : {})}
       aria-label={`Prompt ${prompt.name}`}
       className={`mb-2 border transition-all duration-500 ${
         isProcessing
@@ -67,7 +70,7 @@ export const KanbanCard = memo(function KanbanCard({ prompt, isDraggable, isProc
     >
       <CardContent className="p-3">
         <div className="flex items-start gap-2">
-          {isDraggable && (
+          {isDraggable && !dragFromWholeCard && (
             <button
               type="button"
               {...attributes}

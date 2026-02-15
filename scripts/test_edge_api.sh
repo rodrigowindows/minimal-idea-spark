@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 set -u
 set -o pipefail
 
@@ -186,9 +186,9 @@ fi
 http_request POST "/prompts" '{"provider":"invalid","name":"bad","content":"x"}'
 assert_status "POST /prompts invalid provider" "400"
 
-# 4) Pipeline step/total without pipeline_id -> created normally (orphaned fields ignored)
+# 4) Pipeline metadata without pipeline_id -> 400
 http_request POST "/prompts" '{"provider":"claude","name":"bad-pipeline","content":"x","pipeline_step":1,"pipeline_total_steps":2}'
-assert_status "POST /prompts pipeline fields without pipeline_id (ignored)" "200,201"
+assert_status "POST /prompts pipeline without pipeline_id" "400"
 
 # 5) Pipeline create + idempotent duplicate
 PIPELINE_ID=$(gen_uuid)
