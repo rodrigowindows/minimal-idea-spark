@@ -41,6 +41,7 @@ export const PromptsKanban = memo(function PromptsKanban({
   // Memoize column data (heavy computation)
   const columns = useMemo(() => {
     const pending = prompts.filter((p) => p.status === 'pending')
+    const processing = prompts.filter((p) => p.status === 'processing')
     const pendingById = new Map(pending.map((p) => [p.id, p] as const))
     const prioritizedSet = new Set(prioritizedIds)
     const doingSet = new Set(doingIds)
@@ -53,8 +54,8 @@ export const PromptsKanban = memo(function PromptsKanban({
       .map((id) => pendingById.get(id))
       .filter((p): p is PromptItem => p !== undefined)
 
-    // Doing: prompts in doingIds
-    const doing = pending.filter((p) => doingSet.has(p.id))
+    // Doing: prompts explicitly in doingIds plus server-side processing prompts
+    const doing = [...processing, ...pending.filter((p) => doingSet.has(p.id))]
 
     // Done/Failed: read-only columns
     const done = prompts.filter((p) => p.status === 'done')
@@ -188,6 +189,7 @@ function getColumnForId(
 ): ColumnId {
   if (doingIds.includes(id)) return 'doing'
   if (prioritizedIds.includes(id)) return 'prioritized'
+  if (columns.doing.some((p) => p.id === id)) return 'doing'
   if (columns.done.some((p) => p.id === id)) return 'done'
   if (columns.failed.some((p) => p.id === id)) return 'failed'
   return 'backlog'

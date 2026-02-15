@@ -106,38 +106,17 @@ function sanitizeBaseUrl(url: string) {
 }
 
 export function NightWorkerProvider({ children }: { children: ReactNode }) {
-  const [config, setConfigState] = useState<NightWorkerConfig>(() => loadConfig())
-  const [lastError, setLastError] = useState<string | null>(null)
   const envToken = import.meta.env.VITE_NW_ANON_TOKEN as string | undefined
-
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.info('[NightWorker] Provider init', {
-        baseUrl: config.baseUrl,
-        suggestedSupabase: SUGGESTED_SUPABASE,
-        envBaseUrl: ENV_BASE_URL,
-        defaultBaseUrl: DEFAULT_BASE_URL,
-        hasEnvToken: !!envToken,
-        VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
-        VITE_NIGHTWORKER_API_URL: import.meta.env.VITE_NIGHTWORKER_API_URL
-      })
+  // Apply migration + env token during initial state (avoids double-render from useEffect)
+  const [config, setConfigState] = useState<NightWorkerConfig>(() => {
+    const loaded = loadConfig()
+    return {
+      ...loaded,
+      baseUrl: migrateBaseUrl(loaded.baseUrl),
+      token: loaded.token ?? envToken ?? null,
     }
-
-    setConfigState((prev) => {
-      const nextBase = migrateBaseUrl(prev.baseUrl)
-      const nextToken = prev.token ?? envToken ?? null
-      if (import.meta.env.DEV) {
-        console.info('[NightWorker] After migration', {
-          prevBase: prev.baseUrl,
-          nextBase,
-          prevToken: prev.token ? '***' : null,
-          nextToken: nextToken ? '***' : null
-        })
-      }
-      return { ...prev, baseUrl: nextBase, token: nextToken }
-    })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // run once
+  })
+  const [lastError, setLastError] = useState<string | null>(null)
 
   useEffect(() => {
     try {
@@ -169,7 +148,7 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
 
   const apiFetch = useCallback(
     async <T,>(path: string, options?: ApiFetchOptions) => {
-      const { skipAuth = false, retry = 3, silentStatuses = [], timeout = 10_000, headers, ...rest } = options || {}
+      const { skipAuth = false, retry = 1, silentStatuses = [], timeout = 8_000, headers, ...rest } = options || {}
       const base = sanitizeBaseUrl(config.baseUrl || DEFAULT_BASE_URL)
       const url = path.startsWith('http') ? path : `${base}/${path.replace(/^\//, '')}`
       const maxAttempts = Number.isFinite(retry) ? Math.max(1, Math.floor(retry)) : 3

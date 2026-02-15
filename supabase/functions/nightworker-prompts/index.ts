@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-request-id',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-request-id, x-worker-id',
   'Access-Control-Allow-Methods': 'GET,POST,PATCH,OPTIONS',
 }
 
@@ -12,14 +12,15 @@ const DEFAULT_LIMIT = 20
 const MAX_LIMIT = 100
 const CACHE_MAX_AGE = 5 // seconds
 
-const VALID_PROVIDERS = new Set(['codex', 'claude', 'codex_cli', 'claude_cli', 'openai_api', 'gemini'])
-const VALID_STATUSES = new Set(['pending', 'done', 'failed'])
+const VALID_PROVIDERS = new Set(['codex', 'claude', 'codex_cli', 'claude_cli', 'openai_api', 'gemini', 'gemini_cli'])
+const VALID_STATUSES = new Set(['pending', 'processing', 'done', 'failed'])
+const VALID_WORKER_STATUSES = new Set(['active', 'paused', 'error'])
 const MAX_NAME_LEN = 500
 const MAX_CONTENT_LEN = 500_000
 const MAX_TARGET_FOLDER_LEN = 2000
 
-type PromptStatus = 'pending' | 'done' | 'failed'
-type Provider = 'codex' | 'claude' | 'codex_cli' | 'claude_cli' | 'openai_api' | 'gemini'
+type PromptStatus = 'pending' | 'processing' | 'done' | 'failed'
+type Provider = 'codex' | 'claude' | 'codex_cli' | 'claude_cli' | 'openai_api' | 'gemini' | 'gemini_cli'
 
 interface PromptPayload {
   provider: Provider
@@ -116,7 +117,7 @@ serve(async (req) => {
   let resp: Response
   try {
     if (req.method === 'GET' && route === '/health') {
-      resp = handleHealth(rid)
+      resp = await handleHealth(supabase, rid)
     } else if (req.method === 'GET' && (route === '/' || route === '/prompts')) {
       resp = await handleList(supabase, url, rid)
     } else if (req.method === 'GET' && route.startsWith('/prompts/')) {
@@ -126,18 +127,53 @@ serve(async (req) => {
       } else {
         resp = await handleGet(supabase, id, rid)
       }
+    } else if (req.method === 'POST' && (route === '/claim' || route === '/prompts/claim')) {
+      if (!isServiceRole(req)) {
+        log('warn', 'claim_forbidden', { rid, msg: 'POST /claim requires Bearer service-role' })
+        resp = json({ error: 'Forbidden: claim is allowed only with service-role token' }, 403, { requestId: rid })
+      } else {
+        const raw = await readBody(req, rid)
+        if (raw.err) {
+          resp = raw.err
+        } else {
+          const parsed = parseJsonObject(raw.body, rid)
+          if (parsed.err) {
+            resp = parsed.err
+          } else {
+            const workerId = getWorkerId(req, parsed.body)
+            resp = await handleClaim(supabase, parsed.body, workerId, rid)
+          }
+        }
+      }
+    } else if (req.method === 'POST' && (route === '/heartbeat' || route === '/workers/heartbeat')) {
+      if (!isServiceRole(req)) {
+        log('warn', 'heartbeat_forbidden', { rid, msg: 'POST /heartbeat requires Bearer service-role' })
+        resp = json({ error: 'Forbidden: heartbeat is allowed only with service-role token' }, 403, { requestId: rid })
+      } else {
+        const raw = await readBody(req, rid)
+        if (raw.err) {
+          resp = raw.err
+        } else {
+          const parsed = parseJsonObject(raw.body, rid)
+          if (parsed.err) {
+            resp = parsed.err
+          } else {
+            const workerId = getWorkerId(req, parsed.body)
+            resp = await handleHeartbeat(supabase, parsed.body, workerId, rid)
+          }
+        }
+      }
     } else if (req.method === 'POST' && (route === '/prompts' || route === '/')) {
       const raw = await readBody(req, rid)
-      if (raw.err) { resp = raw.err } else {
-        let body: PromptPayload
-        try {
-          body = JSON.parse(raw.body!) as PromptPayload
-        } catch {
-          resp = json({ error: 'Invalid JSON body' }, 400, { requestId: rid })
-          body = undefined as any
+      if (raw.err) {
+        resp = raw.err
+      } else {
+        const parsed = parseJsonObject(raw.body, rid)
+        if (parsed.err) {
+          resp = parsed.err
+        } else {
+          resp = await handleCreate(supabase, parsed.body as PromptPayload, rid)
         }
-        if (body) resp = await handleCreate(supabase, body, rid)
-        else resp = resp!
       }
     } else if (req.method === 'PATCH' && route.startsWith('/prompts/')) {
       if (!isServiceRole(req)) {
@@ -149,17 +185,16 @@ serve(async (req) => {
           resp = json({ error: 'Invalid prompt ID format' }, 400, { requestId: rid })
         } else {
           const raw = await readBody(req, rid)
-        if (raw.err) { resp = raw.err } else {
-          let body: Record<string, unknown>
-          try {
-            body = JSON.parse(raw.body!) as Record<string, unknown>
-          } catch {
-            resp = json({ error: 'Invalid JSON body' }, 400, { requestId: rid })
-            body = undefined as any
+          if (raw.err) {
+            resp = raw.err
+          } else {
+            const parsed = parseJsonObject(raw.body, rid)
+            if (parsed.err) {
+              resp = parsed.err
+            } else {
+              resp = await handleUpdate(supabase, id, parsed.body, rid)
+            }
           }
-          if (body) resp = await handleUpdate(supabase, id, body, rid)
-          else resp = resp!
-        }
         }
       }
     } else {
@@ -216,18 +251,147 @@ async function readBody(req: Request, rid: string): Promise<{ body: string | nul
   return { body }
 }
 
-function handleHealth(rid: string) {
+function parseJsonObject(body: string | null, rid: string): { body: Record<string, unknown>; err?: Response } {
+  if (!body || body.trim() === '') return { body: {} }
+  try {
+    const parsed = JSON.parse(body)
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return { body: {}, err: json({ error: 'JSON body must be an object' }, 400, { requestId: rid }) }
+    }
+    return { body: parsed as Record<string, unknown> }
+  } catch {
+    return { body: {}, err: json({ error: 'Invalid JSON body' }, 400, { requestId: rid }) }
+  }
+}
+
+function getWorkerId(req: Request, body: Record<string, unknown>): string {
+  const fromHeader = (req.headers.get('x-worker-id') ?? '').trim()
+  if (fromHeader) return fromHeader
+  if (typeof body.worker_id === 'string' && body.worker_id.trim()) return body.worker_id.trim()
+  if (typeof body.p_worker_id === 'string' && body.p_worker_id.trim()) return body.p_worker_id.trim()
+  return ''
+}
+
+function parseLimit(raw: unknown, fallback = DEFAULT_LIMIT): number {
+  const parsed = Number(raw)
+  const safe = Number.isFinite(parsed) ? Math.floor(parsed) : fallback
+  return Math.min(MAX_LIMIT, Math.max(1, safe))
+}
+
+async function handleHealth(supabase: any, rid: string) {
   log('info', 'health', { rid })
+  const activeCutoffIso = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+
+  const workerResult = await supabase
+    .from('nw_worker_heartbeats')
+    .select('worker_id, provider, last_seen, status')
+    .gte('last_seen', activeCutoffIso)
+    .order('last_seen', { ascending: false })
+
+  if (workerResult.error && workerResult.error.code !== '42P01') throw workerResult.error
+  const workerRows = workerResult.error ? [] : (workerResult.data ?? [])
+
+  const queueResult = await supabase
+    .from('nw_prompts')
+    .select('provider, status')
+    .in('status', ['pending', 'processing'])
+
+  if (queueResult.error && queueResult.error.code !== '42P01') throw queueResult.error
+  const queueRows = queueResult.error ? [] : (queueResult.data ?? [])
+  const queueByProvider = new Map<string, number>()
+  for (const row of queueRows as Array<{ provider: string }>) {
+    queueByProvider.set(row.provider, (queueByProvider.get(row.provider) ?? 0) + 1)
+  }
+
+  const workers = (workerRows as Array<{ worker_id: string; provider: string; last_seen: string; status: string }>).map((w) => ({
+    name: w.worker_id,
+    worker_id: w.worker_id,
+    provider: w.provider,
+    active: w.status !== 'error',
+    queue: queueByProvider.get(w.provider) ?? 0,
+    lastRun: w.last_seen,
+    last_seen: w.last_seen,
+    status: w.status,
+  }))
+
   return json(
     {
       status: 'ok',
       version: 'edge',
       providers: [...VALID_PROVIDERS],
-      workers: [],
+      pending: queueRows.length,
+      workers,
     },
     200,
     { requestId: rid, cache: true }
   )
+}
+
+async function handleClaim(supabase: any, body: Record<string, unknown>, workerId: string, rid: string) {
+  const providerValue = typeof body.provider === 'string'
+    ? body.provider.trim()
+    : (typeof body.p_provider === 'string' ? body.p_provider.trim() : '')
+  const limitValue = body.limit ?? body.p_limit
+  const limit = parseLimit(limitValue, 10)
+
+  if (!providerValue || !VALID_PROVIDERS.has(providerValue)) {
+    return json({ error: `Invalid provider. Must be one of: ${[...VALID_PROVIDERS].join(', ')}` }, 400, { requestId: rid })
+  }
+  if (!workerId) {
+    return json({ error: 'worker_id is required (header x-worker-id or body worker_id/p_worker_id)' }, 400, { requestId: rid })
+  }
+
+  const { data, error } = await supabase.rpc('claim_prompts', {
+    p_provider: providerValue,
+    p_worker_id: workerId,
+    p_limit: limit,
+  })
+  if (error) throw error
+
+  const prompts = Array.isArray(data) ? data : []
+  log('info', 'claim', { rid, provider: providerValue, worker_id: workerId, limit, claimed: prompts.length })
+  metric('prompts_claimed', { rid, provider: providerValue, worker_id: workerId, claimed: prompts.length })
+  return json(prompts, 200, { requestId: rid })
+}
+
+async function handleHeartbeat(supabase: any, body: Record<string, unknown>, workerId: string, rid: string) {
+  const providerValue = typeof body.provider === 'string'
+    ? body.provider.trim()
+    : (typeof body.p_provider === 'string' ? body.p_provider.trim() : '')
+  const statusValue = typeof body.status === 'string' ? body.status.trim() : 'active'
+
+  if (!workerId) {
+    return json({ error: 'worker_id is required (header x-worker-id or body worker_id/p_worker_id)' }, 400, { requestId: rid })
+  }
+  if (!providerValue || !VALID_PROVIDERS.has(providerValue)) {
+    return json({ error: `Invalid provider. Must be one of: ${[...VALID_PROVIDERS].join(', ')}` }, 400, { requestId: rid })
+  }
+  if (!VALID_WORKER_STATUSES.has(statusValue)) {
+    return json({ error: `Invalid worker status. Must be one of: ${[...VALID_WORKER_STATUSES].join(', ')}` }, 400, { requestId: rid })
+  }
+
+  const payload = {
+    worker_id: workerId,
+    provider: providerValue,
+    status: statusValue,
+    last_seen: new Date().toISOString(),
+  }
+
+  const { data, error } = await supabase
+    .from('nw_worker_heartbeats')
+    .upsert(payload, { onConflict: 'worker_id' })
+    .select('worker_id, provider, status, last_seen')
+    .single()
+
+  if (error) {
+    if (error.code === '42P01') {
+      return json({ error: 'nw_worker_heartbeats table not found. Apply latest migrations first.' }, 501, { requestId: rid })
+    }
+    throw error
+  }
+
+  log('info', 'heartbeat', { rid, worker_id: workerId, provider: providerValue, status: statusValue })
+  return json({ ok: true, worker: data }, 200, { requestId: rid })
 }
 
 async function handleList(supabase: any, url: URL, rid: string) {
@@ -345,8 +509,8 @@ async function handleUpdate(supabase: any, id: string, body: Record<string, unkn
   let data: any = null
   if (Object.keys(allowed).length > 0) {
     let query = supabase.from('nw_prompts').update(allowed).eq('id', id)
-    // Idempotency: status transitions only apply to pending prompts
-    if (statusTransition) query = query.eq('status', 'pending')
+    // Idempotency: terminal transitions only apply while prompt is not already terminal.
+    if (statusTransition) query = query.in('status', ['pending', 'processing'])
 
     const result = await query.select().single()
     if (result.error) {

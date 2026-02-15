@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+﻿import { useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -38,12 +38,12 @@ export default function NWPromptDetail() {
   const handleCopy = (text?: string | null) => {
     if (!text) return
     navigator.clipboard.writeText(text)
-    toast.success('Copiado para a área de transferência')
+    toast.success('Copiado para a area de transferencia')
   }
 
   const handleResend = async () => {
     if (!data?.content) {
-      toast.error('Conteúdo não disponível para reenviar.')
+      toast.error('Conteudo nao disponivel para reenviar.')
       return
     }
     try {
@@ -67,7 +67,7 @@ export default function NWPromptDetail() {
     <div className="px-4 pb-10 md:px-8">
       {!isConnected && (
         <Alert className="mb-4 border-amber-500/40 bg-amber-500/10 text-amber-100">
-          <AlertTitle>Configure a conexão</AlertTitle>
+          <AlertTitle>Configure a conexao</AlertTitle>
           <AlertDescription>
             Defina a URL/token em <button className="underline" onClick={() => navigate('/nw/connect')}>/connect</button> para ver os detalhes.
           </AlertDescription>
@@ -77,7 +77,7 @@ export default function NWPromptDetail() {
         <Alert className="mb-4 border-red-500/40 bg-red-500/10 text-red-100">
           <AlertTitle>Erro ao carregar prompt</AlertTitle>
           <AlertDescription className="space-y-2">
-            <div>{error instanceof Error ? error.message : 'Não foi possível consultar o prompt.'}</div>
+            <div>{error instanceof Error ? error.message : 'Nao foi possivel consultar o prompt.'}</div>
             <Button size="sm" variant="outline" onClick={() => refetch()}>Tentar novamente</Button>
           </AlertDescription>
         </Alert>
@@ -85,18 +85,16 @@ export default function NWPromptDetail() {
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/prompts')}>
+          <Button variant="ghost" size="icon" onClick={() => navigate('/nw/prompts')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
             <p className="text-xs uppercase tracking-[0.1em] text-blue-200">Detalhe do prompt</p>
             <h1 className="text-3xl font-bold text-foreground">{data?.name || '...'}</h1>
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              {data && <StatusBadge status={data.status} pulse={data.status === 'pending'} />}
+              {data && <StatusBadge status={data.status} pulse={data.status === 'pending' || data.status === 'processing'} />}
               {data && <ProviderBadge provider={data.provider} />}
-              <Badge variant="outline" className="font-mono text-xs">
-                ID: {id}
-              </Badge>
+              <Badge variant="outline" className="font-mono text-xs">ID: {id}</Badge>
             </div>
           </div>
         </div>
@@ -118,7 +116,7 @@ export default function NWPromptDetail() {
               <CardHeader className="flex flex-row items-start justify-between gap-3">
                 <div>
                   <CardTitle>Prompt Enviado</CardTitle>
-                  <CardDescription>Conteúdo original</CardDescription>
+                  <CardDescription>Conteudo original</CardDescription>
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => handleCopy(data.content)}>
                   <Copy className="h-4 w-4" />
@@ -127,14 +125,16 @@ export default function NWPromptDetail() {
               <CardContent className="space-y-4">
                 <div className="rounded-xl border border-border/60 bg-background/50 p-4">
                   <ReactMarkdown className="prose prose-invert max-w-none text-sm leading-relaxed">
-                    {data.content || '_Sem conteúdo disponível_'}
+                    {data.content || '_Sem conteudo disponivel_'}
                   </ReactMarkdown>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2 text-sm">
-                  <MetaItem label="Pasta alvo" value={data.target_folder || '—'} />
-                  <MetaItem label="Tamanho" value={`${(data.content?.length ?? 0)} chars`} />
+                  <MetaItem label="Pasta alvo" value={data.target_folder || '-'} />
+                  <MetaItem label="Tamanho" value={`${data.content?.length ?? 0} chars`} />
                   <MetaItem label="Provider" value={data.provider} />
                   <MetaItem label="Atualizado" value={formatDate(data.updated_at || data.created_at)} />
+                  <MetaItem label="Tentativas" value={data.attempts ?? 0} />
+                  <MetaItem label="Proximo retry" value={formatDate(data.next_retry_at)} />
                 </div>
               </CardContent>
             </Card>
@@ -145,7 +145,8 @@ export default function NWPromptDetail() {
                   <CardTitle>Resultado</CardTitle>
                   <CardDescription>
                     {data.status === 'pending' && 'Aguardando processamento...'}
-                    {data.status === 'done' && 'Conteúdo renderizado'}
+                    {data.status === 'processing' && 'Processando no worker...'}
+                    {data.status === 'done' && 'Conteudo renderizado'}
                     {data.status === 'failed' && 'Falhou - veja detalhes abaixo'}
                   </CardDescription>
                 </div>
@@ -167,21 +168,20 @@ export default function NWPromptDetail() {
                 )}
               </CardHeader>
               <CardContent>
-                {data.status === 'pending' && (
+                {(data.status === 'pending' || data.status === 'processing') && (
                   <div className="flex min-h-[200px] flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/60 bg-background/40 text-muted-foreground">
                     <Loader2 className="h-6 w-6 animate-spin" />
-                    <p>Aguardando processamento...</p>
+                    <p>{data.status === 'processing' ? 'Processando no worker...' : 'Aguardando processamento...'}</p>
                     <p className="max-w-md text-center text-[11px] text-muted-foreground/70 italic px-4">
-                      O status é atualizado automaticamente apenas pelo worker. Não é possível alterar manualmente.
+                      O status e atualizado automaticamente apenas pelo worker. Nao e possivel alterar manualmente.
                     </p>
-                    {isEdgeBackend && (
+                    {isEdgeBackend ? (
                       <p className="max-w-md text-center text-xs text-muted-foreground/90">
-                        Processado pelo worker (worker.py em modo Supabase). Se estiver pendente, confira se o worker está rodando.
+                        Processado pelo worker (worker.py em modo Supabase). Se estiver parado, confira se o worker esta rodando.
                       </p>
-                    )}
-                    {!isEdgeBackend && (
+                    ) : (
                       <p className="max-w-md text-center text-xs text-muted-foreground/90">
-                        Processado pelo worker (worker.py lendo input/). Confira se o worker está rodando.
+                        Processado pelo worker (worker.py lendo input/). Confira se o worker esta rodando.
                       </p>
                     )}
                   </div>
@@ -191,14 +191,15 @@ export default function NWPromptDetail() {
                   <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-100">
                     <p className="font-semibold">Erro</p>
                     <p className="mt-2 whitespace-pre-wrap">{data.error || 'Sem detalhes do erro.'}</p>
-                    {data.attempts && <p className="mt-2 text-xs text-red-200">Tentativas: {data.attempts}</p>}
+                    <p className="mt-2 text-xs text-red-200">Tentativas: {data.attempts ?? 0}</p>
+                    {data.next_retry_at && <p className="mt-1 text-xs text-red-200">Proximo retry: {formatDate(data.next_retry_at)}</p>}
                   </div>
                 )}
 
                 {data.status === 'done' && (
                   <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/5 p-4">
                     <ReactMarkdown className="prose prose-invert max-w-none text-sm leading-relaxed">
-                      {data.result_content || '_Sem conteúdo retornado_'}
+                      {data.result_content || '_Sem conteudo retornado_'}
                     </ReactMarkdown>
                   </div>
                 )}
@@ -212,7 +213,7 @@ export default function NWPromptDetail() {
               <span>Status:</span> <StatusBadge status={data.status} />
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => navigate('/prompts')}>
+              <Button variant="outline" onClick={() => navigate('/nw/prompts')}>
                 <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para lista
               </Button>
               <Button onClick={handleResend} disabled={resend.isPending}>
@@ -230,13 +231,13 @@ function MetaItem({ label, value }: { label: string; value?: string | number | n
   return (
     <div className="rounded-lg border border-border/60 bg-background/50 p-3">
       <p className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
-      <p className="text-foreground font-semibold">{value ?? '—'}</p>
+      <p className="text-foreground font-semibold">{value ?? '-'}</p>
     </div>
   )
 }
 
 function formatDate(value?: string | null) {
-  if (!value) return '—'
+  if (!value) return '-'
   const d = new Date(value)
   return Number.isNaN(d.getTime()) ? value : d.toLocaleString()
 }

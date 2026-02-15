@@ -1,6 +1,6 @@
-export type NightWorkerProvider = 'codex' | 'claude' | string;
+export type NightWorkerProvider = 'codex' | 'claude' | 'gemini' | string;
 
-export type PromptStatus = 'pending' | 'done' | 'failed';
+export type PromptStatus = 'pending' | 'processing' | 'done' | 'failed';
 
 /** Item returned in the GET /prompts list */
 export interface PromptListItem {
@@ -93,8 +93,11 @@ export interface HealthResponse {
   failures?: number;
   workers?: Array<{
     name: string;
+    worker_id?: string;
     provider: string;
     active: boolean;
+    status?: string;
+    last_seen?: string;
     queue?: number;
     intervalSeconds?: number;
     lastRun?: string;

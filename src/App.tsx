@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { DeepWorkOverlay } from "@/components/deep-work/DeepWorkOverlay";
 import { ConfettiEffect } from "@/components/gamification/ConfettiEffect";
@@ -78,6 +78,11 @@ const PageFallback = () => (
   </div>
 );
 
+const LegacyPromptRedirect = () => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={id ? `/nw/prompts/${id}` : "/nw/prompts"} replace />;
+};
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -114,14 +119,16 @@ function AppContent() {
       const processor = createSyncProcessor(supabase);
       await processQueue(processor);
     });
-    // Warm cache for critical SPA routes so they work offline
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then((reg) => {
-        reg.active?.postMessage({ type: 'CACHE_CRITICAL_ROUTES' });
-      });
-    }
-    // Populate IndexedDB offline cache on initial load (best-effort)
-    refreshCacheFromServer().catch(() => {});
+    // Delay heavy background tasks so they don't compete with page data loading
+    const timer = setTimeout(() => {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then((reg) => {
+          reg.active?.postMessage({ type: 'CACHE_CRITICAL_ROUTES' });
+        });
+      }
+      refreshCacheFromServer().catch(() => {});
+    }, 5000);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -180,7 +187,7 @@ function AppContent() {
 
           {/* Legacy redirects for better compatibility */}
           <Route path="/prompts" element={<Navigate to="/nw/prompts" replace />} />
-          <Route path="/prompts/:id" element={<Navigate to="/nw/prompts/:id" replace />} />
+          <Route path="/prompts/:id" element={<LegacyPromptRedirect />} />
           <Route path="/submit" element={<Navigate to="/nw/submit" replace />} />
           <Route path="/logs" element={<Navigate to="/nw/logs" replace />} />
           <Route path="/connect" element={<Navigate to="/nw/connect" replace />} />

@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+﻿import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -10,10 +9,10 @@ import { StatusBadge } from '@/components/night-worker/StatusBadge'
 import { ProviderBadge } from '@/components/night-worker/ProviderBadge'
 import { PromptsKanban } from '@/components/night-worker/PromptsKanban'
 import { useCreatePromptMutation, useHealthQuery, usePromptsQuery } from '@/hooks/useNightWorkerApi'
-import { useNightWorker, ApiError } from '@/contexts/NightWorkerContext'
+import { useNightWorker } from '@/contexts/NightWorkerContext'
 import { useKanbanState } from '@/hooks/useKanbanState'
 import type { PromptItem } from '@/types/night-worker'
-import { Activity, Calendar, Filter, Loader2, RefreshCw, Search, Send, List, Kanban, Info } from 'lucide-react'
+import { Filter, Info, Kanban, List, Loader2, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
@@ -21,14 +20,14 @@ const PAGE_SIZE = 20
 
 export default function NWPrompts() {
   const navigate = useNavigate()
-  const { isConnected, apiFetch, config } = useNightWorker()
+  const { apiFetch } = useNightWorker()
   const { data: health } = useHealthQuery()
   const { data, isLoading, isError, error, refetch, isFetching } = usePromptsQuery(15000)
   const resendMutation = useCreatePromptMutation()
 
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'done' | 'failed'>('all')
-  const [providerFilter, setProviderFilter] = useState<'all' | 'codex' | 'claude'>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'processing' | 'done' | 'failed'>('all')
+  const [providerFilter, setProviderFilter] = useState<'all' | 'codex' | 'claude' | 'gemini'>('all')
   const [query, setQuery] = useState('')
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
@@ -37,19 +36,21 @@ export default function NWPrompts() {
   const kanban = useKanbanState(data)
 
   const filtered = useMemo(() => {
-    return (data || []).filter((item) => {
-      if (statusFilter !== 'all' && item.status !== statusFilter) return false
-      if (providerFilter !== 'all' && !item.provider?.includes(providerFilter)) return false
-      if (query && !item.name.toLowerCase().includes(query.toLowerCase())) return false
-      const created = new Date(item.updated_at || item.created_at || '')
-      if (fromDate && created < new Date(fromDate)) return false
-      if (toDate && created > new Date(`${toDate}T23:59:59`)) return false
-      return true
-    }).sort((a, b) => {
-      const aDate = new Date(a.updated_at || a.created_at || 0).getTime()
-      const bDate = new Date(b.updated_at || b.created_at || 0).getTime()
-      return bDate - aDate
-    })
+    return (data || [])
+      .filter((item) => {
+        if (statusFilter !== 'all' && item.status !== statusFilter) return false
+        if (providerFilter !== 'all' && !item.provider?.includes(providerFilter)) return false
+        if (query && !item.name.toLowerCase().includes(query.toLowerCase())) return false
+        const created = new Date(item.updated_at || item.created_at || '')
+        if (fromDate && created < new Date(fromDate)) return false
+        if (toDate && created > new Date(`${toDate}T23:59:59`)) return false
+        return true
+      })
+      .sort((a, b) => {
+        const aDate = new Date(a.updated_at || a.created_at || 0).getTime()
+        const bDate = new Date(b.updated_at || b.created_at || 0).getTime()
+        return bDate - aDate
+      })
   }, [data, fromDate, providerFilter, query, statusFilter, toDate])
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
@@ -69,7 +70,7 @@ export default function NWPrompts() {
       const detail = await apiFetch<PromptItem>(`/prompts/${prompt.id}`)
       const content = detail.content || prompt.content
       if (!content) {
-        toast.error('Não há conteúdo para reenviar.')
+        toast.error('Nao ha conteudo para reenviar.')
         return
       }
       await resendMutation.mutateAsync({
@@ -90,7 +91,7 @@ export default function NWPrompts() {
         <Alert className="mb-4 border-red-500/40 bg-red-500/10 text-red-100">
           <AlertTitle>Erro ao carregar</AlertTitle>
           <AlertDescription>
-            {error instanceof Error ? error.message : 'Não foi possível contatar a API.'}
+            {error instanceof Error ? error.message : 'Nao foi possivel contatar a API.'}
             <Button size="sm" variant="outline" onClick={() => refetch()} className="ml-3">Retry</Button>
           </AlertDescription>
         </Alert>
@@ -133,27 +134,37 @@ export default function NWPrompts() {
         <Alert className="mb-4 border-blue-500/20 bg-blue-500/5 text-blue-200 py-2">
           <Info className="h-4 w-4" />
           <AlertDescription className="text-[11px] italic">
-            Nota: As colunas <strong>Priorizado</strong> e <strong>Doing</strong> são apenas organizadores visuais locais. 
-            O processamento real é feito pelo <code>worker.py</code> em ordem de criação.
+            Nota: As colunas <strong>Priorizado</strong> e <strong>Doing</strong> sao apenas organizadores visuais locais.
+            O processamento real e feito pelo <code>worker.py</code> em ordem de criacao.
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Barra de filtros */}
       <div className="sticky top-14 z-20 mb-4 flex flex-wrap gap-3 rounded-xl border border-border/60 bg-background/85 px-3 py-2 backdrop-blur">
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <span className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Status</span>
-          {(['all', 'pending', 'done', 'failed'] as const).map((status) => (
+          {(['all', 'pending', 'processing', 'done', 'failed'] as const).map((status) => (
             <Badge
               key={status}
               variant="outline"
               className={`cursor-pointer rounded-full px-3 py-1 text-xs font-semibold ${
                 statusFilter === status ? 'border-blue-500/60 bg-blue-500/10 text-blue-100' : 'border-border/60 text-muted-foreground'
               }`}
-              onClick={() => { setStatusFilter(status); setPage(1) }}
+              onClick={() => {
+                setStatusFilter(status)
+                setPage(1)
+              }}
             >
-              {status === 'all' ? 'Todos' : status === 'pending' ? 'Pendentes' : status === 'done' ? 'Concluídos' : 'Falhas'}
+              {status === 'all'
+                ? 'Todos'
+                : status === 'pending'
+                  ? 'Pendentes'
+                  : status === 'processing'
+                    ? 'Processando'
+                    : status === 'done'
+                      ? 'Concluidos'
+                      : 'Falhas'}
             </Badge>
           ))}
         </div>
@@ -194,24 +205,35 @@ export default function NWPrompts() {
                   <TableHead>Status</TableHead>
                   <TableHead>Nome</TableHead>
                   <TableHead>Provider</TableHead>
+                  <TableHead>Tentativas</TableHead>
+                  <TableHead>Proximo retry</TableHead>
                   <TableHead>Atualizado</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  <TableHead className="text-right">Acoes</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginated.length === 0 && (
-                  <TableRow><TableCell colSpan={5} className="py-8 text-center text-muted-foreground">Nenhum registro.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="py-8 text-center text-muted-foreground">Nenhum registro.</TableCell></TableRow>
                 )}
                 {paginated.map((prompt) => (
                   <TableRow key={prompt.id}>
-                    <TableCell><StatusBadge status={prompt.status} pulse={prompt.status === 'pending'} /></TableCell>
+                    <TableCell><StatusBadge status={prompt.status} pulse={prompt.status === 'pending' || prompt.status === 'processing'} /></TableCell>
                     <TableCell className="font-semibold">{prompt.name}</TableCell>
                     <TableCell><ProviderBadge provider={prompt.provider} /></TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{prompt.attempts ?? 0}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{formatDate(prompt.next_retry_at)}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {new Date(prompt.updated_at || prompt.created_at || '').toLocaleString()}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" onClick={() => navigate(`/nw/prompts/${prompt.id}`)}>Ver</Button>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => navigate(`/nw/prompts/${prompt.id}`)}>Ver</Button>
+                        {prompt.status === 'failed' && (
+                          <Button variant="outline" size="sm" onClick={() => handleResend(prompt)} disabled={resendMutation.isPending}>
+                            Reenviar
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -220,6 +242,20 @@ export default function NWPrompts() {
           </CardContent>
         </Card>
       )}
+
+      {pageCount > 1 && (
+        <div className="mt-4 flex items-center justify-end gap-2">
+          <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Anterior</Button>
+          <span className="text-xs text-muted-foreground">Pagina {page} de {pageCount}</span>
+          <Button variant="outline" size="sm" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>Proxima</Button>
+        </div>
+      )}
     </div>
   )
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return '-'
+  const d = new Date(value)
+  return Number.isNaN(d.getTime()) ? value : d.toLocaleString()
 }

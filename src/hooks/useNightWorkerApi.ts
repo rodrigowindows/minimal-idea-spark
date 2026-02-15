@@ -115,15 +115,15 @@ export function usePromptsQuery(pollMs = 15000, options: UsePromptsQueryOptions 
     enabled: isConnected && enabled,
     // Keep default poll for pending items; slow down when idle.
     refetchInterval: (query) => {
-      const hasPending = query.state.data?.some((p) => p.status === 'pending')
-      return hasPending ? pollMs : Math.max(pollMs, 30000)
+      const hasActive = query.state.data?.some((p) => p.status === 'pending' || p.status === 'processing')
+      return hasActive ? pollMs : Math.max(pollMs, 30000)
     },
     staleTime: staleTimeMs,
     gcTime: 5 * 60 * 1000,
     // Refetch on window focus only when there are pending prompts
     refetchOnWindowFocus: (query) => {
-      const hasPending = query.state.data?.some((p) => p.status === 'pending')
-      return hasPending || refetchOnWindowFocus
+      const hasActive = query.state.data?.some((p) => p.status === 'pending' || p.status === 'processing')
+      return hasActive || refetchOnWindowFocus
     },
     refetchOnMount,
     placeholderData: (previousData) => previousData,
@@ -156,6 +156,7 @@ export function usePromptStatusQuery(id?: string) {
           result_content: raw.result ?? (raw as any).result_content ?? null,
           error: (raw as any).error ?? null,
           attempts: (raw as any).attempts,
+          next_retry_at: (raw as any).next_retry_at ?? null,
           filename: raw.filename,
         } satisfies PromptItem
       } catch (error) {
@@ -176,6 +177,7 @@ export function usePromptStatusQuery(id?: string) {
               result_content: fallback.result_content ?? fallback.result ?? null,
               error: fallback.error ?? null,
               attempts: fallback.attempts ?? 0,
+              next_retry_at: fallback.next_retry_at ?? null,
               filename: fallback.filename,
             } satisfies PromptItem
           } catch {
@@ -190,7 +192,7 @@ export function usePromptStatusQuery(id?: string) {
     // Slower polling (15s) to avoid duplicate requests with list query (10s)
     refetchInterval: (query) => {
       const d = query.state.data
-      return d?.status === 'pending' ? 15000 : false
+      return d?.status === 'pending' || d?.status === 'processing' ? 15000 : false
     },
     staleTime: 5000,
   })

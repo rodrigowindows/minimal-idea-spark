@@ -35,7 +35,7 @@ export default function NWDashboard() {
   }, [healthQuery.data?.status, healthQuery.error, promptsQuery.data?.length, promptsQuery.error, isConnected])
 
   const stats = useMemo(() => {
-    const pending = promptsQuery.data?.filter((p) => p.status === 'pending').length ?? 0
+    const pending = promptsQuery.data?.filter((p) => p.status === 'pending' || p.status === 'processing').length ?? 0
     const failures = promptsQuery.data?.filter((p) => p.status === 'failed').length ?? 0
     const processedToday =
       promptsQuery.data?.filter((p) => {
@@ -180,7 +180,7 @@ export default function NWDashboard() {
                   {lastPrompts.map((prompt) => (
                     <TableRow key={prompt.id} className="border-border/60">
                       <TableCell>
-                        <StatusBadge status={prompt.status} pulse={prompt.status === 'pending'} />
+                        <StatusBadge status={prompt.status} pulse={prompt.status === 'pending' || prompt.status === 'processing'} />
                       </TableCell>
                       <TableCell className="font-semibold text-foreground">{prompt.name}</TableCell>
                       <TableCell>
@@ -257,6 +257,9 @@ function buildTimeline(prompts: PromptItem[], health?: HealthResponse) {
     }
     if (p.status === 'failed') {
       return { title: `Prompt ${p.name} falhou - retry em 5min`, time: baseTime, color: 'red' as const }
+    }
+    if (p.status === 'processing') {
+      return { title: `Prompt ${p.name} em processamento`, time: baseTime, color: 'blue' as const }
     }
     return { title: `Prompt ${p.name} aguardando`, time: baseTime, color: 'blue' as const }
   })
