@@ -59,8 +59,8 @@ describe("Auth page", () => {
   it("renders login form by default", () => {
     renderAuth();
     expect(screen.getByRole("heading", { name: /login/i })).toBeInTheDocument();
-    expect(screen.getByLabelText("Email")).toBeInTheDocument();
-    expect(screen.getByLabelText("Password")).toBeInTheDocument();
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
   });
 
   it("switches between login and signup", async () => {
@@ -77,8 +77,8 @@ describe("Auth page", () => {
   it("calls signInWithPassword on login submit", async () => {
     renderAuth();
 
-    await userEvent.type(screen.getByLabelText("Email"), "user@test.com");
-    await userEvent.type(screen.getByLabelText("Password"), "password123");
+    await userEvent.type(screen.getByLabelText(/email/i), "user@test.com");
+    await userEvent.type(screen.getByLabelText(/password/i), "password123");
     await userEvent.click(screen.getByRole("button", { name: /login/i }));
 
     await waitFor(() => {
@@ -93,8 +93,8 @@ describe("Auth page", () => {
     renderAuth();
 
     await userEvent.click(screen.getByRole("button", { name: /sign up/i }));
-    await userEvent.type(screen.getByLabelText("Email"), "new@test.com");
-    await userEvent.type(screen.getByLabelText("Password"), "newpass123");
+    await userEvent.type(screen.getByLabelText(/email/i), "new@test.com");
+    await userEvent.type(screen.getByLabelText(/password/i), "newpass123");
     await userEvent.click(screen.getByRole("button", { name: /sign up/i }));
 
     await waitFor(() => {
@@ -109,12 +109,12 @@ describe("Auth page", () => {
     const { toast } = await import("sonner");
     mockSignIn.mockResolvedValueOnce({
       data: {},
-      error: { message: "Invalid credentials" },
+      error: new Error("Invalid credentials"),
     });
 
     renderAuth();
-    await userEvent.type(screen.getByLabelText("Email"), "bad@test.com");
-    await userEvent.type(screen.getByLabelText("Password"), "wrong");
+    await userEvent.type(screen.getByLabelText(/email/i), "bad@test.com");
+    await userEvent.type(screen.getByLabelText(/password/i), "wrong");
     await userEvent.click(screen.getByRole("button", { name: /login/i }));
 
     await waitFor(() => {
@@ -126,8 +126,8 @@ describe("Auth page", () => {
     const { toast } = await import("sonner");
 
     renderAuth();
-    await userEvent.type(screen.getByLabelText("Email"), "user@test.com");
-    await userEvent.type(screen.getByLabelText("Password"), "pass123");
+    await userEvent.type(screen.getByLabelText(/email/i), "user@test.com");
+    await userEvent.type(screen.getByLabelText(/password/i), "pass123");
     await userEvent.click(screen.getByRole("button", { name: /login/i }));
 
     await waitFor(() => {
@@ -141,8 +141,8 @@ describe("Auth page", () => {
     mockSignIn.mockReturnValue(new Promise(() => {}));
 
     renderAuth();
-    await userEvent.type(screen.getByLabelText("Email"), "user@test.com");
-    await userEvent.type(screen.getByLabelText("Password"), "pass123");
+    await userEvent.type(screen.getByLabelText(/email/i), "user@test.com");
+    await userEvent.type(screen.getByLabelText(/password/i), "pass123");
 
     const loginBtn = screen.getByRole("button", { name: /login/i });
     await userEvent.click(loginBtn);
