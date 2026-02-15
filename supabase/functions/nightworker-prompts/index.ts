@@ -32,6 +32,11 @@ interface PromptPayload {
   target_folder?: string
   queue_stage?: QueueStage
   priority_order?: number | null
+  pipeline_config?: Record<string, unknown> | null
+  pipeline_id?: string | null
+  pipeline_step?: number | null
+  pipeline_total_steps?: number | null
+  pipeline_template_name?: string | null
 }
 
 type AuthPrincipal =
@@ -547,6 +552,7 @@ async function handleList(supabase: any, url: URL, rid: string) {
   const status = url.searchParams.get('status') ?? undefined
   const provider = url.searchParams.get('provider') ?? undefined
   const queueStage = url.searchParams.get('queue_stage') ?? url.searchParams.get('stage') ?? undefined
+  const pipelineId = url.searchParams.get('pipeline_id') ?? undefined
   const from = url.searchParams.get('from')
   const to = url.searchParams.get('to')
   const limitRaw = Number(url.searchParams.get('limit') ?? DEFAULT_LIMIT)
@@ -564,20 +570,31 @@ async function handleList(supabase: any, url: URL, rid: string) {
   if (queueStage && !VALID_QUEUE_STAGES.has(queueStage)) {
     return json({ error: `Invalid queue_stage filter. Must be one of: ${[...VALID_QUEUE_STAGES].join(', ')}` }, 400, { requestId: rid })
   }
+  if (pipelineId && !isValidUUID(pipelineId)) {
+    return json({ error: 'Invalid pipeline_id format' }, 400, { requestId: rid })
+  }
 
-  let query = supabase.from('nw_prompts').select('*', { count: 'exact' }).order('created_at', { ascending: false })
+  let query = supabase.from('nw_prompts').select('*', { count: 'exact' })
 
   if (status) query = query.eq('status', status)
   if (provider) query = query.eq('provider', provider)
   if (queueStage) query = query.eq('queue_stage', queueStage)
+  if (pipelineId) query = query.eq('pipeline_id', pipelineId)
   if (from) query = query.gte('created_at', from)
   if (to) query = query.lte('created_at', to)
+  if (pipelineId) {
+    query = query
+      .order('pipeline_step', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: true })
+  } else {
+    query = query.order('created_at', { ascending: false })
+  }
   query = query.range(offset, offset + limit - 1)
 
   const { data, error, count } = await query
   if (error) throw error
   const total = count ?? data?.length ?? 0
-  log('info', 'list', { rid, status: status || 'all', provider: provider || 'all', total, limit, offset })
+  log('info', 'list', { rid, status: status || 'all', provider: provider || 'all', pipeline_id: pipelineId || null, total, limit, offset })
   return json({ total, prompts: data ?? [] }, 200, { requestId: rid, cache: true })
 }
 
@@ -629,7 +646,77 @@ function validateCreate(body: unknown): { ok: true; payload: PromptPayload } | {
     priority_order = null
   }
 
-  return { ok: true, payload: { provider: provider as Provider, name, content, target_folder, queue_stage, priority_order } }
+  let pipeline_id: string | null | undefined = undefined
+  let pipeline_step: number | null | undefined = undefined
+  let pipeline_total_steps: number | null | undefined = undefined
+  let pipeline_template_name: string | null | undefined = undefined
+  let pipeline_config: Record<string, unknown> | null | undefined = undefined
+
+  if (b.pipeline_id !== undefined && b.pipeline_id !== null) {
+    if (typeof b.pipeline_id !== 'string' || !isValidUUID(b.pipeline_id)) {
+      return { ok: false, status: 400, error: 'pipeline_id must be a valid UUID' }
+    }
+    pipeline_id = b.pipeline_id
+
+    const parsedStep = Number(b.pipeline_step)
+    if (!Number.isFinite(parsedStep) || parsedStep < 1) {
+      return { ok: false, status: 400, error: 'pipeline_step must be a positive integer when pipeline_id is set' }
+    }
+    pipeline_step = Math.floor(parsedStep)
+
+    const parsedTotal = Number(b.pipeline_total_steps)
+    if (!Number.isFinite(parsedTotal) || parsedTotal < pipeline_step) {
+      return { ok: false, status: 400, error: 'pipeline_total_steps must be >= pipeline_step when pipeline_id is set' }
+    }
+    pipeline_total_steps = Math.floor(parsedTotal)
+
+    if (b.pipeline_template_name !== undefined) {
+      if (b.pipeline_template_name === null) {
+        pipeline_template_name = null
+      } else if (typeof b.pipeline_template_name === 'string') {
+        pipeline_template_name = sanitizeText(b.pipeline_template_name.trim().slice(0, MAX_NAME_LEN)) || null
+      } else {
+        return { ok: false, status: 400, error: 'pipeline_template_name must be a string or null' }
+      }
+    }
+
+    if (b.pipeline_config !== undefined) {
+      if (b.pipeline_config === null) {
+        pipeline_config = null
+      } else if (
+        typeof b.pipeline_config === 'object' &&
+        !Array.isArray(b.pipeline_config)
+      ) {
+        pipeline_config = b.pipeline_config as Record<string, unknown>
+      } else {
+        return { ok: false, status: 400, error: 'pipeline_config must be a JSON object or null' }
+      }
+    }
+  } else if (
+    b.pipeline_step !== undefined ||
+    b.pipeline_total_steps !== undefined ||
+    b.pipeline_template_name !== undefined ||
+    b.pipeline_config !== undefined
+  ) {
+    return { ok: false, status: 400, error: 'pipeline_id is required when sending pipeline metadata' }
+  }
+
+  return {
+    ok: true,
+    payload: {
+      provider: provider as Provider,
+      name,
+      content,
+      target_folder,
+      queue_stage,
+      priority_order,
+      pipeline_config,
+      pipeline_id,
+      pipeline_step,
+      pipeline_total_steps,
+      pipeline_template_name,
+    },
+  }
 }
 
 async function nextPriorityOrder(supabase: any, provider: string): Promise<number> {
@@ -662,12 +749,55 @@ async function handleCreate(supabase: any, body: PromptPayload, rid: string) {
     priorityOrder = null
   }
 
+  const insertData: Record<string, unknown> = {
+    name,
+    provider,
+    content,
+    target_folder,
+    status: 'pending',
+    queue_stage: queueStage,
+    priority_order: priorityOrder,
+  }
+  if (validated.payload.pipeline_id) {
+    insertData.pipeline_id = validated.payload.pipeline_id
+    insertData.pipeline_step = validated.payload.pipeline_step ?? null
+    insertData.pipeline_total_steps = validated.payload.pipeline_total_steps ?? null
+    insertData.pipeline_template_name = validated.payload.pipeline_template_name ?? null
+    insertData.pipeline_config = validated.payload.pipeline_config ?? null
+  }
+
   const { data, error } = await supabase
     .from('nw_prompts')
-    .insert({ name, provider, content, target_folder, status: 'pending', queue_stage: queueStage, priority_order: priorityOrder })
+    .insert(insertData)
     .select()
     .single()
-  if (error) throw error
+  if (error) {
+    if (
+      error.code === '23505' &&
+      validated.payload.pipeline_id &&
+      validated.payload.pipeline_step
+    ) {
+      const { data: existing, error: existingError } = await supabase
+        .from('nw_prompts')
+        .select('id')
+        .eq('pipeline_id', validated.payload.pipeline_id)
+        .eq('pipeline_step', validated.payload.pipeline_step)
+        .is('cloned_from', null)
+        .maybeSingle()
+
+      if (!existingError && existing?.id) {
+        log('info', 'create_idempotent', {
+          rid,
+          pipeline_id: validated.payload.pipeline_id,
+          pipeline_step: validated.payload.pipeline_step,
+          existing_id: existing.id,
+        })
+        return json({ id: existing.id, idempotent: true }, 200, { requestId: rid })
+      }
+      return json({ error: 'Pipeline step already exists' }, 409, { requestId: rid })
+    }
+    throw error
+  }
   log('info', 'created', { rid, id: data.id, provider, name })
   metric('prompt_created', { rid, provider, queue_stage: queueStage })
   return json({ id: data.id }, 201, { requestId: rid })
@@ -828,7 +958,7 @@ async function handleEditPrompt(supabase: any, id: string, body: Record<string, 
 async function handleReprocessPrompt(supabase: any, id: string, body: Record<string, unknown>, rid: string) {
   const { data: source, error: sourceError } = await supabase
     .from('nw_prompts')
-    .select('id, name, provider, content, target_folder, status')
+    .select('id, name, provider, content, target_folder, status, pipeline_config, pipeline_id, pipeline_step, pipeline_total_steps, pipeline_template_name')
     .eq('id', id)
     .single()
   if (sourceError) {
@@ -848,25 +978,34 @@ async function handleReprocessPrompt(supabase: any, id: string, body: Record<str
     : `${source.name}-retry`
 
   const priorityOrder = await nextPriorityOrder(supabase, source.provider)
+  const cloneData: Record<string, unknown> = {
+    name: cloneName,
+    provider: source.provider,
+    content: source.content,
+    target_folder: source.target_folder,
+    status: 'pending',
+    queue_stage: 'prioritized',
+    priority_order: priorityOrder,
+    cloned_from: source.id,
+    attempts: 0,
+    next_retry_at: null,
+    result_path: null,
+    result_content: null,
+    error: null,
+    worker_id: null,
+    processing_started_at: null,
+  }
+  if (source.pipeline_id) {
+    cloneData.pipeline_id = source.pipeline_id
+    cloneData.pipeline_step = source.pipeline_step
+    cloneData.pipeline_total_steps = source.pipeline_total_steps
+    cloneData.pipeline_template_name = source.pipeline_template_name ?? null
+    cloneData.pipeline_config = source.pipeline_config ?? null
+  }
+
   const { data: clone, error: insertError } = await supabase
     .from('nw_prompts')
-    .insert({
-      name: cloneName,
-      provider: source.provider,
-      content: source.content,
-      target_folder: source.target_folder,
-      status: 'pending',
-      queue_stage: 'prioritized',
-      priority_order: priorityOrder,
-      cloned_from: source.id,
-      attempts: 0,
-      next_retry_at: null,
-      result_path: null,
-      result_content: null,
-      error: null,
-      worker_id: null,
-      processing_started_at: null,
-    })
+    .insert(cloneData)
     .select('id, status, queue_stage, cloned_from')
     .single()
 
@@ -986,6 +1125,71 @@ function validatePatch(
       allowed.target_folder = sanitizeText(body.target_folder.slice(0, MAX_TARGET_FOLDER_LEN))
     } else {
       return { allowed: {}, error: 'target_folder must be string or null' }
+    }
+  }
+  if (body.pipeline_config !== undefined) {
+    if (
+      body.pipeline_config === null ||
+      (typeof body.pipeline_config === 'object' && !Array.isArray(body.pipeline_config))
+    ) {
+      allowed.pipeline_config = body.pipeline_config
+    } else {
+      return { allowed: {}, error: 'pipeline_config must be an object or null' }
+    }
+  }
+  if (body.pipeline_id !== undefined) {
+    if (body.pipeline_id === null) {
+      allowed.pipeline_id = null
+    } else if (typeof body.pipeline_id === 'string' && isValidUUID(body.pipeline_id)) {
+      allowed.pipeline_id = body.pipeline_id
+    } else {
+      return { allowed: {}, error: 'pipeline_id must be a valid UUID or null' }
+    }
+  }
+  if (body.pipeline_step !== undefined) {
+    if (body.pipeline_step === null) {
+      allowed.pipeline_step = null
+    } else {
+      const step = Number(body.pipeline_step)
+      if (!Number.isFinite(step) || step < 1) {
+        return { allowed: {}, error: 'pipeline_step must be a positive integer or null' }
+      }
+      allowed.pipeline_step = Math.floor(step)
+    }
+  }
+  if (body.pipeline_total_steps !== undefined) {
+    if (body.pipeline_total_steps === null) {
+      allowed.pipeline_total_steps = null
+    } else {
+      const total = Number(body.pipeline_total_steps)
+      if (!Number.isFinite(total) || total < 1) {
+        return { allowed: {}, error: 'pipeline_total_steps must be a positive integer or null' }
+      }
+      allowed.pipeline_total_steps = Math.floor(total)
+    }
+  }
+  if (body.pipeline_template_name !== undefined) {
+    if (body.pipeline_template_name === null) {
+      allowed.pipeline_template_name = null
+    } else if (typeof body.pipeline_template_name === 'string') {
+      allowed.pipeline_template_name = sanitizeText(body.pipeline_template_name.trim().slice(0, MAX_NAME_LEN)) || null
+    } else {
+      return { allowed: {}, error: 'pipeline_template_name must be a string or null' }
+    }
+  }
+
+  const effectiveStep = allowed.pipeline_step ?? body.pipeline_step
+  const effectiveTotal = allowed.pipeline_total_steps ?? body.pipeline_total_steps
+  if (
+    effectiveStep !== undefined &&
+    effectiveStep !== null &&
+    effectiveTotal !== undefined &&
+    effectiveTotal !== null
+  ) {
+    const stepNum = Number(effectiveStep)
+    const totalNum = Number(effectiveTotal)
+    if (Number.isFinite(stepNum) && Number.isFinite(totalNum) && totalNum < stepNum) {
+      return { allowed: {}, error: 'pipeline_total_steps must be >= pipeline_step' }
     }
   }
   const statusTransition = (allowed as any)._statusTransition

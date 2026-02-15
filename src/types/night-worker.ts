@@ -3,6 +3,30 @@ export type NightWorkerProvider = 'codex' | 'claude' | 'gemini' | string;
 export type PromptStatus = 'pending' | 'processing' | 'done' | 'failed';
 export type QueueStage = 'backlog' | 'prioritized';
 
+/** Single step in a pipeline template */
+export interface PipelineStep {
+  provider: NightWorkerProvider;
+  role: string;
+  instruction: string;
+}
+
+/** Pipeline template definition (stored in localStorage) */
+export interface PipelineTemplate {
+  id: string;
+  name: string;
+  description: string;
+  steps: PipelineStep[];
+  created_at: string;
+  updated_at: string;
+}
+
+/** Pipeline metadata persisted in nw_prompts */
+export interface PipelineConfig {
+  template_version: number;
+  steps: PipelineStep[];
+  original_input: string;
+}
+
 /** Item returned in the GET /prompts list */
 export interface PromptListItem {
   id: string;
@@ -44,6 +68,11 @@ export interface PromptItem {
   next_retry_at?: string | null;
   filename?: string;
   has_result?: boolean;
+  pipeline_config?: PipelineConfig | null;
+  pipeline_id?: string | null;
+  pipeline_step?: number | null;
+  pipeline_total_steps?: number | null;
+  pipeline_template_name?: string | null;
 }
 
 /** Response from GET /prompts */
@@ -56,10 +85,11 @@ export interface PromptsListResponse {
 /** Response from POST /prompts */
 export interface CreatePromptResponse {
   id: string;
-  provider: string;
-  status: PromptStatus;
-  filename: string;
-  message: string;
+  provider?: string;
+  status?: PromptStatus;
+  filename?: string;
+  message?: string;
+  idempotent?: boolean;
 }
 
 export interface WorkerConfig {

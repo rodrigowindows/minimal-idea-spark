@@ -65,6 +65,8 @@ const NWPromptDetail = lazy(() => import("@/pages/NWPromptDetail"));
 const NWLogs = lazy(() => import("@/pages/NWLogs"));
 const NWSettings = lazy(() => import("@/pages/NWSettings"));
 const NWConnect = lazy(() => import("@/pages/NWConnect"));
+const NWTemplates = lazy(() => import("@/pages/NWTemplates"));
+const NWRunTemplate = lazy(() => import("@/pages/NWRunTemplate"));
 
 // Auth & shared pages
 const AcceptInvite = lazy(() => import("@/pages/AcceptInvite").then((m) => ({ default: m.AcceptInvite })));
@@ -180,6 +182,8 @@ function AppContent() {
           <Route path="/nw/submit" element={<Suspense fallback={<PageFallback />}><NWSubmit /></Suspense>} />
           <Route path="/nw/prompts/:id" element={<Suspense fallback={<PageFallback />}><NWPromptDetail /></Suspense>} />
           <Route path="/nw/prompts" element={<Suspense fallback={<PageFallback />}><NWPrompts /></Suspense>} />
+          <Route path="/nw/templates" element={<Suspense fallback={<PageFallback />}><NWTemplates /></Suspense>} />
+          <Route path="/nw/templates/:id/run" element={<Suspense fallback={<PageFallback />}><NWRunTemplate /></Suspense>} />
           <Route path="/nw/logs" element={<Suspense fallback={<PageFallback />}><NWLogs /></Suspense>} />
           <Route path="/nw/settings" element={<Suspense fallback={<PageFallback />}><NWSettings /></Suspense>} />
           <Route path="/nw/connect" element={<Suspense fallback={<PageFallback />}><NWConnect /></Suspense>} />

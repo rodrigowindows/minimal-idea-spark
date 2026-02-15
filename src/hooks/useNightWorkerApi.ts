@@ -23,6 +23,34 @@ interface UsePromptsQueryOptions {
   refetchOnWindowFocus?: boolean
 }
 
+function normalizePromptItem(item: any): PromptItem {
+  return {
+    id: item.id,
+    name: item.name ?? item.filename?.replace(/\.txt$/i, '') ?? 'sem-nome',
+    provider: item.provider,
+    status: item.status,
+    queue_stage: item.queue_stage ?? (item.status === 'pending' ? 'prioritized' : undefined),
+    priority_order: item.priority_order ?? null,
+    cloned_from: item.cloned_from ?? null,
+    content: item.content,
+    target_folder: item.target_folder,
+    created_at: item.created_at,
+    updated_at: item.updated_at,
+    result_path: item.result_path ?? item.path ?? null,
+    result_content: item.result_content ?? item.result ?? null,
+    error: item.error ?? null,
+    attempts: item.attempts,
+    next_retry_at: item.next_retry_at ?? null,
+    filename: item.filename,
+    has_result: item.has_result ?? (item.result != null),
+    pipeline_config: item.pipeline_config ?? null,
+    pipeline_id: item.pipeline_id ?? null,
+    pipeline_step: item.pipeline_step ?? null,
+    pipeline_total_steps: item.pipeline_total_steps ?? null,
+    pipeline_template_name: item.pipeline_template_name ?? null,
+  } satisfies PromptItem
+}
+
 export function useHealthQuery() {
   const { apiFetch, config, isConnected } = useNightWorker()
   return useQuery<HealthResponse>({
@@ -85,26 +113,7 @@ export function usePromptsQuery(pollMs = 15000, options: UsePromptsQueryOptions 
           console.debug('[usePromptsQuery] Received', items.length, 'items')
         }
 
-        return items.map((item: any) => ({
-          id: item.id,
-          name: item.name ?? item.filename?.replace(/\.txt$/i, '') ?? 'sem-nome',
-          provider: item.provider,
-          status: item.status,
-          queue_stage: item.queue_stage ?? (item.status === 'pending' ? 'prioritized' : undefined),
-          priority_order: item.priority_order ?? null,
-          cloned_from: item.cloned_from ?? null,
-          content: item.content,
-          target_folder: item.target_folder,
-          created_at: item.created_at,
-          updated_at: item.updated_at,
-          result_path: item.result_path ?? item.path ?? null,
-          result_content: item.result_content ?? item.result ?? null,
-          error: item.error ?? null,
-          attempts: item.attempts,
-          next_retry_at: item.next_retry_at,
-          filename: item.filename,
-          has_result: item.has_result ?? (item.result != null),
-        } satisfies PromptItem))
+        return items.map((item: any) => normalizePromptItem(item))
       } catch (error) {
         if (import.meta.env.DEV) {
           console.error('[usePromptsQuery] Error', {
@@ -146,49 +155,13 @@ export function usePromptStatusQuery(id?: string) {
       try {
         // Try Edge contract first: GET /prompts/:id
         const raw = await apiFetch<PromptDetail & Record<string, unknown>>(`/prompts/${id}`)
-        return {
-          id: raw.id,
-          name: (raw as any).name ?? raw.filename?.replace(/\.txt$/i, '') ?? 'sem-nome',
-          provider: raw.provider,
-          status: raw.status,
-          queue_stage: (raw as any).queue_stage ?? (raw.status === 'pending' ? 'prioritized' : undefined),
-          priority_order: (raw as any).priority_order ?? null,
-          cloned_from: (raw as any).cloned_from ?? null,
-          content: raw.content ?? null,
-          target_folder: (raw as any).target_folder ?? null,
-          created_at: (raw as any).created_at,
-          updated_at: (raw as any).updated_at,
-          result_path: raw.path ?? (raw as any).result_path ?? null,
-          result_content: raw.result ?? (raw as any).result_content ?? null,
-          error: (raw as any).error ?? null,
-          attempts: (raw as any).attempts,
-          next_retry_at: (raw as any).next_retry_at ?? null,
-          filename: raw.filename,
-        } satisfies PromptItem
+        return normalizePromptItem(raw)
       } catch (error) {
         // Fallback for api_server.py: try GET /prompts/:id/status
         if (error instanceof ApiError && error.status === 404) {
           try {
             const fallback = await apiFetch<any>(`/prompts/${id}/status`)
-            return {
-              id: fallback.id,
-              name: fallback.filename?.replace(/\.txt$/i, '') ?? 'sem-nome',
-              provider: fallback.provider,
-              status: fallback.status,
-              queue_stage: fallback.queue_stage ?? (fallback.status === 'pending' ? 'prioritized' : undefined),
-              priority_order: fallback.priority_order ?? null,
-              cloned_from: fallback.cloned_from ?? null,
-              content: fallback.content ?? null,
-              target_folder: fallback.target_folder ?? null,
-              created_at: fallback.created_at ?? null,
-              updated_at: fallback.updated_at ?? null,
-              result_path: fallback.result_path ?? fallback.path ?? null,
-              result_content: fallback.result_content ?? fallback.result ?? null,
-              error: fallback.error ?? null,
-              attempts: fallback.attempts ?? 0,
-              next_retry_at: fallback.next_retry_at ?? null,
-              filename: fallback.filename,
-            } satisfies PromptItem
+            return normalizePromptItem(fallback)
           } catch {
             // If both fail, re-throw original error
             throw error
@@ -207,11 +180,52 @@ export function usePromptStatusQuery(id?: string) {
   })
 }
 
+export function usePipelinePromptsQuery(pipelineId?: string | null) {
+  const { apiFetch, isConnected, config } = useNightWorker()
+  return useQuery<PromptItem[]>({
+    queryKey: ['nightworker', 'pipeline', pipelineId, config.baseUrl],
+    queryFn: async () => {
+      const raw = await apiFetch<PromptsListResponse | PromptItem[]>(
+        `/prompts?pipeline_id=${pipelineId}&limit=50`
+      )
+      const items = Array.isArray(raw) ? raw : (raw as PromptsListResponse).prompts ?? []
+      return items
+        .map((item: any) => normalizePromptItem(item))
+        .sort((a, b) => {
+          const aStep = Number(a.pipeline_step ?? 0)
+          const bStep = Number(b.pipeline_step ?? 0)
+          if (aStep !== bStep) return aStep - bStep
+          const aTime = new Date(a.updated_at || a.created_at || 0).getTime()
+          const bTime = new Date(b.updated_at || b.created_at || 0).getTime()
+          return bTime - aTime
+        })
+    },
+    enabled: isConnected && !!pipelineId,
+    refetchInterval: (query) => {
+      const hasActive = query.state.data?.some((p) => p.status === 'pending' || p.status === 'processing')
+      return hasActive ? 10000 : 30000
+    },
+    staleTime: 5000,
+  })
+}
+
 export function useCreatePromptMutation() {
   const { apiFetch } = useNightWorker()
   const client = useQueryClient()
   return useMutation({
-    mutationFn: (body: { provider: string; name: string; content: string; target_folder: string }) =>
+    mutationFn: (body: {
+      provider: string
+      name: string
+      content: string
+      target_folder: string
+      pipeline_config?: Record<string, unknown>
+      pipeline_id?: string
+      pipeline_step?: number
+      pipeline_total_steps?: number
+      pipeline_template_name?: string
+      queue_stage?: 'backlog' | 'prioritized'
+      priority_order?: number | null
+    }) =>
       apiFetch<CreatePromptResponse>('/prompts', {
         method: 'POST',
         body: JSON.stringify(body),

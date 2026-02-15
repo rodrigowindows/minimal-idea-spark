@@ -112,6 +112,9 @@ export default function NWDashboard() {
             <span className="h-2 w-2 rounded-full bg-current shadow-[0_0_0_4px_rgba(34,197,94,0.25)]" />
             {healthQuery.data?.status === 'ok' ? 'Conectado' : 'Verificar conexão'}
           </Badge>
+          <Button variant="outline" onClick={() => navigate('/nw/templates')}>
+            Templates
+          </Button>
           <Button variant="outline" size="icon" onClick={() => navigate('/nw/settings')}>
             <Settings2 className="h-5 w-5" />
           </Button>

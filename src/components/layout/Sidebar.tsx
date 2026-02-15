@@ -25,6 +25,7 @@ import {
   Wand2,
   Zap,
   FileText,
+  GitBranch,
   Image,
   History,
   Bell,
@@ -104,6 +105,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/nw', icon: Moon, labelKey: 'nav.nightWorker', section: 'nightworker' },
   { to: '/nw/submit', icon: Send, labelKey: 'nav.nwSubmit', section: 'nightworker' },
   { to: '/nw/prompts', icon: ListChecks, labelKey: 'nav.nwPrompts', section: 'nightworker' },
+  { to: '/nw/templates', icon: GitBranch, labelKey: 'nav.nwPipelines', section: 'nightworker' },
   { to: '/nw/logs', icon: Terminal, labelKey: 'nav.nwLogs', section: 'nightworker' },
 
   // Config & utilities

@@ -90,6 +90,15 @@ export const PromptsKanban = memo(function PromptsKanban({
       if (destColumn === 'done' || destColumn === 'failed' || destColumn === 'doing') return
       if (sourceColumn === destColumn && sourceColumn !== 'prioritized') return
 
+      // Drag from done/failed to backlog/prioritized → reprocess
+      if ((sourceColumn === 'done' || sourceColumn === 'failed') && (destColumn === 'backlog' || destColumn === 'prioritized')) {
+        if (onReprocess) {
+          const prompt = prompts.find((p) => p.id === activeId)
+          if (prompt) onReprocess(prompt)
+        }
+        return
+      }
+
       // Reorder within prioritized: dropped on another card in same column
       if (sourceColumn === 'prioritized' && destColumn === 'prioritized' && activeId !== overId) {
         const oldIndex = prioritizedIds.indexOf(activeId)
@@ -109,7 +118,7 @@ export const PromptsKanban = memo(function PromptsKanban({
         }
       }
     },
-    [columns, prioritizedIds, onMoveToBacklog, onMoveToPrioritized, onReorderPrioritized]
+    [columns, prioritizedIds, prompts, onMoveToBacklog, onMoveToPrioritized, onReorderPrioritized, onReprocess]
   )
 
   const handleDragCancel = useCallback(() => {
@@ -158,7 +167,7 @@ export const PromptsKanban = memo(function PromptsKanban({
           id="done"
           title="Done"
           prompts={columns.done}
-          isDraggable={false}
+          isDraggable={!!onReprocess}
           isDroppable={false}
           color="green"
           onReprocess={onReprocess}
@@ -168,7 +177,7 @@ export const PromptsKanban = memo(function PromptsKanban({
           id="failed"
           title="Falhas"
           prompts={columns.failed}
-          isDraggable={false}
+          isDraggable={!!onReprocess}
           isDroppable={false}
           color="red"
           onReprocess={onReprocess}

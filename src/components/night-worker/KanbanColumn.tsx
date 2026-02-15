@@ -45,8 +45,8 @@ export const KanbanColumn = memo(function KanbanColumn({
     <Card
       ref={setNodeRef}
       role="region"
-      aria-label={`Coluna ${title}, ${prompts.length} itens${!isDroppable ? '. Alterado apenas pelo backend.' : ''}`}
-      title={!isDroppable ? 'Alterado apenas pelo backend' : undefined}
+      aria-label={`Coluna ${title}, ${prompts.length} itens${!isDroppable && !isDraggable ? '. Alterado apenas pelo backend.' : ''}`}
+      title={!isDroppable && !isDraggable ? 'Alterado apenas pelo backend' : undefined}
       className={`flex-shrink-0 w-80 border ${
         isOver && isDroppable ? colorClasses[color as keyof typeof colorClasses] : 'border-border/60'
       } bg-background/40 transition-colors`}
@@ -65,9 +65,14 @@ export const KanbanColumn = memo(function KanbanColumn({
             Doing shows prompts with status processing in the backend.
           </p>
         )}
-        {!isDroppable && (
+        {!isDroppable && !isDraggable && (
           <p className="mt-1 text-xs text-muted-foreground" title="Alterado apenas pelo backend">
             Somente leitura
+          </p>
+        )}
+        {!isDroppable && isDraggable && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Arraste para Priorizado/Backlog para reprocessar
           </p>
         )}
       </CardHeader>

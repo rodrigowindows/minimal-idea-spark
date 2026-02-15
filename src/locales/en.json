@@ -30,6 +30,7 @@
     "nwSubmit": "Submit Prompt",
     "nwPrompts": "Prompts",
     "nwLogs": "Logs",
+    "nwPipelines": "Pipelines",
     "collapse": "Collapse",
     "expand": "Expand",
     "calendar": "Calendar",
