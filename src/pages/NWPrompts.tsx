@@ -163,7 +163,7 @@ export default function NWPrompts() {
         <Alert className="mb-4 border-blue-500/20 bg-blue-500/5 text-blue-200 py-2">
           <Info className="h-4 w-4" />
           <AlertDescription className="text-[11px] italic">
-            Backlog nao executa. Apenas prompts em <strong>Priorizado</strong> entram no claim do worker.
+            Prompts em <strong>Priorizado</strong> entram primeiro no claim do worker. O <strong>Backlog</strong> entra como fallback.
             A coluna <strong>Doing</strong> mostra somente status <code>processing</code> real do backend.
           </AlertDescription>
         </Alert>
