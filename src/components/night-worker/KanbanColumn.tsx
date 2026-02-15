@@ -13,6 +13,8 @@ interface KanbanColumnProps {
   isDraggable: boolean
   isDroppable: boolean
   color?: string
+  onReprocess?: (prompt: PromptItem) => void
+  isReprocessing?: boolean
 }
 
 export const KanbanColumn = memo(function KanbanColumn({
@@ -22,6 +24,8 @@ export const KanbanColumn = memo(function KanbanColumn({
   isDraggable,
   isDroppable,
   color = 'blue',
+  onReprocess,
+  isReprocessing,
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id,
@@ -80,6 +84,8 @@ export const KanbanColumn = memo(function KanbanColumn({
                 prompt={prompt}
                 isDraggable={isDraggable}
                 isProcessing={id === 'doing'}
+                onReprocess={onReprocess}
+                isReprocessing={isReprocessing}
               />
             ))}
           </SortableContext>

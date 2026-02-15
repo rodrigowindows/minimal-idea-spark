@@ -14,6 +14,8 @@ interface PromptsKanbanProps {
   onMoveToBacklog: (id: string) => void
   onMoveToPrioritized: (id: string, index?: number) => void
   onReorderPrioritized: (ids: string[]) => void
+  onReprocess?: (prompt: PromptItem) => void
+  isReprocessing?: boolean
 }
 
 export const PromptsKanban = memo(function PromptsKanban({
@@ -22,6 +24,8 @@ export const PromptsKanban = memo(function PromptsKanban({
   onMoveToBacklog,
   onMoveToPrioritized,
   onReorderPrioritized,
+  onReprocess,
+  isReprocessing,
 }: PromptsKanbanProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
 
@@ -157,6 +161,8 @@ export const PromptsKanban = memo(function PromptsKanban({
           isDraggable={false}
           isDroppable={false}
           color="green"
+          onReprocess={onReprocess}
+          isReprocessing={isReprocessing}
         />
         <KanbanColumn
           id="failed"
@@ -165,6 +171,8 @@ export const PromptsKanban = memo(function PromptsKanban({
           isDraggable={false}
           isDroppable={false}
           color="red"
+          onReprocess={onReprocess}
+          isReprocessing={isReprocessing}
         />
       </div>
 

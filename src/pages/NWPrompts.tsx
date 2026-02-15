@@ -173,27 +173,51 @@ export default function NWPrompts() {
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <span className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Status</span>
-          {(['all', 'pending', 'processing', 'done', 'failed'] as const).map((status) => (
+          {(['all', 'pending', 'processing', 'done', 'failed'] as const).map((status) => {
+            const count = status === 'all' ? (data?.length ?? 0) : (data?.filter((p) => p.status === status).length ?? 0)
+            return (
+              <Badge
+                key={status}
+                variant="outline"
+                className={`cursor-pointer rounded-full px-3 py-1 text-xs font-semibold ${
+                  statusFilter === status ? 'border-blue-500/60 bg-blue-500/10 text-blue-100' : 'border-border/60 text-muted-foreground'
+                }`}
+                onClick={() => {
+                  setStatusFilter(status)
+                  setPage(1)
+                }}
+              >
+                {status === 'all'
+                  ? 'Todos'
+                  : status === 'pending'
+                    ? 'Pendentes'
+                    : status === 'processing'
+                      ? 'Processando'
+                      : status === 'done'
+                        ? 'Concluidos'
+                        : 'Falhas'}
+                {' '}
+                <span className="ml-1 text-[10px] opacity-70">{count}</span>
+              </Badge>
+            )
+          })}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Provider</span>
+          {(['all', 'claude', 'gemini', 'codex'] as const).map((prov) => (
             <Badge
-              key={status}
+              key={prov}
               variant="outline"
               className={`cursor-pointer rounded-full px-3 py-1 text-xs font-semibold ${
-                statusFilter === status ? 'border-blue-500/60 bg-blue-500/10 text-blue-100' : 'border-border/60 text-muted-foreground'
+                providerFilter === prov ? 'border-purple-500/60 bg-purple-500/10 text-purple-100' : 'border-border/60 text-muted-foreground'
               }`}
               onClick={() => {
-                setStatusFilter(status)
+                setProviderFilter(prov)
                 setPage(1)
               }}
             >
-              {status === 'all'
-                ? 'Todos'
-                : status === 'pending'
-                  ? 'Pendentes'
-                  : status === 'processing'
-                    ? 'Processando'
-                    : status === 'done'
-                      ? 'Concluidos'
-                      : 'Falhas'}
+              {prov === 'all' ? 'Todos' : prov.charAt(0).toUpperCase() + prov.slice(1)}
             </Badge>
           ))}
         </div>
@@ -212,11 +236,13 @@ export default function NWPrompts() {
 
       {viewMode === 'kanban' && !isLoading && (
         <PromptsKanban
-          prompts={kanbanPrompts}
+          prompts={providerFilter === 'all' ? kanbanPrompts : kanbanPrompts.filter((p) => p.provider?.includes(providerFilter))}
           prioritizedIds={prioritizedIds}
           onMoveToBacklog={handleMoveToBacklog}
           onMoveToPrioritized={handleMoveToPrioritized}
           onReorderPrioritized={handleReorderPrioritized}
+          onReprocess={handleReprocess}
+          isReprocessing={reprocessMutation.isPending}
         />
       )}
 

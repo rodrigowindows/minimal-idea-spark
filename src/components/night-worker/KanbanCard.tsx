@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from './StatusBadge'
 import { ProviderBadge } from './ProviderBadge'
-import { GripVertical, Loader2 } from 'lucide-react'
+import { GripVertical, Loader2, RefreshCw, AlertTriangle, CheckCircle2, Clock } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { PromptItem } from '@/types/night-worker'
 import { Badge } from '@/components/ui/badge'
@@ -14,9 +14,23 @@ interface KanbanCardProps {
   prompt: PromptItem
   isDraggable: boolean
   isProcessing?: boolean
+  onReprocess?: (prompt: PromptItem) => void
+  isReprocessing?: boolean
 }
 
-export const KanbanCard = memo(function KanbanCard({ prompt, isDraggable, isProcessing }: KanbanCardProps) {
+function timeAgo(dateStr?: string | null): string {
+  if (!dateStr) return ''
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'agora'
+  if (mins < 60) return `${mins}min`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h`
+  const days = Math.floor(hours / 24)
+  return `${days}d`
+}
+
+export const KanbanCard = memo(function KanbanCard({ prompt, isDraggable, isProcessing, onReprocess, isReprocessing }: KanbanCardProps) {
   const navigate = useNavigate()
   const {
     attributes,
@@ -35,6 +49,8 @@ export const KanbanCard = memo(function KanbanCard({ prompt, isDraggable, isProc
     transition,
     opacity: isDragging ? 0.5 : 1,
   }
+
+  const isFinal = prompt.status === 'done' || prompt.status === 'failed'
 
   return (
     <Card
@@ -63,7 +79,7 @@ export const KanbanCard = memo(function KanbanCard({ prompt, isDraggable, isProc
             </button>
           )}
           <div className="min-w-0 flex-1">
-            <div className="mb-1 flex items-center gap-2">
+            <div className="mb-1 flex flex-wrap items-center gap-1.5">
               <StatusBadge status={prompt.status} pulse={prompt.status === 'pending' && !isProcessing} />
               <ProviderBadge provider={prompt.provider} />
               {isProcessing && (
@@ -81,18 +97,58 @@ export const KanbanCard = memo(function KanbanCard({ prompt, isDraggable, isProc
             <h4 className="mb-1 truncate text-sm font-semibold text-foreground">
               {prompt.name}
             </h4>
+
+            {/* Error snippet for failed prompts */}
+            {prompt.status === 'failed' && prompt.error && (
+              <div className="mb-1.5 flex items-start gap-1 rounded bg-red-500/10 px-2 py-1">
+                <AlertTriangle className="mt-0.5 h-3 w-3 flex-shrink-0 text-red-400" />
+                <p className="line-clamp-2 text-[11px] text-red-300">{prompt.error}</p>
+              </div>
+            )}
+
+            {/* Result snippet for done prompts */}
+            {prompt.status === 'done' && prompt.result_content && (
+              <div className="mb-1.5 flex items-start gap-1 rounded bg-emerald-500/10 px-2 py-1">
+                <CheckCircle2 className="mt-0.5 h-3 w-3 flex-shrink-0 text-emerald-400" />
+                <p className="line-clamp-2 text-[11px] text-emerald-300">{prompt.result_content.slice(0, 150)}</p>
+              </div>
+            )}
+
+            {/* Timestamp for final states */}
+            {isFinal && prompt.updated_at && (
+              <div className="mb-1.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+                <Clock className="h-3 w-3" />
+                <span>{timeAgo(prompt.updated_at)}</span>
+              </div>
+            )}
+
             <p className="truncate font-mono text-xs text-muted-foreground">
               {prompt.target_folder || '-'}
             </p>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(`/nw/prompts/${prompt.id}`)}
-              aria-label={`Ver detalhes do prompt ${prompt.name}`}
-              className="mt-2 h-7 text-xs"
-            >
-              Ver detalhes
-            </Button>
+
+            <div className="mt-2 flex items-center gap-1.5">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate(`/nw/prompts/${prompt.id}`)}
+                aria-label={`Ver detalhes do prompt ${prompt.name}`}
+                className="h-7 text-xs"
+              >
+                Ver detalhes
+              </Button>
+              {isFinal && onReprocess && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onReprocess(prompt)}
+                  disabled={isReprocessing}
+                  className="h-7 gap-1 text-xs"
+                >
+                  <RefreshCw className={`h-3 w-3 ${isReprocessing ? 'animate-spin' : ''}`} />
+                  Reprocessar
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </CardContent>
