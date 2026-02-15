@@ -411,7 +411,7 @@ export function useCreatePromptMutation() {
       name: string
       content: string
       target_folder: string
-      pipeline_config?: PipelineConfig | Record<string, unknown>
+      pipeline_config?: PipelineConfig
       pipeline_id?: string
       pipeline_step?: number
       pipeline_total_steps?: number

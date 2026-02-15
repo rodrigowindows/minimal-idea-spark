@@ -102,7 +102,7 @@ export default function NWProjects() {
     defaultValues: {
       template_id: '',
       content: '',
-      target_folder: 'C:\\code\\meu-projeto',
+      target_folder: 'C:\\code\\my-project',
     },
   })
   const selectedTemplateId = runForm.watch('template_id')
@@ -128,7 +128,7 @@ export default function NWProjects() {
   useEffect(() => {
     if (!selectedProject?.default_target_folder) return
     const current = runForm.getValues('target_folder')
-    if (!current || current === 'C:\\code\\meu-projeto') {
+    if (!current || current === 'C:\\code\\my-project') {
       runForm.setValue('target_folder', selectedProject.default_target_folder)
     }
   }, [selectedProject, runForm])
