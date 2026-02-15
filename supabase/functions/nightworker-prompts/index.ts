@@ -1404,15 +1404,7 @@ function validatePatch(
       return { allowed: {}, error: 'pipeline_config must be an object or null' }
     }
   }
-  if (body.project_id !== undefined) {
-    if (body.project_id === null) {
-      allowed.project_id = null
-    } else if (typeof body.project_id === 'string' && isValidUUID(body.project_id)) {
-      allowed.project_id = body.project_id
-    } else {
-      return { allowed: {}, error: 'project_id must be a valid UUID or null' }
-    }
-  }
+  // project_id is immutable after creation and cannot be changed via PATCH.
   if (body.pipeline_id !== undefined) {
     if (body.pipeline_id === null) {
       allowed.pipeline_id = null
