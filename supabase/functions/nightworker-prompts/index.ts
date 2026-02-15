@@ -172,7 +172,7 @@ serve(async (req) => {
         if (parsed.err) {
           resp = parsed.err
         } else {
-          resp = await handleCreate(supabase, parsed.body as PromptPayload, rid)
+          resp = await handleCreate(supabase, parsed.body as unknown as PromptPayload, rid)
         }
       }
     } else if (req.method === 'PATCH' && route.startsWith('/prompts/')) {
