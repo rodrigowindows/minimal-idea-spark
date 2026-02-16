@@ -45,6 +45,9 @@ function formatDate(value?: string | null) {
   return Number.isNaN(d.getTime()) ? value : d.toLocaleString()
 }
 
+const BUILD_TAG = '2026-02-16T15:20-edit-delete-projects'
+console.info('[NWProjects] build:', BUILD_TAG)
+
 export default function NWProjects() {
   const { t } = useTranslation()
   const navigate = useNavigate()
