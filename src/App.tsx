@@ -14,6 +14,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useNightWorker } from "@/contexts/NightWorkerContext";
 import { PriorityDashboard } from "@/components/PriorityDashboard";
 import { NightWorkerSimpleInterface } from "@/components/night-worker/SimpleInterface";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 import { Suspense, lazy, useEffect, useState } from "react";
