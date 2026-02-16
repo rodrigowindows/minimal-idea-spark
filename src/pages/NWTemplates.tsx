@@ -16,6 +16,7 @@ import {
   useTemplatesQuery,
   useUpdateTemplateMutation,
 } from '@/hooks/useNightWorkerApi'
+import { usePagePerf } from '@/hooks/usePagePerf'
 
 interface TemplateDraft {
   id?: string
@@ -45,6 +46,7 @@ function createEmptyDraft(): TemplateDraft {
 }
 
 export default function NWTemplates() {
+  usePagePerf('NWTemplates')
   const navigate = useNavigate()
   const [draft, setDraft] = useState<TemplateDraft | null>(null)
   const templatesQuery = useTemplatesQuery()

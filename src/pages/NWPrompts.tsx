@@ -17,12 +17,14 @@ import {
 } from '@/hooks/useNightWorkerApi'
 import type { PromptItem } from '@/types/night-worker'
 import { Filter, Info, Kanban, List, Loader2, RefreshCw } from 'lucide-react'
+import { usePagePerf } from '@/hooks/usePagePerf'
 import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 const PAGE_SIZE = 20
 
 export default function NWPrompts() {
+  usePagePerf('NWPrompts')
   const navigate = useNavigate()
   const { data: health } = useHealthQuery()
   const { data, isLoading, isError, error, refetch, isFetching } = usePromptsQuery(15000)

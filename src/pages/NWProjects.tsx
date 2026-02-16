@@ -26,6 +26,7 @@ import {
 } from '@/hooks/useNightWorkerApi'
 import type { NightWorkerProject } from '@/types/night-worker'
 import { Archive, ArchiveRestore, ArrowRight, Briefcase, FolderPlus, GitBranch, Pencil, Play, Plus, Send, Trash2 } from 'lucide-react'
+import { usePagePerf } from '@/hooks/usePagePerf'
 
 const RECENT_PROMPTS_LIMIT = 10
 const PROJECT_NAME_MIN_LENGTH = 3
@@ -49,6 +50,7 @@ const BUILD_TAG = '2026-02-16T15:20-edit-delete-projects'
 console.info('[NWProjects] build:', BUILD_TAG)
 
 export default function NWProjects() {
+  usePagePerf('NWProjects')
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()

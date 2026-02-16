@@ -9,6 +9,7 @@ import { WorkerCard } from '@/components/night-worker/WorkerCard'
 import { StatusBadge } from '@/components/night-worker/StatusBadge'
 import { ProviderBadge } from '@/components/night-worker/ProviderBadge'
 import { useHealthQuery, usePromptsQuery } from '@/hooks/useNightWorkerApi'
+import { usePagePerf } from '@/hooks/usePagePerf'
 import { ApiError, useNightWorker } from '@/contexts/NightWorkerContext'
 import { isToday, parseISO } from 'date-fns'
 import { AlertCircle, CheckCircle2, Clock3, Cpu, Settings2 } from 'lucide-react'
@@ -16,6 +17,7 @@ import type { HealthResponse, PromptItem } from '@/types/night-worker'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 export default function NWDashboard() {
+  usePagePerf('NWDashboard')
   const healthQuery = useHealthQuery()
   const promptsQuery = usePromptsQuery(10000)
   const { config, isConnected } = useNightWorker()

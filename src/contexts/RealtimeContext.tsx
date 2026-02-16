@@ -58,15 +58,14 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     editHistory,
   } = useRealtimeSync(roomId, presenceUser);
 
-  // Track cursor position
-  useCursorTracking(updatePresence);
+  // Cursor tracking disabled — was causing ~20 re-renders/sec via Supabase presence echo
+  // useCursorTracking(updatePresence);
 
-  // Update presence when page changes
-  useMemo(() => {
-    if (isConnected) {
-      updatePresence({ current_page: location.pathname });
-    }
-  }, [location.pathname, isConnected]);
+  // Update presence when page changes (useEffect, not useMemo — this is a side effect)
+  // Removed: was adding latency on every navigation by calling Supabase Realtime track()
+  // useEffect(() => {
+  //   if (isConnected) updatePresence({ current_page: location.pathname });
+  // }, [location.pathname, isConnected]);
 
   const value = useMemo<RealtimeContextValue>(() => ({
     presences,

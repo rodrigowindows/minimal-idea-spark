@@ -106,6 +106,7 @@ export interface PromptItem {
   project_id?: string | null;
   template_id?: string | null;
   template_version?: number | null;
+  events?: PromptEvent[];
 }
 
 /** Response from GET /prompts */
@@ -180,4 +181,13 @@ export interface LogEntry {
   level: 'INFO' | 'WARN' | 'ERROR' | string;
   worker: 'Claude' | 'Codex' | string;
   message: string;
+}
+
+/** Single event from nw_prompt_events */
+export interface PromptEvent {
+  id: string;
+  prompt_id: string;
+  type: string;
+  message: string | null;
+  created_at: string;
 }

@@ -46,6 +46,15 @@ export function normalizePromptItem(item: any): PromptItem {
     project_id: item.project_id ?? null,
     template_id: item.template_id ?? null,
     template_version: item.template_version ?? null,
+    events: Array.isArray(item.events)
+      ? item.events.map((e: any) => ({
+          id: e.id,
+          prompt_id: e.prompt_id,
+          type: e.type ?? 'unknown',
+          message: e.message ?? null,
+          created_at: e.created_at ?? new Date().toISOString(),
+        }))
+      : undefined,
   } satisfies PromptItem
 }
 

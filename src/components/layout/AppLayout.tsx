@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { AnimatePresence } from 'framer-motion'
+// AnimatePresence removed — was causing full tree remounts on navigation
 import { Toaster } from 'sonner'
 import { Menu, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -43,6 +43,14 @@ export function AppLayout() {
   const { t } = useTranslation()
   const location = useLocation()
   const { sidebarOpen, deepWorkMode, toggleSidebar, setCommandPaletteOpen } = useAppContext()
+
+  // Navigation performance tracking
+  const navStartRef = useRef(performance.now())
+  useEffect(() => {
+    const elapsed = Math.round(performance.now() - navStartRef.current)
+    console.log(`[Perf] Navigation to ${location.pathname} rendered in ${elapsed}ms`)
+    navStartRef.current = performance.now()
+  }, [location.pathname])
   useScrollToTopOnRouteChange()
   useScrollRestoration()
   useRouteAnnouncer()
@@ -153,11 +161,9 @@ export function AppLayout() {
 
         <div className={cn('relative', deepWorkMode && 'z-20')}>
           <ErrorBoundary>
-            <AnimatePresence initial={false}>
-              <PageTransition key={location.pathname}>
-                <Outlet />
-              </PageTransition>
-            </AnimatePresence>
+            <PageTransition>
+              <Outlet />
+            </PageTransition>
           </ErrorBoundary>
         </div>
       </main>

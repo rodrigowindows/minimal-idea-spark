@@ -184,6 +184,7 @@ serve(async (req) => {
   const route = '/' + rest.join('/')
   const promptDetailMatch = route.match(/^\/prompts\/([^/]+)$/)
   const promptActionMatch = route.match(/^\/prompts\/([^/]+)\/(move|edit|reprocess)$/)
+  const promptEventsMatch = route.match(/^\/prompts\/([^/]+)\/events$/)
   const projectDetailMatch = route.match(/^\/projects\/([^/]+)$/)
   const templateDetailMatch = route.match(/^\/templates\/([^/]+)$/)
 
@@ -313,6 +314,23 @@ serve(async (req) => {
           resp = parsed.err
         } else {
           resp = await handleReorderPrioritized(supabase, parsed.body, rid)
+        }
+      }
+    } else if (req.method === 'POST' && promptEventsMatch) {
+      const id = promptEventsMatch[1]
+      if (!isValidUUID(id)) {
+        resp = json({ error: 'Invalid prompt ID format' }, 400, { requestId: rid })
+      } else {
+        const raw = await readBody(req, rid)
+        if (raw.err) {
+          resp = raw.err
+        } else {
+          const parsed = parseJsonObject(raw.body, rid)
+          if (parsed.err) {
+            resp = parsed.err
+          } else {
+            resp = await handleCreateEvent(supabase, id, parsed.body, rid)
+          }
         }
       }
     } else if (req.method === 'POST' && promptActionMatch) {
@@ -1158,6 +1176,27 @@ async function handleList(supabase: any, url: URL, rid: string) {
   const total = count ?? data?.length ?? 0
   log('info', 'list', { rid, status: status || 'all', provider: provider || 'all', pipeline_id: pipelineId || null, project_id: projectId || null, total, limit, offset })
   return json({ total, prompts: data ?? [] }, 200, { requestId: rid, cache: true })
+}
+
+async function handleCreateEvent(supabase: any, promptId: string, body: Record<string, unknown>, rid: string) {
+  const rawType = body.type ?? body.event_type
+  const rawMsg = body.message ?? body.event_message
+  const eventType = typeof rawType === 'string' ? sanitizeText(rawType.trim()).slice(0, 100) : ''
+  const message = typeof rawMsg === 'string' ? sanitizeText(rawMsg).slice(0, 5000) : null
+  if (!eventType) {
+    return json({ error: 'type (or event_type) is required' }, 400, { requestId: rid })
+  }
+  const { error } = await supabase.from('nw_prompt_events').insert({
+    prompt_id: promptId,
+    type: eventType,
+    message,
+  })
+  if (error) {
+    if (error.code === '23503') return json({ error: 'Prompt not found' }, 404, { requestId: rid })
+    throw error
+  }
+  log('info', 'event_created', { rid, prompt_id: promptId, type: eventType })
+  return json({ ok: true }, 201, { requestId: rid })
 }
 
 async function handleGet(supabase: any, id: string, rid: string) {

@@ -28,7 +28,9 @@ export function usePromptStatusQuery(id?: string) {
     enabled: Boolean(id),
     refetchInterval: (query) => {
       const d = query.state.data
-      return d?.status === 'pending' || d?.status === 'processing' ? 15000 : false
+      if (d?.status === 'processing') return 5000
+      if (d?.status === 'pending') return 15000
+      return false
     },
     staleTime: 5000,
   })

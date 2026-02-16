@@ -13,11 +13,14 @@ import { useNightWorker } from '@/contexts/NightWorkerContext'
 import { toast } from 'sonner'
 import { ArrowLeft, Copy, ExternalLink, Loader2, Pencil, RefreshCw, Save, Send } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
+import { PromptEventLog } from '@/components/night-worker/PromptEventLog'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { usePagePerf } from '@/hooks/usePagePerf'
 
 export default function NWPromptDetail() {
+  usePagePerf('NWPromptDetail')
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { isConnected, config } = useNightWorker()
@@ -305,15 +308,28 @@ export default function NWPromptDetail() {
                 {(data.status === 'pending' || data.status === 'processing') && (
                   <div className="flex min-h-[200px] flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/60 bg-background/40 text-muted-foreground">
                     <Loader2 className="h-6 w-6 animate-spin" />
-                    <p>{data.status === 'processing' ? 'Processando no worker...' : 'Aguardando processamento...'}</p>
-                    {isEdgeBackend ? (
-                      <p className="max-w-md px-4 text-center text-xs text-muted-foreground/90">
-                        Processado pelo worker (worker.py em modo Supabase). Se estiver parado, confira se o worker esta rodando.
+                    <p>
+                      {data.status === 'processing' && data.events?.[0]?.message
+                        ? data.events[0].message
+                        : data.status === 'processing'
+                          ? 'Processando no worker...'
+                          : 'Aguardando processamento...'}
+                    </p>
+                    {data.events?.[0]?.created_at && data.status === 'processing' && (
+                      <p className="text-[10px] text-muted-foreground/70">
+                        {new Date(data.events[0].created_at).toLocaleString()}
                       </p>
-                    ) : (
-                      <p className="max-w-md px-4 text-center text-xs text-muted-foreground/90">
-                        Processado pelo worker (worker.py lendo input/). Confira se o worker esta rodando.
-                      </p>
+                    )}
+                    {!data.events?.length && (
+                      isEdgeBackend ? (
+                        <p className="max-w-md px-4 text-center text-xs text-muted-foreground/90">
+                          Processado pelo worker (worker.py em modo Supabase). Se estiver parado, confira se o worker esta rodando.
+                        </p>
+                      ) : (
+                        <p className="max-w-md px-4 text-center text-xs text-muted-foreground/90">
+                          Processado pelo worker (worker.py lendo input/). Confira se o worker esta rodando.
+                        </p>
+                      )
                     )}
                   </div>
                 )}
@@ -342,6 +358,18 @@ export default function NWPromptDetail() {
               </CardContent>
             </Card>
           </div>
+
+          {data.events && data.events.length > 0 && (
+            <Card className="mt-4 border border-white/10 bg-card/70 backdrop-blur">
+              <CardHeader>
+                <CardTitle className="text-base">Log de processamento</CardTitle>
+                <CardDescription>Eventos do ciclo de vida deste prompt</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <PromptEventLog events={data.events} />
+              </CardContent>
+            </Card>
+          )}
 
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
