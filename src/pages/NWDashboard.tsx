@@ -415,3 +415,66 @@ export default function NWDashboard() {
           </CardContent>
         </Card>
       </div>
+    </div>
+  )
+}
+
+function toTs(val: string | number | Date | null | undefined): number {
+  if (!val) return 0
+  if (typeof val === 'number') return val
+  try {
+    return new Date(val).getTime()
+  } catch {
+    return 0
+  }
+}
+
+function duration(start: string | null | undefined, end: string | null | undefined): number | null {
+  if (!start || !end) return null
+  const s = toTs(start)
+  const e = toTs(end)
+  if (s === 0 || e === 0) return null
+  return Math.max(0, e - s)
+}
+
+function average(values: number[]): number | null {
+  if (values.length === 0) return null
+  return values.reduce((a, b) => a + b, 0) / values.length
+}
+
+function percentile(values: number[], p: number): number | null {
+  if (values.length === 0) return null
+  const sorted = [...values].sort((a, b) => a - b)
+  const idx = Math.floor((p / 100) * (sorted.length - 1))
+  return sorted[idx]
+}
+
+function formatPercent(val: number | null): string {
+  if (val === null) return '0%'
+  return `${(val * 100).toFixed(1)}%`
+}
+
+function formatDuration(ms: number | null): string {
+  if (ms === null) return '-'
+  if (ms < 1000) return `${ms}ms`
+  const sec = ms / 1000
+  if (sec < 60) return `${sec.toFixed(1)}s`
+  const min = sec / 60
+  if (min < 60) return `${min.toFixed(1)}m`
+  return `${(min / 60).toFixed(1)}h`
+}
+
+function formatDateTime(ts: number): string {
+  if (!ts) return '-'
+  return new Date(ts).toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function buildTimeline(prompts: PromptItem[], health: HealthResponse | undefined): any[] {
+  // Retorna um array vazio por enquanto para evitar erros, ja que o snippet original nao mostrava o uso da timeline
+  return []
+}
