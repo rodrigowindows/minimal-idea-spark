@@ -3,7 +3,7 @@ import { useRef } from 'react'
 
 import { ApiError, useNightWorker } from '@/contexts/NightWorkerContext'
 import { getDefaultPipelineTemplates } from '@/lib/nightworker/pipelineTemplates'
-import type { PipelineContextMode, PipelineTemplate } from '@/types/night-worker'
+import type { PipelineContextMode, PipelineStep, PipelineTemplate } from '@/types/night-worker'
 
 import { normalizeTemplateItem, TEMPLATES_KEY_BASE } from './shared'
 
@@ -13,19 +13,23 @@ function normName(name: string) {
   return name.trim().toLowerCase()
 }
 
+function getMissingDefaultTemplates(templates: PipelineTemplate[]) {
+  const defaults = getDefaultPipelineTemplates()
+  const existingNames = new Set(templates.map((t) => normName(t.name)))
+  return defaults.filter((d) => !existingNames.has(normName(d.name)))
+}
+
 /**
  * Sync missing default templates to the backend.
- * Runs at most once per hook instance to avoid repeated POST storms on every
- * React Query refetch / window-focus / interval.
+ * Runs once per base URL to avoid repeated POST storms on every React Query
+ * refetch / window-focus / interval while still supporting runtime backend switches.
  */
 async function syncDefaults(
   apiFetch: ReturnType<typeof useNightWorker>['apiFetch'],
   templates: PipelineTemplate[],
   baseUrl: string,
 ): Promise<boolean> {
-  const defaults = getDefaultPipelineTemplates()
-  const existingNames = new Set(templates.map((t) => normName(t.name)))
-  const missing = defaults.filter((d) => !existingNames.has(normName(d.name)))
+  const missing = getMissingDefaultTemplates(templates)
 
   if (missing.length === 0) return false
 
@@ -56,7 +60,7 @@ async function syncDefaults(
           createdCount += 1
         }
       } catch (err) {
-        // Another tab/client already created it — safe to ignore.
+        // Another tab/client already created it - safe to ignore.
         if (err instanceof ApiError && (err.status === 400 || err.status === 409)) {
           if (import.meta.env.DEV) {
             console.warn(`${LOG} create skipped (already exists)`, { name: tpl.name })
@@ -79,7 +83,7 @@ async function syncDefaults(
 
 export function useTemplatesQuery() {
   const { apiFetch, isConnected, config } = useNightWorker()
-  const syncedRef = useRef(false)
+  const syncedBaseUrlsRef = useRef<Set<string>>(new Set())
 
   return useQuery<PipelineTemplate[]>({
     queryKey: [...TEMPLATES_KEY_BASE, config.baseUrl],
@@ -96,22 +100,37 @@ export function useTemplatesQuery() {
       try {
         let templates = await fetchTemplates()
 
-        // Sync defaults only once per component mount to avoid repeated
-        // writes on every refetch interval / window-focus.
-        if (!syncedRef.current) {
-          syncedRef.current = true
-          const didSync = await syncDefaults(apiFetch, templates, config.baseUrl)
-          if (didSync) {
-            try {
-              const refreshed = await fetchTemplates()
-              // Keep pre-sync data if refresh unexpectedly returns empty.
-              if (refreshed.length > 0 || templates.length === 0) {
-                templates = refreshed
+        // Sync defaults once per base URL once all defaults are confirmed present.
+        // If some defaults are still missing (e.g. transient POST failure),
+        // keep retrying on the next refetch instead of getting permanently stuck.
+        if (!syncedBaseUrlsRef.current.has(config.baseUrl)) {
+          const missingBeforeSync = getMissingDefaultTemplates(templates)
+          if (missingBeforeSync.length === 0) {
+            syncedBaseUrlsRef.current.add(config.baseUrl)
+          } else {
+            const didSync = await syncDefaults(apiFetch, templates, config.baseUrl)
+            if (didSync) {
+              try {
+                const refreshed = await fetchTemplates()
+                // Keep pre-sync data if refresh unexpectedly returns empty.
+                if (refreshed.length > 0 || templates.length === 0) {
+                  templates = refreshed
+                }
+              } catch (refreshError) {
+                console.warn(`${LOG} refresh after sync failed`, {
+                  baseUrl: config.baseUrl,
+                  error: refreshError instanceof Error ? refreshError.message : String(refreshError),
+                })
               }
-            } catch (refreshError) {
-              console.warn(`${LOG} refresh after sync failed`, {
+            }
+
+            const missingAfterSync = getMissingDefaultTemplates(templates)
+            if (missingAfterSync.length === 0) {
+              syncedBaseUrlsRef.current.add(config.baseUrl)
+            } else if (import.meta.env.DEV) {
+              console.warn(`${LOG} defaults still missing after sync`, {
                 baseUrl: config.baseUrl,
-                error: refreshError instanceof Error ? refreshError.message : String(refreshError),
+                names: missingAfterSync.map((t) => t.name),
               })
             }
           }
@@ -144,7 +163,7 @@ export function useCreateTemplateMutation() {
   const { apiFetch } = useNightWorker()
   const client = useQueryClient()
   return useMutation({
-    mutationFn: (body: { name: string; description?: string | null; steps: unknown[]; context_mode?: PipelineContextMode; is_default?: boolean }) =>
+    mutationFn: (body: { name: string; description?: string | null; steps: PipelineStep[]; context_mode?: PipelineContextMode; is_default?: boolean }) =>
       apiFetch<PipelineTemplate>('/templates', {
         method: 'POST',
         body: JSON.stringify(body),
@@ -159,8 +178,8 @@ export function useUpdateTemplateMutation() {
   const { apiFetch } = useNightWorker()
   const client = useQueryClient()
   return useMutation({
-    mutationFn: (body: { id: string; name?: string; description?: string | null; steps?: unknown[]; context_mode?: PipelineContextMode; is_default?: boolean }) =>
-      apiFetch<PipelineTemplate>(`/templates/${body.id}`, {
+    mutationFn: (body: { id: string; name?: string; description?: string | null; steps?: PipelineStep[]; context_mode?: PipelineContextMode; is_default?: boolean }) =>
+      apiFetch<PipelineTemplate>(`/templates/${encodeURIComponent(body.id)}`, {
         method: 'PATCH',
         body: JSON.stringify({
           name: body.name,
@@ -181,7 +200,7 @@ export function useDeleteTemplateMutation() {
   const client = useQueryClient()
   return useMutation({
     mutationFn: (body: { id: string }) =>
-      apiFetch<{ id: string; deleted: boolean }>(`/templates/${body.id}`, {
+      apiFetch<{ id: string; deleted: boolean }>(`/templates/${encodeURIComponent(body.id)}`, {
         method: 'DELETE',
       }),
     onSuccess: () => {
@@ -189,3 +208,4 @@ export function useDeleteTemplateMutation() {
     },
   })
 }
+

@@ -431,6 +431,8 @@ export default function NWProjects() {
                         type="button"
                         size="sm"
                         variant="ghost"
+                        title="Ver detalhes do projeto"
+                        aria-label={`Ver detalhes do projeto ${project.name}`}
                         onClick={(event) => {
                           event.stopPropagation()
                           navigate(`/nw/projects/${project.id}`)

@@ -6,17 +6,18 @@ import type { PromptDetail, PromptItem } from '@/types/night-worker'
 import { normalizePromptItem } from './shared'
 
 export function usePromptStatusQuery(id?: string) {
-  const { apiFetch } = useNightWorker()
+  const { apiFetch, config } = useNightWorker()
+  const safeId = encodeURIComponent(id ?? '')
   return useQuery<PromptItem>({
-    queryKey: ['nightworker', 'prompt', id],
+    queryKey: ['nightworker', 'prompt', id, config.baseUrl],
     queryFn: async () => {
       try {
-        const raw = await apiFetch<PromptDetail & Record<string, unknown>>(`/prompts/${id}`)
+        const raw = await apiFetch<PromptDetail & Record<string, unknown>>(`/prompts/${safeId}`)
         return normalizePromptItem(raw)
       } catch (error) {
         if (error instanceof ApiError && error.status === 404) {
           try {
-            const fallback = await apiFetch<any>(`/prompts/${id}/status`)
+            const fallback = await apiFetch<any>(`/prompts/${safeId}/status`)
             return normalizePromptItem(fallback)
           } catch {
             throw error

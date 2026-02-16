@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   NightWorkerProject,
   PipelineTemplate,
   PromptItem,
@@ -31,6 +31,8 @@ export function normalizePromptItem(item: any): PromptItem {
     target_folder: item.target_folder,
     created_at: item.created_at,
     updated_at: item.updated_at,
+    processing_started_at: item.processing_started_at ?? null,
+    worker_id: item.worker_id ?? null,
     result_path: item.result_path ?? item.path ?? null,
     result_content: item.result_content ?? item.result ?? null,
     error: item.error ?? null,
@@ -67,7 +69,7 @@ export function normalizeTemplateItem(item: any): PipelineTemplate {
     description: typeof item.description === 'string' ? item.description : '',
     steps,
     context_mode: contextMode,
-    version: Number(item.version ?? 1),
+    version: Number.isFinite(Number(item.version)) ? Number(item.version) : 1,
     is_default: Boolean(item.is_default ?? false),
     created_at: item.created_at ?? new Date().toISOString(),
     updated_at: item.updated_at ?? item.created_at ?? new Date().toISOString(),
@@ -77,7 +79,7 @@ export function normalizeTemplateItem(item: any): PipelineTemplate {
 export function normalizeProjectItem(item: any): NightWorkerProject {
   const status = item.status === 'archived' || item.status === 'paused' ? item.status : 'active'
   return {
-    id: item.id,
+    id: String(item.id),
     name: item.name ?? 'sem-nome',
     description: item.description ?? null,
     default_target_folder: item.default_target_folder ?? null,

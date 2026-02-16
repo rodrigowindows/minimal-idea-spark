@@ -1,4 +1,4 @@
-export type NightWorkerProvider = 'codex' | 'claude' | 'gemini' | string;
+export type NightWorkerProvider = 'codex' | 'claude' | 'gemini' | (string & {});
 
 export type PromptStatus = 'pending' | 'processing' | 'done' | 'failed';
 type QueueStage = 'backlog' | 'prioritized';

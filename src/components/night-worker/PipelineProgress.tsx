@@ -134,7 +134,7 @@ export function PipelineProgress({
                 className="h-7 gap-1 px-2 text-[11px] border-red-500/30 text-red-300 hover:bg-red-500/20"
                 onClick={(e) => {
                   e.stopPropagation()
-                  onRetryStep(step.promptId!, step)
+                  if (step.promptId) onRetryStep(step.promptId, step)
                 }}
               >
                 <RefreshCw className="h-3 w-3" /> Retentar

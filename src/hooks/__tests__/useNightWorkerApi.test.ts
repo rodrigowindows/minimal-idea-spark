@@ -206,6 +206,25 @@ describe('normalizePromptItem (via usePromptsQuery)', () => {
     expect(result.current.data![0].queue_stage).toBe('prioritized')
     expect(result.current.data![1].queue_stage).toBe('backlog')
   })
+
+  it('normaliza processing_started_at e worker_id', async () => {
+    mockApiFetch.mockResolvedValueOnce([
+      {
+        id: 'p-worker',
+        provider: 'codex',
+        status: 'processing',
+        processing_started_at: '2026-02-16T12:00:00Z',
+        worker_id: 'worker-01',
+      },
+    ])
+
+    const { result } = renderHook(() => usePromptsQuery(30000, { enabled: true }), { wrapper: createWrapper() })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data![0].processing_started_at).toBe('2026-02-16T12:00:00Z')
+    expect(result.current.data![0].worker_id).toBe('worker-01')
+  })
 })
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -398,10 +417,10 @@ describe('normalizeTemplateItem', () => {
     expect(result.steps).toEqual([])
   })
 
-  it('version invalido resulta em NaN (comportamento atual)', () => {
+  it('version invalido fallback para 1', () => {
     const result = normalizeTemplateItem({ id: '1', version: 'abc' })
 
-    expect(Number.isNaN(result.version)).toBe(true)
+    expect(result.version).toBe(1)
   })
 
   it('is_default e coercido para boolean', () => {

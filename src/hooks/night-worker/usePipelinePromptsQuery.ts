@@ -7,12 +7,11 @@ import { normalizePromptItem } from './shared'
 
 export function usePipelinePromptsQuery(pipelineId?: string | null) {
   const { apiFetch, isConnected, config } = useNightWorker()
+  const safePipelineId = encodeURIComponent(pipelineId ?? '')
   return useQuery<PromptItem[]>({
     queryKey: ['nightworker', 'pipeline', pipelineId, config.baseUrl],
     queryFn: async () => {
-      const raw = await apiFetch<PromptsListResponse | PromptItem[]>(
-        `/prompts?pipeline_id=${pipelineId}&limit=50`
-      )
+      const raw = await apiFetch<PromptsListResponse | PromptItem[]>(`/prompts?pipeline_id=${safePipelineId}&limit=50`)
       const items = Array.isArray(raw) ? raw : (raw as PromptsListResponse).prompts ?? []
       return items
         .map((item: any) => normalizePromptItem(item))

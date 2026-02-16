@@ -40,7 +40,7 @@ export function useUpdateProjectMutation() {
       sla_max_retries?: number
       sla_retry_delay_seconds?: number
     }) =>
-      apiFetch<NightWorkerProject>(`/projects/${body.id}`, {
+      apiFetch<NightWorkerProject>(`/projects/${encodeURIComponent(body.id)}`, {
         method: 'PATCH',
         body: JSON.stringify({
           name: body.name,
@@ -64,7 +64,7 @@ export function useDeleteProjectMutation() {
   const client = useQueryClient()
   return useMutation({
     mutationFn: (body: { id: string }) =>
-      apiFetch<{ id: string; deleted: boolean }>(`/projects/${body.id}`, {
+      apiFetch<{ id: string; deleted: boolean }>(`/projects/${encodeURIComponent(body.id)}`, {
         method: 'DELETE',
       }),
     onSuccess: () => {

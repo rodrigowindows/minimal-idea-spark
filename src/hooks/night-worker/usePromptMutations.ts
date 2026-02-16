@@ -40,7 +40,7 @@ export function useMovePromptMutation() {
   const client = useQueryClient()
   return useMutation({
     mutationFn: (body: { id: string; stage: 'backlog' | 'prioritized'; priority_order?: number | null }) =>
-      apiFetch(`/prompts/${body.id}/move`, {
+      apiFetch(`/prompts/${encodeURIComponent(body.id)}/move`, {
         method: 'POST',
         body: JSON.stringify({ stage: body.stage, priority_order: body.priority_order ?? undefined }),
       }),
@@ -71,7 +71,7 @@ export function useEditPromptMutation() {
   const client = useQueryClient()
   return useMutation({
     mutationFn: (body: { id: string; name?: string; content?: string; target_folder?: string | null }) =>
-      apiFetch(`/prompts/${body.id}/edit`, {
+      apiFetch(`/prompts/${encodeURIComponent(body.id)}/edit`, {
         method: 'POST',
         body: JSON.stringify({
           name: body.name,
@@ -91,7 +91,7 @@ export function useReprocessPromptMutation() {
   const client = useQueryClient()
   return useMutation({
     mutationFn: (body: { id: string; name?: string }) =>
-      apiFetch<{ id: string }>(`/prompts/${body.id}/reprocess`, {
+      apiFetch<{ id: string }>(`/prompts/${encodeURIComponent(body.id)}/reprocess`, {
         method: 'POST',
         body: JSON.stringify({ name: body.name }),
       }),

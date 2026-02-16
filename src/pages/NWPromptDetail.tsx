@@ -36,22 +36,25 @@ export default function NWPromptDetail() {
   const [retryTarget, setRetryTarget] = useState<{ promptId: string; stepView: PipelineStepView } | null>(null)
 
   useEffect(() => {
-    if (data) {
+    if (data && !isEditing) {
       setDraftName(data.name || '')
       setDraftContent(data.content || '')
       setDraftTargetFolder(data.target_folder || '')
-      setIsEditing(false)
     }
-  }, [data])
+  }, [data, isEditing])
 
   const canEdit = data?.status === 'pending'
   const canReprocess = data?.status === 'done' || data?.status === 'failed'
   const pipelineId = data?.pipeline_id ?? null
 
-  const handleCopy = (text?: string | null) => {
+  const handleCopy = async (text?: string | null) => {
     if (!text) return
-    navigator.clipboard.writeText(text)
-    toast.success('Copiado para a area de transferencia')
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success('Copiado para a area de transferencia')
+    } catch {
+      toast.error('Falha ao copiar para a area de transferencia')
+    }
   }
 
   const handleSaveEdit = () => {
@@ -297,7 +300,17 @@ export default function NWPromptDetail() {
                       <Copy className="h-4 w-4" />
                     </Button>
                     {data.result_path && (
-                      <Button variant="outline" size="icon" onClick={() => window.open(`file://${data.result_path}`, '_blank')}>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        title={data.result_path}
+                        onClick={() => {
+                          navigator.clipboard.writeText(data.result_path!).then(
+                            () => toast.success('Caminho copiado'),
+                            () => toast.error('Falha ao copiar caminho'),
+                          )
+                        }}
+                      >
                         <ExternalLink className="h-4 w-4" />
                       </Button>
                     )}

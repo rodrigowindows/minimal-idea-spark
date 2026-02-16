@@ -1,25 +1,84 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { StatusBadge } from '@/components/night-worker/StatusBadge'
 import { ProviderBadge } from '@/components/night-worker/ProviderBadge'
 import { PipelineProgress } from '@/components/night-worker/PipelineProgress'
 import { RetryConfirmDialog } from '@/components/night-worker/RetryConfirmDialog'
+import { StatusBadge } from '@/components/night-worker/StatusBadge'
 import type { PipelineStepView } from '@/components/night-worker/PipelineProgress'
 import { useProjectPromptsQuery, useProjectsQuery, useReprocessPromptMutation } from '@/hooks/useNightWorkerApi'
-import type { PromptItem } from '@/types/night-worker'
+import type { PromptItem, PromptStatus } from '@/types/night-worker'
 import { toast } from 'sonner'
 import { ArrowLeft, Briefcase, FolderOpen, Loader2 } from 'lucide-react'
 
 type StatusFilter = 'all' | 'active' | 'completed' | 'failed'
 
-function deriveOverallStatus(items: PromptItem[]): string {
-  if (items.some((i) => i.status === 'failed')) return 'failed'
-  if (items.some((i) => i.status === 'processing')) return 'processing'
-  if (items.some((i) => i.status === 'pending')) return 'pending'
-  if (items.every((i) => i.status === 'done')) return 'done'
+interface PipelineGroup {
+  pipelineId: string
+  templateName: string
+  items: PromptItem[]
+  representativePrompt: PromptItem
+  overallStatus: PromptStatus
+  updatedAt: number
+}
+
+function toTs(value?: string | null): number {
+  if (!value) return 0
+  const ts = new Date(value).getTime()
+  return Number.isNaN(ts) ? 0 : ts
+}
+
+function statusScore(status: PromptStatus): number {
+  if (status === 'processing') return 4
+  if (status === 'pending') return 3
+  if (status === 'done') return 2
+  return 1
+}
+
+function pickCurrentPromptForStep(items: PromptItem[], step: number): PromptItem | null {
+  const candidates = items.filter((item) => Number(item.pipeline_step) === step)
+  if (candidates.length === 0) return null
+  return candidates
+    .slice()
+    .sort((a, b) => {
+      const delta = statusScore(b.status) - statusScore(a.status)
+      if (delta !== 0) return delta
+      return toTs(b.updated_at || b.created_at) - toTs(a.updated_at || a.created_at)
+    })[0]
+}
+
+function inferTotalSteps(items: PromptItem[]): number {
+  const byTotal = Math.max(...items.map((item) => Number(item.pipeline_total_steps) || 0), 0)
+  const byConfig = Math.max(
+    ...items.map((item) => (Array.isArray(item.pipeline_config?.steps) ? item.pipeline_config?.steps?.length ?? 0 : 0)),
+    0,
+  )
+  const byStep = Math.max(...items.map((item) => Number(item.pipeline_step) || 0), 0)
+  return Math.max(byTotal, byConfig, byStep)
+}
+
+function deriveOverallStatus(items: PromptItem[]): PromptStatus {
+  const totalSteps = inferTotalSteps(items)
+  if (totalSteps < 1) return 'pending'
+
+  const statuses: PromptStatus[] = []
+
+  for (let step = 1; step <= totalSteps; step += 1) {
+    const current = pickCurrentPromptForStep(items, step)
+    if (!current) {
+      statuses.push('pending')
+      continue
+    }
+    statuses.push(current.status)
+  }
+
+  if (statuses.some((status) => status === 'processing')) return 'processing'
+  if (statuses.some((status) => status === 'failed')) return 'failed'
+  if (statuses.some((status) => status === 'pending')) return 'pending'
+  if (statuses.every((status) => status === 'done')) return 'done'
   return 'pending'
 }
 
@@ -35,9 +94,9 @@ export default function NWProjectDetail() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [retryTarget, setRetryTarget] = useState<{ promptId: string; stepView: PipelineStepView } | null>(null)
 
-  const { data: allProjects = [] } = useProjectsQuery('all')
-  const project = useMemo(() => allProjects.find((p) => p.id === id), [allProjects, id])
-  const { data: prompts = [], isLoading: loadingPrompts } = useProjectPromptsQuery(id ?? null, 200)
+  const { data: allProjects = [], isLoading: loadingProjects } = useProjectsQuery('all')
+  const project = useMemo(() => allProjects.find((entry) => entry.id === id), [allProjects, id])
+  const { data: prompts = [], isLoading: loadingPrompts } = useProjectPromptsQuery(id ?? null, 500)
   const reprocessMutation = useReprocessPromptMutation()
 
   const { pipelineGroups, standalonePrompts } = useMemo(() => {
@@ -54,32 +113,59 @@ export default function NWProjectDetail() {
       }
     }
 
+    const groups: PipelineGroup[] = Array.from(pipelineMap.entries()).map(([pipelineId, items]) => {
+      const sortedByStep = items.slice().sort((a, b) => (a.pipeline_step ?? 0) - (b.pipeline_step ?? 0))
+      const representativePrompt =
+        sortedByStep
+          .slice()
+          .sort((a, b) => toTs(b.updated_at || b.created_at) - toTs(a.updated_at || a.created_at))[0] ??
+        sortedByStep[0]
+
+      return {
+        pipelineId,
+        templateName: representativePrompt?.pipeline_template_name ?? 'Pipeline',
+        items: sortedByStep,
+        representativePrompt,
+        overallStatus: deriveOverallStatus(items),
+        updatedAt: toTs(representativePrompt?.updated_at || representativePrompt?.created_at),
+      }
+    })
+
     return {
-      pipelineGroups: Array.from(pipelineMap.entries())
-        .map(([pipelineId, items]) => ({
-          pipelineId,
-          templateName: items[0]?.pipeline_template_name ?? 'Pipeline',
-          items: items.sort((a, b) => (a.pipeline_step ?? 0) - (b.pipeline_step ?? 0)),
-          overallStatus: deriveOverallStatus(items),
-          updatedAt: items.reduce((latest, i) => {
-            const t = new Date(i.updated_at || i.created_at || '0').getTime()
-            return t > latest ? t : latest
-          }, 0),
-        }))
-        .sort((a, b) => b.updatedAt - a.updatedAt),
+      pipelineGroups: groups.sort((a, b) => b.updatedAt - a.updatedAt),
       standalonePrompts: standalone.sort(
-        (a, b) => new Date(b.updated_at || b.created_at || '0').getTime() - new Date(a.updated_at || a.created_at || '0').getTime()
+        (a, b) => toTs(b.updated_at || b.created_at) - toTs(a.updated_at || a.created_at),
       ),
     }
   }, [prompts])
 
   const filteredPipelines = useMemo(() => {
     if (statusFilter === 'all') return pipelineGroups
-    if (statusFilter === 'active') return pipelineGroups.filter((g) => g.overallStatus === 'pending' || g.overallStatus === 'processing')
-    if (statusFilter === 'completed') return pipelineGroups.filter((g) => g.overallStatus === 'done')
-    if (statusFilter === 'failed') return pipelineGroups.filter((g) => g.overallStatus === 'failed')
+    if (statusFilter === 'active') {
+      return pipelineGroups.filter((group) => group.overallStatus === 'pending' || group.overallStatus === 'processing')
+    }
+    if (statusFilter === 'completed') return pipelineGroups.filter((group) => group.overallStatus === 'done')
+    if (statusFilter === 'failed') return pipelineGroups.filter((group) => group.overallStatus === 'failed')
     return pipelineGroups
   }, [pipelineGroups, statusFilter])
+
+  const summary = useMemo(() => {
+    const totals = project?.stats ?? {
+      total: prompts.length,
+      pending: prompts.filter((prompt) => prompt.status === 'pending').length,
+      processing: prompts.filter((prompt) => prompt.status === 'processing').length,
+      done: prompts.filter((prompt) => prompt.status === 'done').length,
+      failed: prompts.filter((prompt) => prompt.status === 'failed').length,
+    }
+
+    return {
+      ...totals,
+      pipelines: pipelineGroups.length,
+      pipelinesActive: pipelineGroups.filter((group) => group.overallStatus === 'pending' || group.overallStatus === 'processing').length,
+      pipelinesDone: pipelineGroups.filter((group) => group.overallStatus === 'done').length,
+      pipelinesFailed: pipelineGroups.filter((group) => group.overallStatus === 'failed').length,
+    }
+  }, [project?.stats, prompts, pipelineGroups])
 
   const handleRetryStep = (promptId: string, stepView: PipelineStepView) => {
     setRetryTarget({ promptId, stepView })
@@ -98,7 +184,7 @@ export default function NWProjectDetail() {
         onError: () => {
           toast.error('Falha ao reprocessar passo')
         },
-      }
+      },
     )
   }
 
@@ -110,6 +196,20 @@ export default function NWProjectDetail() {
   ]
 
   if (!id) return null
+
+  if (!loadingProjects && !project) {
+    return (
+      <div className="space-y-6 px-4 pb-10 md:px-8">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/nw/projects')}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <Alert className="border-amber-500/40 bg-amber-500/10 text-amber-100">
+          <AlertTitle>Projeto nao encontrado</AlertTitle>
+          <AlertDescription>O projeto informado nao existe ou nao esta acessivel.</AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 px-4 pb-10 md:px-8">
@@ -142,29 +242,31 @@ export default function NWProjectDetail() {
         </div>
       </div>
 
-      {project?.stats && (
-        <div className="grid grid-cols-5 gap-3">
-          {[
-            { label: 'Total', value: project.stats.total, color: 'border-border/60' },
-            { label: 'Pendente', value: project.stats.pending, color: 'border-amber-500/40 bg-amber-500/5' },
-            { label: 'Processando', value: project.stats.processing, color: 'border-blue-500/40 bg-blue-500/5' },
-            { label: 'Concluido', value: project.stats.done, color: 'border-emerald-500/40 bg-emerald-500/5' },
-            { label: 'Falha', value: project.stats.failed, color: 'border-red-500/40 bg-red-500/5' },
-          ].map((stat) => (
-            <div key={stat.label} className={`rounded-xl border p-3 text-center ${stat.color}`}>
-              <p className="text-2xl font-bold text-foreground">{stat.value ?? 0}</p>
-              <p className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">{stat.label}</p>
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-5">
+        {[
+          { label: 'Total', value: summary.total, color: 'border-border/60' },
+          { label: 'Pendente', value: summary.pending, color: 'border-amber-500/40 bg-amber-500/5' },
+          { label: 'Processando', value: summary.processing, color: 'border-blue-500/40 bg-blue-500/5' },
+          { label: 'Concluido', value: summary.done, color: 'border-emerald-500/40 bg-emerald-500/5' },
+          { label: 'Falha', value: summary.failed, color: 'border-red-500/40 bg-red-500/5' },
+          { label: 'Pipelines', value: summary.pipelines, color: 'border-border/60' },
+          { label: 'Pipe ativos', value: summary.pipelinesActive, color: 'border-blue-500/40 bg-blue-500/5' },
+          { label: 'Pipe done', value: summary.pipelinesDone, color: 'border-emerald-500/40 bg-emerald-500/5' },
+          { label: 'Pipe falha', value: summary.pipelinesFailed, color: 'border-red-500/40 bg-red-500/5' },
+        ].map((stat) => (
+          <div key={stat.label} className={`rounded-xl border p-3 text-center ${stat.color}`}>
+            <p className="text-2xl font-bold text-foreground">{stat.value ?? 0}</p>
+            <p className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">{stat.label}</p>
+          </div>
+        ))}
+      </div>
 
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Briefcase className="h-5 w-5" /> Pipelines
           </h2>
-          <div className="flex gap-1">
+          <div className="flex flex-wrap gap-1">
             {filterButtons.map((btn) => (
               <Button
                 key={btn.value}
@@ -180,13 +282,13 @@ export default function NWProjectDetail() {
           </div>
         </div>
 
-        {loadingPrompts && (
+        {(loadingProjects || loadingPrompts) && (
           <div className="flex min-h-[20vh] items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         )}
 
-        {!loadingPrompts && filteredPipelines.length === 0 && (
+        {!loadingProjects && !loadingPrompts && filteredPipelines.length === 0 && (
           <Card className="border border-border/60 bg-background/40">
             <CardContent className="py-8 text-center text-muted-foreground">
               Nenhum pipeline encontrado{statusFilter !== 'all' ? ' para este filtro' : ''}.
@@ -201,7 +303,7 @@ export default function NWProjectDetail() {
                 <CardTitle className="text-base">{group.templateName}</CardTitle>
                 <div className="flex items-center gap-2">
                   <StatusBadge
-                    status={group.overallStatus as any}
+                    status={group.overallStatus}
                     pulse={group.overallStatus === 'processing' || group.overallStatus === 'pending'}
                   />
                   <Badge variant="outline" className="font-mono text-[10px]">
@@ -209,11 +311,12 @@ export default function NWProjectDetail() {
                   </Badge>
                 </div>
               </div>
+              <CardDescription className="text-xs">Atualizado: {formatDate(group.representativePrompt.updated_at || group.representativePrompt.created_at)}</CardDescription>
             </CardHeader>
             <CardContent>
               <PipelineProgress
                 pipelineId={group.pipelineId}
-                currentPrompt={group.items[0]}
+                currentPrompt={group.representativePrompt}
                 prompts={group.items}
                 onRetryStep={handleRetryStep}
               />

@@ -1,6 +1,5 @@
 import { useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { parseISO } from 'date-fns'
 import { Activity, AlertCircle, CheckCircle2, Clock3, Cpu, Settings2, TimerReset, TrendingUp } from 'lucide-react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -15,7 +14,7 @@ import { WorkerCard } from '@/components/night-worker/WorkerCard'
 import { ApiError, useNightWorker } from '@/contexts/NightWorkerContext'
 import { useHealthQuery, useProjectsQuery, usePromptsQuery } from '@/hooks/useNightWorkerApi'
 import { usePagePerf } from '@/hooks/usePagePerf'
-import type { HealthResponse, PromptItem } from '@/types/night-worker'
+import type { HealthResponse, PromptItem, PromptStatus } from '@/types/night-worker'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -57,6 +56,16 @@ interface DashboardData {
   projectRows: ProjectMetricRow[]
   providerRows: ProviderMetricRow[]
   lastPrompts: PromptItem[]
+}
+
+interface TimelineRow {
+  key: string
+  ts: number
+  title: string
+  detail: string
+  status: PromptStatus
+  promptId: string | null
+  displayTime: string
 }
 
 export default function NWDashboard() {
@@ -415,6 +424,40 @@ export default function NWDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="border border-white/10 bg-card/70 backdrop-blur">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-lg">Atividade recente</CardTitle>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/nw/prompts')}>
+            Ver fila completa
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {timeline.length === 0 && (
+            <p className="text-sm text-muted-foreground">Sem eventos recentes.</p>
+          )}
+          {timeline.map((row) => (
+            <div
+              key={row.key}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-background/40 p-3"
+            >
+              <div className="space-y-0.5">
+                <p className="text-sm font-semibold text-foreground">{row.title}</p>
+                <p className="text-xs text-muted-foreground">{row.detail}</p>
+                <p className="text-[11px] text-muted-foreground">{row.displayTime}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <StatusBadge status={row.status} />
+                {row.promptId && (
+                  <Button variant="outline" size="sm" onClick={() => navigate(`/nw/prompts/${row.promptId}`)}>
+                    Abrir
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
     </div>
   )
 }
@@ -450,7 +493,7 @@ function percentile(values: number[], p: number): number | null {
 }
 
 function formatPercent(val: number | null): string {
-  if (val === null) return '0%'
+  if (val === null) return '-'
   return `${(val * 100).toFixed(1)}%`
 }
 
@@ -474,7 +517,42 @@ function formatDateTime(ts: number): string {
   })
 }
 
-function buildTimeline(prompts: PromptItem[], health: HealthResponse | undefined): any[] {
-  // Retorna um array vazio por enquanto para evitar erros, ja que o snippet original nao mostrava o uso da timeline
-  return []
+function buildTimeline(prompts: PromptItem[], health: HealthResponse | undefined): TimelineRow[] {
+  const rows: TimelineRow[] = prompts.map((prompt) => {
+    const created = toTs(prompt.created_at)
+    const updated = toTs(prompt.updated_at || prompt.created_at)
+    const provider = prompt.provider || 'unknown'
+    const ts = prompt.status === 'done' || prompt.status === 'failed' ? updated : created
+
+    return {
+      key: prompt.id,
+      ts,
+      title: `${provider} - ${prompt.status}`,
+      detail: prompt.name,
+      status: prompt.status,
+      promptId: prompt.id,
+      displayTime: ts ? new Date(ts).toLocaleString('pt-BR') : '-',
+    }
+  })
+
+  if (health?.workers?.length) {
+    for (const worker of health.workers) {
+      const ts = toTs(worker.lastRun || worker.last_seen || worker.window)
+      if (!ts) continue
+
+      rows.push({
+        key: `worker-${worker.provider}-${ts}`,
+        ts,
+        title: `Worker ${worker.provider}`,
+        detail: worker.active ? 'Ativo' : 'Inativo',
+        status: worker.active ? 'done' : 'failed',
+        promptId: null,
+        displayTime: new Date(ts).toLocaleString('pt-BR'),
+      })
+    }
+  }
+
+  return rows
+    .sort((a, b) => b.ts - a.ts)
+    .slice(0, 20)
 }
