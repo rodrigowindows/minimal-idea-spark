@@ -51,11 +51,13 @@ export function normalizePromptItem(item: any): PromptItem {
 
 export function normalizeTemplateItem(item: any): PipelineTemplate {
   const steps = Array.isArray(item.steps) ? item.steps : []
+  const contextMode = item.context_mode === 'all_steps' || item.context_mode === 'previous_only' ? item.context_mode : undefined
   return {
     id: String(item.id),
     name: typeof item.name === 'string' ? item.name : 'template',
     description: typeof item.description === 'string' ? item.description : '',
     steps,
+    context_mode: contextMode,
     version: Number(item.version ?? 1),
     is_default: Boolean(item.is_default ?? false),
     created_at: item.created_at ?? new Date().toISOString(),

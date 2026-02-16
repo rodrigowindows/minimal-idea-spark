@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { ProviderBadge } from '@/components/night-worker/ProviderBadge'
 import { toast } from 'sonner'
 import { ArrowDown, ArrowUp, Briefcase, GitBranch, Pencil, Play, Plus, Save, Trash2, X } from 'lucide-react'
-import type { NightWorkerProvider, PipelineStep, PipelineTemplate } from '@/types/night-worker'
+import type { NightWorkerProvider, PipelineContextMode, PipelineStep, PipelineTemplate } from '@/types/night-worker'
 import {
   useCreateTemplateMutation,
   useDeleteTemplateMutation,
@@ -21,6 +21,7 @@ interface TemplateDraft {
   id?: string
   name: string
   description: string
+  context_mode: PipelineContextMode
   steps: PipelineStep[]
 }
 
@@ -38,6 +39,7 @@ function createEmptyDraft(): TemplateDraft {
   return {
     name: '',
     description: '',
+    context_mode: 'all_steps',
     steps: [createEmptyStep()],
   }
 }
@@ -65,6 +67,7 @@ export default function NWTemplates() {
       id: template.id,
       name: template.name,
       description: template.description,
+      context_mode: template.context_mode ?? 'previous_only',
       steps: template.steps.map((s) => ({ ...s })),
     })
   }
@@ -132,6 +135,7 @@ export default function NWTemplates() {
           id: draft.id,
           name,
           description: draft.description.trim(),
+          context_mode: draft.context_mode,
           steps,
         },
         {
@@ -144,6 +148,7 @@ export default function NWTemplates() {
         {
           name,
           description: draft.description.trim(),
+          context_mode: draft.context_mode,
           steps,
         },
         {
@@ -203,7 +208,7 @@ export default function NWTemplates() {
           <CardHeader>
             <CardTitle>{draft.id ? 'Editar template' : 'Novo template'}</CardTitle>
             <CardDescription>
-              Use {'{input}'} para o prompt original e {'{previous_result}'} para o resultado do passo anterior.
+              Placeholders: {'{input}'} = prompt original, {'{previous_result}'} = resultado anterior, {'{all_results}'} = todos os resultados, {'{step_N_result}'} = resultado do step N.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -219,6 +224,31 @@ export default function NWTemplates() {
                   onChange={(e) => setDraft((prev) => (prev ? { ...prev, description: e.target.value } : prev))}
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Modo de Contexto</Label>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDraft((prev) => (prev ? { ...prev, context_mode: 'previous_only' } : prev))}
+                  className={`rounded-lg border px-3 py-2 text-sm transition-colors ${draft.context_mode === 'previous_only' ? 'border-blue-500 bg-blue-500/20 text-blue-200' : 'border-border/60 bg-background/40 text-muted-foreground hover:bg-background/60'}`}
+                >
+                  So anterior
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDraft((prev) => (prev ? { ...prev, context_mode: 'all_steps' } : prev))}
+                  className={`rounded-lg border px-3 py-2 text-sm transition-colors ${draft.context_mode === 'all_steps' ? 'border-emerald-500 bg-emerald-500/20 text-emerald-200' : 'border-border/60 bg-background/40 text-muted-foreground hover:bg-background/60'}`}
+                >
+                  Todos os steps
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {draft.context_mode === 'all_steps'
+                  ? 'Cada step recebe o output de TODOS os steps anteriores, nao so o ultimo.'
+                  : 'Cada step recebe apenas o output do step imediatamente anterior.'}
+              </p>
             </div>
 
             <div className="space-y-3">
@@ -314,9 +344,14 @@ export default function NWTemplates() {
                   </CardTitle>
                   <CardDescription>{template.description || 'Sem descricao'}</CardDescription>
                 </div>
-                <Badge variant="outline" className="gap-1">
-                  <GitBranch className="h-3.5 w-3.5" /> {template.steps.length} passos
-                </Badge>
+                <div className="flex flex-col items-end gap-1">
+                  <Badge variant="outline" className="gap-1">
+                    <GitBranch className="h-3.5 w-3.5" /> {template.steps.length} passos
+                  </Badge>
+                  <Badge variant="outline" className={template.context_mode === 'all_steps' ? 'border-emerald-500/50 text-emerald-300' : 'text-muted-foreground'}>
+                    {template.context_mode === 'all_steps' ? 'Contexto completo' : 'So anterior'}
+                  </Badge>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">

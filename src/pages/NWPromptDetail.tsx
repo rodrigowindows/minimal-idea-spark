@@ -159,8 +159,13 @@ export default function NWPromptDetail() {
       {pipelineId && data && (
         <Card className="mb-4 border border-blue-500/30 bg-blue-500/5">
           <CardHeader>
-            <CardTitle className="text-base">
+            <CardTitle className="text-base flex items-center gap-2">
               Pipeline: {data.pipeline_template_name || 'Pipeline'} (Passo {data.pipeline_step}/{data.pipeline_total_steps})
+              {data.pipeline_config?.context_mode === 'all_steps' && (
+                <Badge variant="outline" className="border-emerald-500/50 text-emerald-300 text-xs">
+                  Contexto completo
+                </Badge>
+              )}
             </CardTitle>
             <CardDescription>Fluxo multi-step deste prompt</CardDescription>
           </CardHeader>
@@ -252,6 +257,10 @@ export default function NWPromptDetail() {
                     value={data.pipeline_step ? `${data.pipeline_step}/${data.pipeline_total_steps ?? '-'}` : '-'}
                   />
                   <MetaItem label="Pipeline template" value={data.pipeline_template_name || '-'} />
+                  <MetaItem
+                    label="Modo contexto"
+                    value={data.pipeline_config?.context_mode === 'all_steps' ? 'Todos os steps' : data.pipeline_id ? 'So anterior' : '-'}
+                  />
                   {data.result_path && <MetaItem label="Arquivo resultado" value={data.result_path} />}
                 </div>
                 {data.cloned_from && (

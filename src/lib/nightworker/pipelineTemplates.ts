@@ -15,6 +15,7 @@ export function getDefaultPipelineTemplates(): PipelineTemplate[] {
       id: 'tpl-default-pipeline',
       name: 'Default Pipeline',
       description: 'Gemini planeja -> Codex valida e codifica -> Claude revisa e finaliza',
+      context_mode: 'all_steps',
       is_default: true,
       steps: [
         {

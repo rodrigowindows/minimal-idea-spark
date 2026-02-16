@@ -2,7 +2,7 @@
 
 import { ApiError, useNightWorker } from '@/contexts/NightWorkerContext'
 import { getDefaultPipelineTemplates } from '@/lib/nightworker/pipelineTemplates'
-import type { PipelineTemplate } from '@/types/night-worker'
+import type { PipelineContextMode, PipelineTemplate } from '@/types/night-worker'
 
 import { normalizeTemplateItem, TEMPLATES_KEY_BASE } from './shared'
 
@@ -37,7 +37,7 @@ export function useCreateTemplateMutation() {
   const { apiFetch } = useNightWorker()
   const client = useQueryClient()
   return useMutation({
-    mutationFn: (body: { name: string; description?: string | null; steps: unknown[]; is_default?: boolean }) =>
+    mutationFn: (body: { name: string; description?: string | null; steps: unknown[]; context_mode?: PipelineContextMode; is_default?: boolean }) =>
       apiFetch<PipelineTemplate>('/templates', {
         method: 'POST',
         body: JSON.stringify(body),
@@ -52,13 +52,14 @@ export function useUpdateTemplateMutation() {
   const { apiFetch } = useNightWorker()
   const client = useQueryClient()
   return useMutation({
-    mutationFn: (body: { id: string; name?: string; description?: string | null; steps?: unknown[]; is_default?: boolean }) =>
+    mutationFn: (body: { id: string; name?: string; description?: string | null; steps?: unknown[]; context_mode?: PipelineContextMode; is_default?: boolean }) =>
       apiFetch<PipelineTemplate>(`/templates/${body.id}`, {
         method: 'PATCH',
         body: JSON.stringify({
           name: body.name,
           description: body.description,
           steps: body.steps,
+          context_mode: body.context_mode,
           is_default: body.is_default,
         }),
       }),

@@ -4,11 +4,14 @@ export type PromptStatus = 'pending' | 'processing' | 'done' | 'failed';
 type QueueStage = 'backlog' | 'prioritized';
 type ProjectStatus = 'active' | 'archived' | 'paused';
 
+export type PipelineContextMode = 'previous_only' | 'all_steps';
+
 /** Single step in a pipeline template */
 export interface PipelineStep {
   provider: NightWorkerProvider;
   role: string;
   instruction: string;
+  context_mode?: PipelineContextMode;
 }
 
 /** Pipeline template definition (stored in localStorage) */
@@ -17,6 +20,7 @@ export interface PipelineTemplate {
   name: string;
   description: string;
   steps: PipelineStep[];
+  context_mode?: PipelineContextMode;
   version?: number;
   is_default?: boolean;
   created_at: string;
@@ -28,6 +32,7 @@ export interface PipelineConfig {
   template_version: number;
   steps: PipelineStep[];
   original_input: string;
+  context_mode?: PipelineContextMode;
 }
 
 interface ProjectStats {

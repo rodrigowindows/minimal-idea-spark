@@ -45,6 +45,7 @@ export function useCreatePipeline() {
         template_version: 1,
         steps: template.steps,
         original_input: content,
+        ...(template.context_mode ? { context_mode: template.context_mode } : {}),
       }
 
       const renderedContent = firstStep.instruction
