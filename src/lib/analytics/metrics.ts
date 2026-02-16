@@ -136,13 +136,13 @@ export function calculatePeriodStats(
   })
 
   const moodValues = periodLogs
-    .map(l => MOOD_VALUES[l.mood] || 0)
-    .filter(v => v > 0)
+    .map(l => l.mood ? (MOOD_VALUES[l.mood] || 0) : 0)
+    .filter((v): v is number => v != null && v > 0)
   const avgMood = moodValues.length > 0 ? moodValues.reduce((a, b) => a + b, 0) / moodValues.length : 0
 
   const energyValues = periodLogs
-    .map(l => l.energy_level)
-    .filter(v => v > 0)
+    .map(l => l.energy_level ?? 0)
+    .filter((v): v is number => v != null && v > 0)
   const avgEnergy = energyValues.length > 0 ? energyValues.reduce((a, b) => a + b, 0) / energyValues.length : 0
 
   const domainsTouched = [...new Set(periodOpps.filter(o => o.domain_id).map(o => o.domain_id!))]
@@ -247,7 +247,7 @@ export function generateDailyDataPoints(
     })
 
     const moodVal = dayLogs.length > 0
-      ? dayLogs.reduce((sum, l) => sum + (MOOD_VALUES[l.mood] || 3), 0) / dayLogs.length
+      ? dayLogs.reduce((sum, l) => sum + (l.mood ? (MOOD_VALUES[l.mood] || 3) : 3), 0) / dayLogs.length
       : 0
 
     result.push({

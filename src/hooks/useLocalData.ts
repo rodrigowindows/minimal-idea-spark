@@ -279,10 +279,12 @@ export function useLocalData() {
   // ---- Goal / OKR CRUD ----
   const addGoal = useCallback((data: Omit<Goal, 'id' | 'user_id' | 'created_at'>) => {
     const newGoal: Goal = {
-      key_results: [],
-      cycle: 'custom',
-      status: 'active',
-      start_date: new Date().toISOString().split('T')[0],
+      ...{
+        key_results: [],
+        cycle: 'custom',
+        status: 'active',
+        start_date: new Date().toISOString().split('T')[0],
+      },
       ...data,
       id: `goal-${Date.now()}`,
       user_id: userId,

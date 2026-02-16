@@ -1,4 +1,4 @@
-import type { ContextSource } from '@/types'
+import type { ContextSource } from '@/types/database'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Target, BookOpen, FileText, ChevronDown, ChevronUp, Zap, Star } from 'lucide-react'
@@ -24,7 +24,7 @@ function getStatusBadgeVariant(status: string): 'default' | 'secondary' | 'destr
 }
 
 function SourceDetail({ source }: { source: ContextSource }) {
-  const meta = source.metadata
+  const meta = source.metadata as Record<string, any> | undefined
   if (!meta) return null
 
   if (source.type === 'opportunity') {
@@ -32,24 +32,24 @@ function SourceDetail({ source }: { source: ContextSource }) {
       <div className="mt-1 flex flex-wrap items-center gap-1.5">
         {meta.status && (
           <Badge variant={getStatusBadgeVariant(meta.status as string)} className="text-[10px] px-1.5 py-0">
-            {(meta.status as string).toUpperCase()}
+            {String(meta.status).toUpperCase()}
           </Badge>
         )}
         {meta.priority && (
           <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
             <Zap className="h-2.5 w-2.5" />
-            P{meta.priority as number}
+            P{String(meta.priority)}
           </span>
         )}
         {meta.strategic_value && (
           <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
             <Star className="h-2.5 w-2.5" />
-            SV:{meta.strategic_value as number}
+            SV:{String(meta.strategic_value)}
           </span>
         )}
         {meta.type && (
           <span className="text-[10px] text-muted-foreground capitalize">
-            {meta.type as string}
+            {String(meta.type)}
           </span>
         )}
       </div>
@@ -59,9 +59,9 @@ function SourceDetail({ source }: { source: ContextSource }) {
   if (source.type === 'journal') {
     return (
       <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground">
-        {meta.log_date && <span>{meta.log_date as string}</span>}
-        {meta.mood && <span>Mood: {meta.mood as string}</span>}
-        {meta.energy_level && <span>Energy: {meta.energy_level as number}/10</span>}
+        {meta.log_date && <span>{String(meta.log_date)}</span>}
+        {meta.mood && <span>Mood: {String(meta.mood)}</span>}
+        {meta.energy_level && <span>Energy: {String(meta.energy_level)}/10</span>}
       </div>
     )
   }
