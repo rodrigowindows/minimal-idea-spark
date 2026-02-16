@@ -70,7 +70,7 @@ Tests are in `*.test.ts` / `*.test.tsx` files alongside their source modules:
 | **Hook unit tests** | `src/hooks/useXPSystem.test.ts`, `usePriorities.test.ts`, `useRagChat.test.ts` | XP gamification, priority CRUD, RAG chat streaming |
 | **Component tests** | `src/components/smart-capture/SmartCapture.test.tsx`, `src/components/war-room/TheOneThing.test.tsx` | UI interactions, rendering, user events |
 | **Integration tests** | `src/pages/Auth.test.tsx`, `Opportunities.test.tsx`, `Journal.test.tsx` | Full page flows: login/signup, opportunity list/filter, journal create/list |
-| **Utility tests** | `src/lib/ai-parser.test.ts` | XP reward calculations, gamification config |
+| **Utility tests** | `src/lib/constants.test.ts` | XP reward calculations, gamification config |
 | **Accessibility tests** | `src/test/accessibility.test.tsx` | jest-axe a11y checks for core UI components |
 
 ### E2E Tests (Playwright)
