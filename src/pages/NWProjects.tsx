@@ -46,9 +46,6 @@ function formatDate(value?: string | null) {
   return Number.isNaN(d.getTime()) ? value : d.toLocaleString()
 }
 
-const BUILD_TAG = '2026-02-16T15:20-edit-delete-projects'
-console.info('[NWProjects] build:', BUILD_TAG)
-
 export default function NWProjects() {
   usePagePerf('NWProjects')
   const { t } = useTranslation()
@@ -188,7 +185,7 @@ export default function NWProjects() {
         projectName: selectedProject.name,
       })
     } catch {
-      // toast handled by useCreatePipeline hook
+      toast.error(t('projects.toast.processFailed'))
     }
   }
 
@@ -753,3 +750,4 @@ export default function NWProjects() {
     </div>
   )
 }
+

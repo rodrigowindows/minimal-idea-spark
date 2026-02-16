@@ -42,7 +42,7 @@ export function useCreatePipeline() {
       const pipelineId = crypto.randomUUID()
       const firstStep = template.steps[0]
       const pipelineConfig: PipelineConfig = {
-        template_version: 1,
+        template_version: template.version ?? 1,
         steps: template.steps,
         original_input: content,
         ...(template.context_mode ? { context_mode: template.context_mode } : {}),
@@ -84,3 +84,4 @@ export function useCreatePipeline() {
 
   return { runPipeline, isLoading: createPrompt.isPending }
 }
+

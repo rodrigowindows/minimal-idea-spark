@@ -3,35 +3,33 @@ import { useLocation } from 'react-router-dom'
 
 /**
  * Lightweight page performance logger.
- * Logs mount time, render counts, and navigation timing.
- * Only active in development mode.
+ * Logs mount time and render counts only in development mode.
  */
 export function usePagePerf(pageName: string) {
   const mountTime = useRef(performance.now())
   const renderCount = useRef(0)
   const location = useLocation()
+  const isDev = import.meta.env.DEV
+
+  if (!isDev) {
+    return
+  }
 
   renderCount.current += 1
 
   useEffect(() => {
     const elapsed = Math.round(performance.now() - mountTime.current)
-    console.log(
-      `[Perf] ${pageName} mounted in ${elapsed}ms (path: ${location.pathname})`
-    )
+    console.log(`[Perf] ${pageName} mounted in ${elapsed}ms (path: ${location.pathname})`)
     mountTime.current = performance.now()
     renderCount.current = 0
 
     return () => {
-      console.log(
-        `[Perf] ${pageName} unmounted after ${renderCount.current} renders`
-      )
+      console.log(`[Perf] ${pageName} unmounted after ${renderCount.current} renders`)
     }
-  }, [location.pathname])
+  }, [location.pathname, pageName])
 
   // Log excessive re-renders
   if (renderCount.current > 0 && renderCount.current % 10 === 0) {
-    console.warn(
-      `[Perf] ${pageName} hit ${renderCount.current} renders without remount`
-    )
+    console.warn(`[Perf] ${pageName} hit ${renderCount.current} renders without remount`)
   }
 }

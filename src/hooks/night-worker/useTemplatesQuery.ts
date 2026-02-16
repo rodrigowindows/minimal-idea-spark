@@ -1,4 +1,4 @@
-﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef } from 'react'
 
 import { ApiError, useNightWorker } from '@/contexts/NightWorkerContext'
@@ -36,10 +36,12 @@ async function syncDefaults(
     })
   }
 
+  let createdCount = 0
+
   await Promise.all(
     missing.map(async (tpl) => {
       try {
-        await apiFetch<PipelineTemplate>('/templates', {
+        const created = await apiFetch<PipelineTemplate | null>('/templates', {
           method: 'POST',
           body: JSON.stringify({
             name: tpl.name,
@@ -49,20 +51,30 @@ async function syncDefaults(
             is_default: true,
           }),
         })
+
+        if (created && typeof created === 'object') {
+          createdCount += 1
+        }
       } catch (err) {
-        // Another tab/client already created it — safe to ignore.
+        // Another tab/client already created it � safe to ignore.
         if (err instanceof ApiError && (err.status === 400 || err.status === 409)) {
           if (import.meta.env.DEV) {
             console.warn(`${LOG} create skipped (already exists)`, { name: tpl.name })
           }
           return
         }
-        throw err
+
+        // Sync must not break template reads.
+        console.warn(`${LOG} create failed`, {
+          name: tpl.name,
+          baseUrl,
+          error: err instanceof Error ? err.message : String(err),
+        })
       }
     }),
   )
 
-  return true
+  return createdCount > 0
 }
 
 export function useTemplatesQuery() {
@@ -76,7 +88,8 @@ export function useTemplatesQuery() {
 
       const fetchTemplates = async () => {
         const raw = await apiFetch<{ templates?: any[] } | any[]>('/templates')
-        const items = Array.isArray(raw) ? raw : raw.templates ?? []
+        if (!raw) return []
+        const items = Array.isArray(raw) ? raw : Array.isArray(raw.templates) ? raw.templates : []
         return items.map((item) => normalizeTemplateItem(item))
       }
 
@@ -89,7 +102,18 @@ export function useTemplatesQuery() {
           syncedRef.current = true
           const didSync = await syncDefaults(apiFetch, templates, config.baseUrl)
           if (didSync) {
-            templates = await fetchTemplates()
+            try {
+              const refreshed = await fetchTemplates()
+              // Keep pre-sync data if refresh unexpectedly returns empty.
+              if (refreshed.length > 0 || templates.length === 0) {
+                templates = refreshed
+              }
+            } catch (refreshError) {
+              console.warn(`${LOG} refresh after sync failed`, {
+                baseUrl: config.baseUrl,
+                error: refreshError instanceof Error ? refreshError.message : String(refreshError),
+              })
+            }
           }
         }
 
