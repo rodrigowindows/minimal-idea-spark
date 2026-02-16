@@ -1,6 +1,0 @@
-{
-  "provider": "claude",
-  "name": "test-bug-fix-single-line",
-  "content": "Write a hello world function in Python",
-  "target_folder": "C:\\code\\test"
-}
