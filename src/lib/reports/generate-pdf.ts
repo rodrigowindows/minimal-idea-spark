@@ -108,9 +108,9 @@ export function buildReport(
     tasksByType[o.type] = (tasksByType[o.type] ?? 0) + 1
   }
 
-  const moodValues = periodLogs.map(l => MOOD_VALUES[l.mood] || 0).filter(v => v > 0)
+  const moodValues = periodLogs.map(l => l.mood ? (MOOD_VALUES[l.mood] || 0) : 0).filter((v): v is number => v != null && v > 0)
   const avgMood = moodValues.length > 0 ? moodValues.reduce((a, b) => a + b, 0) / moodValues.length : 0
-  const energyValues = periodLogs.map(l => l.energy_level).filter(v => v > 0)
+  const energyValues = periodLogs.map(l => l.energy_level ?? 0).filter((v): v is number => v != null && v > 0)
   const avgEnergy = energyValues.length > 0 ? energyValues.reduce((a, b) => a + b, 0) / energyValues.length : 0
 
   let habitsDone = 0

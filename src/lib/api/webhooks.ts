@@ -77,7 +77,7 @@ export async function listWebhooksAsync(): Promise<WebhookEndpoint[]> {
 
   if (error || !data) return loadWebhooks()
 
-  const endpoints = data.map((w) => ({
+  const endpoints = data.map((w: any) => ({
     id: w.id,
     url: w.url,
     secret: w.secret ?? '',
@@ -198,7 +198,7 @@ export async function getWebhookLogs(webhookId: string, limit = 50): Promise<Web
     .order('created_at', { ascending: false })
     .limit(limit)
 
-  return (data ?? []).map((l) => ({
+  return (data ?? []).map((l: any) => ({
     id: l.id,
     webhook_id: l.webhook_id,
     event: l.event,

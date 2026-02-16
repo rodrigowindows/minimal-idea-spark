@@ -47,7 +47,7 @@ export async function listApiKeysAsync(): Promise<ApiKeyRecord[]> {
 
   if (error || !data) return loadKeys()
 
-  const keys = data.map((k) => ({
+  const keys = data.map((k: any) => ({
     id: k.id,
     name: k.name,
     prefix: k.prefix,
