@@ -15,8 +15,8 @@ export function useProjectsQuery(status: 'active' | 'archived' | 'paused' | 'all
       return items.map((item) => normalizeProjectItem(item))
     },
     enabled: isConnected,
-    staleTime: 5000,
-    refetchInterval: 15000,
+    staleTime: 60_000,
+    refetchInterval: 30_000,
   })
 }
 
@@ -34,8 +34,8 @@ export function useProjectPromptsQuery(projectId?: string | null, limit = 30) {
     enabled: isConnected && !!projectId,
     refetchInterval: (query) => {
       const hasActive = query.state.data?.some((p) => p.status === 'pending' || p.status === 'processing')
-      return hasActive ? 10000 : 30000
+      return hasActive ? 15_000 : 60_000
     },
-    staleTime: 5000,
+    staleTime: 30_000,
   })
 }

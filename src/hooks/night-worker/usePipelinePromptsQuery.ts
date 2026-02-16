@@ -28,8 +28,8 @@ export function usePipelinePromptsQuery(pipelineId?: string | null) {
     enabled: isConnected && !!pipelineId,
     refetchInterval: (query) => {
       const hasActive = query.state.data?.some((p) => p.status === 'pending' || p.status === 'processing')
-      return hasActive ? 10000 : 30000
+      return hasActive ? 15_000 : 60_000
     },
-    staleTime: 5000,
+    staleTime: 30_000,
   })
 }

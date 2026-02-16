@@ -9,7 +9,7 @@ export function usePromptsQuery(pollMs = 15000, options: UsePromptsQueryOptions 
   const { apiFetch, isConnected, config } = useNightWorker()
   const {
     enabled = true,
-    staleTimeMs = 5000,
+    staleTimeMs = 30_000,
     refetchOnMount = false,
     refetchOnWindowFocus = false,
   } = options

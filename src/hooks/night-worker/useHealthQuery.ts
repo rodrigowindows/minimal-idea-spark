@@ -22,8 +22,8 @@ export function useHealthQuery() {
         throw error
       }
     },
-    refetchInterval: 10000,
-    staleTime: 5000,
+    refetchInterval: 30_000,
+    staleTime: 20_000,
     enabled: isConnected,
   })
 }

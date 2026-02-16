@@ -82,11 +82,11 @@ const LegacyPromptRedirect = () => {
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 30, // 30 seconds (reduced from 5 min to be more reactive)
+      staleTime: 1000 * 60 * 2, // 2 minutes — show cached data instantly on navigation
       gcTime: 1000 * 60 * 10, // 10 min
-      refetchOnWindowFocus: true, // Re-enable window focus to keep state fresh
+      refetchOnWindowFocus: false, // individual queries opt-in via their own settings
       refetchOnReconnect: true,
-      refetchOnMount: true,
+      refetchOnMount: false, // use cache on navigation; individual queries use refetchInterval for freshness
       retry: 1,
       networkMode: 'online',
     },
