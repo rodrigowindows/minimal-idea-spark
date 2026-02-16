@@ -4,7 +4,7 @@ export { usePromptStatusQuery } from './usePromptStatusQuery'
 export { usePipelinePromptsQuery } from './usePipelinePromptsQuery'
 export { useProjectsQuery, useProjectPromptsQuery } from './useProjectsQuery'
 export { useTemplatesQuery, useCreateTemplateMutation, useUpdateTemplateMutation, useDeleteTemplateMutation } from './useTemplatesQuery'
-export { useCreateProjectMutation, useUpdateProjectMutation } from './useProjectMutations'
+export { useCreateProjectMutation, useUpdateProjectMutation, useDeleteProjectMutation } from './useProjectMutations'
 export {
   useCreatePromptMutation,
   useMovePromptMutation,

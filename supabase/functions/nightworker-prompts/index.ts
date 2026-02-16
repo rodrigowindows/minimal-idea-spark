@@ -410,6 +410,13 @@ serve(async (req) => {
       } else {
         resp = await handleTemplateDelete(supabase, id, rid)
       }
+    } else if (req.method === 'DELETE' && projectDetailMatch) {
+      const id = projectDetailMatch[1]
+      if (!isValidUUID(id)) {
+        resp = json({ error: 'Invalid project ID format' }, 400, { requestId: rid })
+      } else {
+        resp = await handleProjectDelete(supabase, id, rid)
+      }
     } else {
       resp = json({ error: 'Not Found' }, 404, { requestId: rid })
     }
@@ -798,6 +805,41 @@ async function handleProjectUpdate(supabase: any, id: string, body: Record<strin
   }
 
   return json(data, 200, { requestId: rid })
+}
+
+async function handleProjectDelete(supabase: any, id: string, rid: string) {
+  const { count, error: countError } = await supabase
+    .from('nw_prompts')
+    .select('id', { count: 'exact', head: true })
+    .eq('project_id', id)
+
+  if (countError && countError.code !== '42P01') throw countError
+
+  const promptCount = count ?? 0
+  if (promptCount > 0) {
+    return json(
+      { error: `Não é possível excluir projeto com ${promptCount} prompt(s). Arquive-o ou exclua os prompts primeiro.` },
+      409,
+      { requestId: rid }
+    )
+  }
+
+  const { data, error } = await supabase
+    .from('nw_projects')
+    .delete()
+    .eq('id', id)
+    .select('id')
+    .single()
+
+  if (error) {
+    if (error.code === '42P01') {
+      return json({ error: 'nw_projects table not found. Apply latest migrations first.' }, 501, { requestId: rid })
+    }
+    if (error.code === 'PGRST116') return json({ error: 'Project not found' }, 404, { requestId: rid })
+    throw error
+  }
+
+  return json({ id: data.id, deleted: true }, 200, { requestId: rid })
 }
 
 function validateTemplateSteps(input: unknown): { steps?: TemplateStepPayload[]; error?: string } {

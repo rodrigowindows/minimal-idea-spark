@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -17,13 +18,14 @@ import { StatusBadge } from '@/components/night-worker/StatusBadge'
 import {
   useCreateProjectMutation,
   useCreatePipeline,
+  useDeleteProjectMutation,
   useProjectPromptsQuery,
   useProjectsQuery,
   useTemplatesQuery,
   useUpdateProjectMutation,
 } from '@/hooks/useNightWorkerApi'
 import type { NightWorkerProject } from '@/types/night-worker'
-import { ArrowRight, Briefcase, FolderPlus, GitBranch, Play, Plus, Send } from 'lucide-react'
+import { ArrowRight, Briefcase, FolderPlus, GitBranch, Pencil, Play, Plus, Send, Trash2 } from 'lucide-react'
 
 const RECENT_PROMPTS_LIMIT = 10
 const PROJECT_NAME_MIN_LENGTH = 3
@@ -65,6 +67,7 @@ export default function NWProjects() {
   const projects = useMemo(() => allProjects.filter((entry) => entry.status !== 'archived'), [allProjects])
   const createProject = useCreateProjectMutation()
   const updateProject = useUpdateProjectMutation()
+  const deleteProject = useDeleteProjectMutation()
   const { runPipeline, isLoading: pipelineLoading } = useCreatePipeline()
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>('')
@@ -191,6 +194,73 @@ export default function NWProjects() {
       id: project.id,
       status: nextStatus,
     })
+  }
+
+  // --- Edit project dialog ---
+  const [editProject, setEditProject] = useState<NightWorkerProject | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editTarget, setEditTarget] = useState('')
+  const [editSlaTimeout, setEditSlaTimeout] = useState(DEFAULT_SLA_TIMEOUT_SECONDS)
+  const [editSlaMaxRetries, setEditSlaMaxRetries] = useState(DEFAULT_SLA_MAX_RETRIES)
+  const [editSlaRetryDelay, setEditSlaRetryDelay] = useState(DEFAULT_SLA_RETRY_DELAY_SECONDS)
+
+  useEffect(() => {
+    if (!editProject) return
+    setEditName(editProject.name)
+    setEditDescription(editProject.description ?? '')
+    setEditTarget(editProject.default_target_folder ?? '')
+    setEditSlaTimeout(editProject.sla_timeout_seconds ?? DEFAULT_SLA_TIMEOUT_SECONDS)
+    setEditSlaMaxRetries(editProject.sla_max_retries ?? DEFAULT_SLA_MAX_RETRIES)
+    setEditSlaRetryDelay(editProject.sla_retry_delay_seconds ?? DEFAULT_SLA_RETRY_DELAY_SECONDS)
+  }, [editProject])
+
+  const handleEditProject = () => {
+    if (!editProject) return
+    const name = editName.trim()
+    if (name.length < PROJECT_NAME_MIN_LENGTH) {
+      toast.error(t('projects.toast.nameMinLength'))
+      return
+    }
+    updateProject.mutate(
+      {
+        id: editProject.id,
+        name,
+        description: editDescription.trim() || null,
+        default_target_folder: editTarget.trim() || null,
+        sla_timeout_seconds: editSlaTimeout,
+        sla_max_retries: editSlaMaxRetries,
+        sla_retry_delay_seconds: editSlaRetryDelay,
+      },
+      {
+        onSuccess: () => {
+          toast.success('Projeto atualizado')
+          setEditProject(null)
+        },
+        onError: () => {
+          toast.error('Falha ao atualizar projeto')
+        },
+      }
+    )
+  }
+
+  const handleDeleteProject = (project: NightWorkerProject) => {
+    if (!window.confirm(`Excluir projeto "${project.name}"? Esta ação não pode ser desfeita.`)) return
+    deleteProject.mutate(
+      { id: project.id },
+      {
+        onSuccess: () => {
+          toast.success('Projeto excluído')
+          if (selectedProjectId === project.id) {
+            setSelectedProjectId(projects.find((p) => p.id !== project.id)?.id ?? '')
+          }
+        },
+        onError: (err) => {
+          const msg = err instanceof Error ? err.message : 'Falha ao excluir projeto'
+          toast.error(msg)
+        },
+      }
+    )
   }
 
   return (
@@ -344,6 +414,17 @@ export default function NWProjects() {
                       <Button
                         type="button"
                         size="sm"
+                        variant="ghost"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          setEditProject(project)
+                        }}
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
                         variant="outline"
                         onClick={(event) => {
                           event.stopPropagation()
@@ -352,6 +433,19 @@ export default function NWProjects() {
                         disabled={updateProject.isPending}
                       >
                         {project.status === 'paused' ? t('projects.resumeProject') : t('projects.pauseProject')}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="text-red-400 hover:text-red-300"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          handleDeleteProject(project)
+                        }}
+                        disabled={deleteProject.isPending}
+                      >
+                        <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
                   </div>
@@ -501,6 +595,69 @@ export default function NWProjects() {
           <Plus className="mr-2 h-4 w-4" /> {t('projects.openFullQueue')}
         </Button>
       </div>
+
+      {/* Edit project dialog */}
+      <Dialog open={!!editProject} onOpenChange={(open) => { if (!open) setEditProject(null) }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Editar Projeto</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome</Label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Descrição</Label>
+              <Input value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Pasta padrão</Label>
+              <Input value={editTarget} onChange={(e) => setEditTarget(e.target.value)} />
+            </div>
+            <details className="rounded-lg border border-border/50 bg-background/30 p-3">
+              <summary className="cursor-pointer text-sm font-medium text-foreground">
+                {t('projects.slaSettingsTitle')}
+              </summary>
+              <div className="mt-3 grid gap-3 md:grid-cols-3">
+                <div className="space-y-2">
+                  <Label>{t('projects.slaTimeoutLabel')}</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={editSlaTimeout}
+                    onChange={(e) => setEditSlaTimeout(Math.max(1, Number(e.target.value) || DEFAULT_SLA_TIMEOUT_SECONDS))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('projects.slaMaxRetriesLabel')}</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={editSlaMaxRetries}
+                    onChange={(e) => setEditSlaMaxRetries(Math.max(0, Number(e.target.value) || DEFAULT_SLA_MAX_RETRIES))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('projects.slaRetryDelayLabel')}</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={editSlaRetryDelay}
+                    onChange={(e) => setEditSlaRetryDelay(Math.max(1, Number(e.target.value) || DEFAULT_SLA_RETRY_DELAY_SECONDS))}
+                  />
+                </div>
+              </div>
+            </details>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditProject(null)}>Cancelar</Button>
+            <Button onClick={handleEditProject} disabled={updateProject.isPending || !editName.trim()}>
+              {updateProject.isPending ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

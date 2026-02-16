@@ -58,3 +58,17 @@ export function useUpdateProjectMutation() {
     },
   })
 }
+
+export function useDeleteProjectMutation() {
+  const { apiFetch } = useNightWorker()
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { id: string }) =>
+      apiFetch<{ id: string; deleted: boolean }>(`/projects/${body.id}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ['nightworker', 'projects'] })
+    },
+  })
+}

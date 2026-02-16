@@ -46,6 +46,7 @@ export function WorkerCard({ title, config, queue, lastRun, nextRetry }: WorkerC
         <InfoRow icon={Folder} label="Pasta" value={config.folder || '—'} />
         <InfoRow icon={Clock3} label="Último processamento" value={lastRun ? formatTime(lastRun) : '—'} />
         <InfoRow icon={Clock3} label="Fila" value={queue ?? 0} />
+        <InfoRow icon={Timer} label="Timeout" value={config.timeoutSeconds ? `${config.timeoutSeconds}s` : 'Sem limite'} />
         {config.model && <InfoRow icon={Cpu} label="Modelo" value={config.model} />}
         {nextRetry && <InfoRow icon={Clock3} label="Próximo retry" value={formatTime(nextRetry)} />}
       </div>
