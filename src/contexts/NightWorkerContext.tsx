@@ -17,7 +17,7 @@ export class ApiError extends Error {
   }
 }
 
-export type ApiFetchOptions = RequestInit & {
+type ApiFetchOptions = RequestInit & {
   skipAuth?: boolean
   retry?: number
   silentStatuses?: number[]
@@ -28,7 +28,6 @@ interface NightWorkerContextValue {
   config: NightWorkerConfig
   setConfig: (partial: Partial<NightWorkerConfig>) => void
   setToken: (token: string | null) => void
-  clearAuth: () => void
   apiFetch: <T = unknown>(path: string, options?: ApiFetchOptions) => Promise<T>
   isConnected: boolean
   lastError: string | null
@@ -140,10 +139,6 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
 
   const setToken = useCallback((token: string | null) => {
     setConfigState((prev) => ({ ...prev, token: token || null }))
-  }, [])
-
-  const clearAuth = useCallback(() => {
-    setConfigState((prev) => ({ ...prev, token: null }))
   }, [])
 
   const apiFetch = useCallback(
@@ -261,12 +256,11 @@ export function NightWorkerProvider({ children }: { children: ReactNode }) {
       config,
       setConfig,
       setToken,
-      clearAuth,
       apiFetch,
       isConnected: true, // Always connected (no token required)
       lastError,
     }),
-    [apiFetch, clearAuth, config, lastError, setConfig, setToken]
+    [apiFetch, config, lastError, setConfig, setToken]
   )
 
   return <NightWorkerContext.Provider value={value}>{children}</NightWorkerContext.Provider>
@@ -281,7 +275,6 @@ export function useNightWorker() {
       config: defaultConfig,
       setConfig: () => {},
       setToken: () => {},
-      clearAuth: () => {},
       apiFetch: async () => {
         throw new Error('NightWorkerProvider not available')
       },

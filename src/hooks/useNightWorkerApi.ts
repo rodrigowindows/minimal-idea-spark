@@ -308,7 +308,9 @@ export function useTemplatesQuery() {
           if (typeof window !== 'undefined') {
             if (localStorage.getItem(PIPELINE_TEMPLATES_STORAGE_KEY)) {
               localStorage.removeItem(PIPELINE_TEMPLATES_STORAGE_KEY)
-              console.log(`[NW] Migrated ${fallbackTemplates.length} templates from localStorage to database.`)
+              if (import.meta.env.DEV) {
+                console.log(`[NW] Migrated ${fallbackTemplates.length} templates from localStorage to database.`)
+              }
             }
             localStorage.setItem(TEMPLATE_MIGRATION_DONE_KEY, '1')
           }
@@ -552,24 +554,6 @@ export function useReprocessPromptMutation() {
       client.invalidateQueries({ queryKey: PROMPTS_KEY_BASE })
       client.invalidateQueries({ queryKey: ['nightworker', 'prompt', vars.id] })
     },
-  })
-}
-
-export function useCreateWorkerTokenMutation() {
-  const { apiFetch } = useNightWorker()
-  return useMutation({
-    mutationFn: (body: { worker_name: string; scopes?: string[]; expires_in_hours?: number; notes?: string }) =>
-      apiFetch<{
-        id: string
-        worker_name: string
-        scopes: string[]
-        created_at: string
-        expires_at: string | null
-        token: string
-      }>('/worker-tokens', {
-        method: 'POST',
-        body: JSON.stringify(body),
-      }),
   })
 }
 

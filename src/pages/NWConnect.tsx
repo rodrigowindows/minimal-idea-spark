@@ -46,10 +46,14 @@ export default function NWConnect() {
         if (healthRes.ok) {
           healthData = await healthRes.json()
         } else {
-          console.warn('[NWConnect] /health unavailable', { status: healthRes.status })
+          if (import.meta.env.DEV) {
+            console.warn('[NWConnect] /health unavailable', { status: healthRes.status })
+          }
         }
       } catch (healthErr) {
-        console.warn('[NWConnect] /health request failed', healthErr)
+        if (import.meta.env.DEV) {
+          console.warn('[NWConnect] /health request failed', healthErr)
+        }
       }
 
       // Step 2 (required): validate token against /prompts.

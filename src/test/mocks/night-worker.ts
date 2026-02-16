@@ -273,7 +273,6 @@ export function createMockNightWorkerContext(overrides: Record<string, unknown> 
     },
     setConfig: vi.fn(),
     setToken: vi.fn(),
-    clearAuth: vi.fn(),
     apiFetch: vi.fn(),
     isConnected: true,
     lastError: null,

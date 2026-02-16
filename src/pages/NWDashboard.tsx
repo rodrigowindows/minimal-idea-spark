@@ -149,7 +149,7 @@ export default function NWDashboard() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2 border border-white/10 bg-card/60 backdrop-blur">
+        <Card className="lg:col-span-2 border border-white/10 bg-card/70 backdrop-blur">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Últimos Prompts</CardTitle>
             <Button variant="ghost" size="sm" onClick={() => navigate('/nw/prompts')}>
@@ -206,7 +206,7 @@ export default function NWDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border border-white/10 bg-card/60 backdrop-blur">
+        <Card className="border border-white/10 bg-card/70 backdrop-blur">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Atividade Recente</CardTitle>
             <Badge variant="outline" className="rounded-full border-border/60 bg-background/40 text-xs">

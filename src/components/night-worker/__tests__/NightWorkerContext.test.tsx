@@ -51,20 +51,6 @@ describe('useNightWorker - inside provider', () => {
     expect(result.current.config.token).toBe('my-new-token')
   })
 
-  it('clearAuth removes token', () => {
-    const { result } = renderHook(() => useNightWorker(), { wrapper: Wrapper })
-
-    act(() => {
-      result.current.setToken('my-token')
-    })
-    expect(result.current.config.token).toBe('my-token')
-
-    act(() => {
-      result.current.clearAuth()
-    })
-    expect(result.current.config.token).toBeNull()
-  })
-
   it('setConfig updates workers config', () => {
     const { result } = renderHook(() => useNightWorker(), { wrapper: Wrapper })
 

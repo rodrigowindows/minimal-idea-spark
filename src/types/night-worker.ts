@@ -1,8 +1,8 @@
 export type NightWorkerProvider = 'codex' | 'claude' | 'gemini' | string;
 
 export type PromptStatus = 'pending' | 'processing' | 'done' | 'failed';
-export type QueueStage = 'backlog' | 'prioritized';
-export type ProjectStatus = 'active' | 'archived' | 'paused';
+type QueueStage = 'backlog' | 'prioritized';
+type ProjectStatus = 'active' | 'archived' | 'paused';
 
 /** Single step in a pipeline template */
 export interface PipelineStep {
@@ -30,7 +30,7 @@ export interface PipelineConfig {
   original_input: string;
 }
 
-export interface ProjectStats {
+interface ProjectStats {
   total: number;
   pending: number;
   processing: number;
@@ -53,7 +53,7 @@ export interface NightWorkerProject {
 }
 
 /** Item returned in the GET /prompts list */
-export interface PromptListItem {
+interface PromptListItem {
   id: string;
   provider: NightWorkerProvider;
   status: PromptStatus;
