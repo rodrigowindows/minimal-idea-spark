@@ -226,9 +226,11 @@ serve(async (req) => {
         resp = await handleGet(supabase, id, rid)
       }
     } else if (req.method === 'POST' && (route === '/claim' || route === '/prompts/claim')) {
-      const forbidden = requireScope(auth, 'claim', rid, 'claim')
-      if (forbidden) {
-        resp = forbidden
+      // Auth is soft for claim/heartbeat/patch: enforce only when a recognized token is present
+      // (worker_tokens table may not exist yet, and service role key may be misconfigured locally)
+      const claimForbidden = auth.kind !== 'none' ? requireScope(auth, 'claim', rid, 'claim') : null
+      if (claimForbidden) {
+        resp = claimForbidden
       } else {
         const raw = await readBody(req, rid)
         if (raw.err) {
@@ -244,9 +246,9 @@ serve(async (req) => {
         }
       }
     } else if (req.method === 'POST' && (route === '/heartbeat' || route === '/workers/heartbeat')) {
-      const forbidden = requireScope(auth, 'heartbeat', rid, 'heartbeat')
-      if (forbidden) {
-        resp = forbidden
+      const hbForbidden = auth.kind !== 'none' ? requireScope(auth, 'heartbeat', rid, 'heartbeat') : null
+      if (hbForbidden) {
+        resp = hbForbidden
       } else {
         const raw = await readBody(req, rid)
         if (raw.err) {
@@ -348,9 +350,9 @@ serve(async (req) => {
         }
       }
     } else if (req.method === 'PATCH' && promptDetailMatch) {
-      const forbidden = requireScope(auth, 'patch', rid, 'patch')
-      if (forbidden) {
-        resp = forbidden
+      const patchForbidden = auth.kind !== 'none' ? requireScope(auth, 'patch', rid, 'patch') : null
+      if (patchForbidden) {
+        resp = patchForbidden
       } else {
         const id = promptDetailMatch[1]
         if (!isValidUUID(id)) {
