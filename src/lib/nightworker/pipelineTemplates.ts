@@ -1,40 +1,97 @@
 import type { PipelineTemplate } from '@/types/night-worker'
 
-function nowIso() {
-  return new Date().toISOString()
+// Fixed epoch so the array is referentially stable across calls and
+// doesn't cause unnecessary React re-renders from timestamp drift.
+const EPOCH = '2024-01-01T00:00:00.000Z'
+
+function defaultTemplate(template: Omit<PipelineTemplate, 'created_at' | 'updated_at'>): PipelineTemplate {
+  return { ...template, created_at: EPOCH, updated_at: EPOCH }
 }
 
-function defaultTimestampedTemplate(template: Omit<PipelineTemplate, 'created_at' | 'updated_at'>): PipelineTemplate {
-  const now = nowIso()
-  return { ...template, created_at: now, updated_at: now }
-}
-
+/**
+ * Local-only default templates used as seed data.
+ * IDs here are placeholders — the backend assigns real UUIDs on insert.
+ */
 export function getDefaultPipelineTemplates(): PipelineTemplate[] {
   return [
-    defaultTimestampedTemplate({
-      id: 'tpl-default-pipeline',
-      name: 'Default Pipeline',
-      description: 'Gemini planeja -> Codex valida e codifica -> Claude revisa e finaliza',
+    defaultTemplate({
+      id: 'tpl-quick-validate',
+      name: 'Quick Validate',
+      description: 'Gemini faz validacao rapida e Claude confere antes da execucao.',
+      context_mode: 'previous_only',
+      is_default: true,
+      steps: [
+        {
+          provider: 'gemini',
+          role: 'quick_validate',
+          instruction:
+            'Analise rapidamente o pedido abaixo e entregue um checklist curto de validacao com riscos e proximos passos.\n\nPedido:\n{input}',
+        },
+        {
+          provider: 'claude',
+          role: 'double_check',
+          instruction:
+            'Revise a analise anterior, aponte lacunas e finalize um plano de acao objetivo.\n\nAnalise anterior:\n{previous_result}\n\nPedido original:\n{input}',
+        },
+      ],
+    }),
+    defaultTemplate({
+      id: 'tpl-full-pipeline',
+      name: 'Full Pipeline',
+      description: 'Gemini planeja, Codex implementa e Claude revisa o resultado final.',
       context_mode: 'all_steps',
       is_default: true,
       steps: [
         {
           provider: 'gemini',
-          role: 'brainstorm',
+          role: 'plan',
           instruction:
-            'Voce e um arquiteto de software. Analise o pedido abaixo e produza um PLANO DE IMPLEMENTACAO claro e completo.\n\nIMPORTANTE:\n- NAO explore arquivos ou diretorios\n- NAO leia arquivos existentes\n- NAO use ferramentas\n- APENAS analise o pedido e crie o plano\n\nResponda SOMENTE neste formato:\n\n## Objetivo\nDescreva em 1-2 frases o que precisa ser feito.\n\n## Arquivos a Criar/Modificar\nListe cada arquivo com caminho completo:\n- `caminho/arquivo.ext` - descricao do conteudo\n\n## Passo a Passo\n1. Primeiro crie... (seja especifico: nome da funcao, parametros, logica)\n2. Depois implemente... (inclua exemplos de codigo quando util)\n3. ...\n\n## Dependencias\n- Libs ou ferramentas necessarias\n\n---\nPEDIDO:\n{input}',
+            'Crie um plano tecnico de implementacao com arquitetura, riscos e passos objetivos.\n\nPedido:\n{input}',
         },
         {
           provider: 'codex',
-          role: 'coder',
+          role: 'implement',
           instruction:
-            'Voce recebeu um plano de implementacao do step anterior.\n\n1. VALIDE o plano: verifique se faz sentido e se a abordagem e correta\n2. EXECUTE o plano: crie e modifique TODOS os arquivos listados\n\nRegras:\n- Crie TODOS os arquivos do plano, nao pule nenhum\n- Escreva codigo completo e funcional, nao use placeholders\n- Se encontrar problemas no plano, corrija e implemente a versao melhorada\n- NAO peca confirmacao, apenas execute\n- Instale dependencias se necessario',
+            'Implemente a solucao com base no plano anterior e no pedido original.\n\nPlano anterior:\n{previous_result}\n\nPedido original:\n{input}',
         },
         {
           provider: 'claude',
-          role: 'finalizer',
+          role: 'review',
           instruction:
-            'Voce e um desenvolvedor senior. Revise a implementacao do step anterior e FACA as correcoes necessarias.\n\n1. REVISE: Verifique completude, bugs, seguranca e qualidade\n2. EXECUTE: Corrija TODOS os problemas encontrados diretamente nos arquivos\n3. FINALIZE: Garanta que tudo funciona e esta pronto para uso\n\nRegras:\n- Se encontrar bugs, CORRIJA nos arquivos (nao apenas aponte)\n- Se faltou algo do pedido original, IMPLEMENTE\n- Se o codigo tem problemas de seguranca, CORRIJA\n- Rode testes se existirem\n\nAo final, responda:\n\n## Status: COMPLETO | INCOMPLETO\n\n### O que foi implementado\n- Lista do que foi feito\n\n### Correcoes aplicadas (se houver)\n- O que voce corrigiu e por que\n\n### Pendencias (se INCOMPLETO)\n- O que ficou faltando e por que',
+            'Revise a implementacao anterior, corrija falhas e entregue checklist final de qualidade.\n\nImplementacao anterior:\n{previous_result}\n\nPedido original:\n{input}',
+        },
+      ],
+    }),
+    defaultTemplate({
+      id: 'tpl-deep-review',
+      name: 'Deep Review',
+      description: 'Fluxo iterativo para validar, desafiar, refinar e revisar em profundidade.',
+      context_mode: 'all_steps',
+      is_default: true,
+      steps: [
+        {
+          provider: 'gemini',
+          role: 'deep_validate',
+          instruction:
+            'Faca uma validacao profunda e identifique riscos tecnicos, ambiguidades e criterios de aceite.\n\nPedido:\n{input}',
+        },
+        {
+          provider: 'claude',
+          role: 'challenge',
+          instruction:
+            'Desafie a analise anterior, proponha ajustes e prioridades para reduzir risco.\n\nAnalise anterior:\n{previous_result}\n\nPedido original:\n{input}',
+        },
+        {
+          provider: 'codex',
+          role: 'refine',
+          instruction:
+            'Refine a estrategia e detalhe implementacao executavel com base no feedback anterior.\n\nFeedback anterior:\n{previous_result}\n\nPedido original:\n{input}',
+        },
+        {
+          provider: 'claude',
+          role: 'final_review',
+          instruction:
+            'Faca revisao final do refinamento, verifique consistencia e entregue plano consolidado.\n\nRefinamento anterior:\n{previous_result}\n\nPedido original:\n{input}',
         },
       ],
     }),

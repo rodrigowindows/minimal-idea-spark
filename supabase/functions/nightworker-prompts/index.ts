@@ -17,6 +17,7 @@ const VALID_STATUSES = new Set(['pending', 'processing', 'done', 'failed'])
 const VALID_QUEUE_STAGES = new Set(['backlog', 'prioritized'])
 const VALID_PROJECT_STATUSES = new Set(['active', 'archived', 'paused'])
 const VALID_WORKER_STATUSES = new Set(['active', 'paused', 'error'])
+const VALID_CONTEXT_MODES = new Set(['previous_only', 'all_steps'])
 const WORKER_TOKEN_SCOPES = new Set(['claim', 'patch', 'heartbeat'])
 const MAX_NAME_LEN = 500
 const MAX_CONTENT_LEN = 500_000
@@ -62,15 +63,9 @@ function log(level: 'info' | 'warn' | 'error', msg: string, ctx: Record<string, 
   else console.log(JSON.stringify(entry))
 }
 
-// --- Metrics counters (in-memory per invocation, logged at response) ---
-let metricsBuffer: Record<string, unknown>[] = []
+// --- Metrics: log immediately to avoid cross-request state leaks ---
 function metric(name: string, fields: Record<string, unknown>) {
-  metricsBuffer.push({ metric: name, ts: new Date().toISOString(), ...fields })
-}
-
-function flushMetrics() {
-  for (const m of metricsBuffer) console.log(JSON.stringify(m))
-  metricsBuffer = []
+  console.log(JSON.stringify({ metric: name, ts: new Date().toISOString(), ...fields }))
 }
 
 function genRequestId(): string {
@@ -100,25 +95,13 @@ function getBearerToken(req: Request): string {
   return auth.startsWith('Bearer ') ? auth.slice(7).trim() : ''
 }
 
-function base64UrlDecode(value: string): string {
-  const normalized = value.replace(/-/g, '+').replace(/_/g, '/')
-  const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4)
-  return atob(padded)
-}
-
 function isServiceRoleToken(token: string): boolean {
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   if (!token || !serviceKey) return false
-  if (token === serviceKey) return true
-
-  try {
-    const parts = token.split('.')
-    if (parts.length !== 3) return false
-    const payload = JSON.parse(base64UrlDecode(parts[1]))
-    return payload.role === 'service_role' && typeof payload.iss === 'string' && payload.iss.includes('supabase')
-  } catch {
-    return false
-  }
+  // Only accept the exact service-role key from env.
+  // Never trust self-signed JWTs claiming service_role — that would
+  // let any attacker craft a token with {"role":"service_role"}.
+  return token === serviceKey
 }
 
 async function sha256Hex(value: string): Promise<string> {
@@ -456,7 +439,6 @@ serve(async (req) => {
 
   const latencyMs = Date.now() - start
   metric('http_request', { rid, method: req.method, route, status: resp.status, latency_ms: latencyMs, auth_kind: auth.kind })
-  flushMetrics()
 
   return resp
 })
@@ -890,6 +872,14 @@ async function handleTemplateCreate(supabase: any, body: Record<string, unknown>
 
   const isDefault = body.is_default === undefined ? false : Boolean(body.is_default)
 
+  let context_mode: string | null = null
+  if (body.context_mode !== undefined && body.context_mode !== null) {
+    if (typeof body.context_mode !== 'string' || !VALID_CONTEXT_MODES.has(body.context_mode)) {
+      return json({ error: 'context_mode must be "previous_only" or "all_steps"' }, 400, { requestId: rid })
+    }
+    context_mode = body.context_mode
+  }
+
   const { data, error } = await supabase
     .from('nw_templates')
     .insert({
@@ -897,6 +887,7 @@ async function handleTemplateCreate(supabase: any, body: Record<string, unknown>
       description,
       steps,
       is_default: isDefault,
+      ...(context_mode ? { context_mode } : {}),
     })
     .select('*')
     .single()
@@ -945,6 +936,16 @@ async function handleTemplateUpdate(supabase: any, id: string, body: Record<stri
 
   if (body.is_default !== undefined) {
     allowed.is_default = Boolean(body.is_default)
+  }
+
+  if (body.context_mode !== undefined) {
+    if (body.context_mode === null) {
+      allowed.context_mode = null
+    } else if (typeof body.context_mode === 'string' && VALID_CONTEXT_MODES.has(body.context_mode)) {
+      allowed.context_mode = body.context_mode
+    } else {
+      return json({ error: 'context_mode must be "previous_only", "all_steps", or null' }, 400, { requestId: rid })
+    }
   }
 
   if (Object.keys(allowed).length === 0) {

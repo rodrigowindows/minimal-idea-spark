@@ -1,4 +1,5 @@
 ﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useRef } from 'react'
 
 import { ApiError, useNightWorker } from '@/contexts/NightWorkerContext'
 import { getDefaultPipelineTemplates } from '@/lib/nightworker/pipelineTemplates'
@@ -6,12 +7,73 @@ import type { PipelineContextMode, PipelineTemplate } from '@/types/night-worker
 
 import { normalizeTemplateItem, TEMPLATES_KEY_BASE } from './shared'
 
+const LOG = '[nightworker/templates]'
+
+function normName(name: string) {
+  return name.trim().toLowerCase()
+}
+
+/**
+ * Sync missing default templates to the backend.
+ * Runs at most once per hook instance to avoid repeated POST storms on every
+ * React Query refetch / window-focus / interval.
+ */
+async function syncDefaults(
+  apiFetch: ReturnType<typeof useNightWorker>['apiFetch'],
+  templates: PipelineTemplate[],
+  baseUrl: string,
+): Promise<boolean> {
+  const defaults = getDefaultPipelineTemplates()
+  const existingNames = new Set(templates.map((t) => normName(t.name)))
+  const missing = defaults.filter((d) => !existingNames.has(normName(d.name)))
+
+  if (missing.length === 0) return false
+
+  if (import.meta.env.DEV) {
+    console.info(`${LOG} syncing ${missing.length} missing defaults`, {
+      names: missing.map((d) => d.name),
+      baseUrl,
+    })
+  }
+
+  await Promise.all(
+    missing.map(async (tpl) => {
+      try {
+        await apiFetch<PipelineTemplate>('/templates', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: tpl.name,
+            description: tpl.description,
+            steps: tpl.steps,
+            context_mode: tpl.context_mode,
+            is_default: true,
+          }),
+        })
+      } catch (err) {
+        // Another tab/client already created it — safe to ignore.
+        if (err instanceof ApiError && (err.status === 400 || err.status === 409)) {
+          if (import.meta.env.DEV) {
+            console.warn(`${LOG} create skipped (already exists)`, { name: tpl.name })
+          }
+          return
+        }
+        throw err
+      }
+    }),
+  )
+
+  return true
+}
+
 export function useTemplatesQuery() {
   const { apiFetch, isConnected, config } = useNightWorker()
+  const syncedRef = useRef(false)
 
   return useQuery<PipelineTemplate[]>({
     queryKey: [...TEMPLATES_KEY_BASE, config.baseUrl],
     queryFn: async () => {
+      const start = performance.now()
+
       const fetchTemplates = async () => {
         const raw = await apiFetch<{ templates?: any[] } | any[]>('/templates')
         const items = Array.isArray(raw) ? raw : raw.templates ?? []
@@ -19,17 +81,38 @@ export function useTemplatesQuery() {
       }
 
       try {
-        return await fetchTemplates()
+        let templates = await fetchTemplates()
+
+        // Sync defaults only once per component mount to avoid repeated
+        // writes on every refetch interval / window-focus.
+        if (!syncedRef.current) {
+          syncedRef.current = true
+          const didSync = await syncDefaults(apiFetch, templates, config.baseUrl)
+          if (didSync) {
+            templates = await fetchTemplates()
+          }
+        }
+
+        const elapsedMs = Math.round(performance.now() - start)
+        if (import.meta.env.DEV || elapsedMs >= 1000) {
+          console.info(`${LOG} loaded`, { elapsedMs, count: templates.length })
+        }
+        return templates
       } catch (error) {
         if (error instanceof ApiError && (error.status === 404 || error.status === 501)) {
+          if (import.meta.env.DEV) {
+            console.warn(`${LOG} backend unavailable, using local defaults`, {
+              status: error.status,
+            })
+          }
           return getDefaultPipelineTemplates()
         }
         throw error
       }
     },
     enabled: isConnected,
-    staleTime: 5000,
-    refetchInterval: 30000,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
   })
 }
 
