@@ -91,6 +91,8 @@ export interface PromptItem {
   target_folder?: string;
   created_at?: string;
   updated_at?: string;
+  processing_started_at?: string | null;
+  worker_id?: string | null;
   result_path?: string | null;
   result_content?: string | null;
   error?: string | null;
