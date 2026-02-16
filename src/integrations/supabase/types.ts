@@ -408,6 +408,7 @@ export type Database = {
       }
       nw_templates: {
         Row: {
+          context_mode: string | null
           created_at: string
           description: string | null
           id: string
@@ -418,6 +419,7 @@ export type Database = {
           version: number
         }
         Insert: {
+          context_mode?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -428,6 +430,7 @@ export type Database = {
           version?: number
         }
         Update: {
+          context_mode?: string | null
           created_at?: string
           description?: string | null
           id?: string
