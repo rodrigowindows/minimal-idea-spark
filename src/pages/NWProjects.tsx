@@ -25,7 +25,7 @@ import {
   useUpdateProjectMutation,
 } from '@/hooks/useNightWorkerApi'
 import type { NightWorkerProject } from '@/types/night-worker'
-import { ArrowRight, Briefcase, FolderPlus, GitBranch, Pencil, Play, Plus, Send, Trash2 } from 'lucide-react'
+import { Archive, ArchiveRestore, ArrowRight, Briefcase, FolderPlus, GitBranch, Pencil, Play, Plus, Send, Trash2 } from 'lucide-react'
 
 const RECENT_PROMPTS_LIMIT = 10
 const PROJECT_NAME_MIN_LENGTH = 3
@@ -67,7 +67,9 @@ export default function NWProjects() {
   )
 
   const { data: allProjects = [], isLoading: loadingProjects } = useProjectsQuery('all')
+  const [showArchived, setShowArchived] = useState(false)
   const projects = useMemo(() => allProjects.filter((entry) => entry.status !== 'archived'), [allProjects])
+  const archivedProjects = useMemo(() => allProjects.filter((entry) => entry.status === 'archived'), [allProjects])
   const createProject = useCreateProjectMutation()
   const updateProject = useUpdateProjectMutation()
   const deleteProject = useDeleteProjectMutation()
@@ -263,6 +265,32 @@ export default function NWProjects() {
     )
   }
 
+  const handleArchiveProject = (project: NightWorkerProject) => {
+    if (!window.confirm(`Arquivar projeto "${project.name}"? Ele será removido da lista principal.`)) return
+    updateProject.mutate(
+      { id: project.id, status: 'archived' },
+      {
+        onSuccess: () => {
+          toast.success('Projeto arquivado')
+          if (selectedProjectId === project.id) {
+            setSelectedProjectId(projects.find((p) => p.id !== project.id)?.id ?? '')
+          }
+        },
+        onError: () => toast.error('Falha ao arquivar projeto'),
+      }
+    )
+  }
+
+  const handleUnarchiveProject = (project: NightWorkerProject) => {
+    updateProject.mutate(
+      { id: project.id, status: 'active' },
+      {
+        onSuccess: () => toast.success('Projeto restaurado'),
+        onError: () => toast.error('Falha ao restaurar projeto'),
+      }
+    )
+  }
+
   return (
     <div className="space-y-6 px-4 pb-10 md:px-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -438,14 +466,15 @@ export default function NWProjects() {
                         type="button"
                         size="sm"
                         variant="ghost"
-                        className="text-red-400 hover:text-red-300"
+                        className="text-amber-400 hover:text-amber-300"
+                        title="Arquivar projeto"
                         onClick={(event) => {
                           event.stopPropagation()
-                          handleDeleteProject(project)
+                          handleArchiveProject(project)
                         }}
-                        disabled={deleteProject.isPending}
+                        disabled={updateProject.isPending}
                       >
-                        <Trash2 className="h-3 w-3" />
+                        <Archive className="h-3 w-3" />
                       </Button>
                     </div>
                   </div>
@@ -461,6 +490,67 @@ export default function NWProjects() {
                 </div>
               ))}
             </div>
+
+            {archivedProjects.length > 0 && (
+              <div className="mt-4 border-t border-border/40 pt-3">
+                <button
+                  type="button"
+                  className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition"
+                  onClick={() => setShowArchived(!showArchived)}
+                >
+                  <Archive className="h-3 w-3" />
+                  {showArchived ? 'Ocultar arquivados' : `Mostrar arquivados (${archivedProjects.length})`}
+                </button>
+                {showArchived && (
+                  <div className="mt-2 space-y-2">
+                    {archivedProjects.map((project) => (
+                      <div
+                        key={project.id}
+                        className="w-full rounded-xl border border-border/40 bg-background/20 p-3 opacity-60 hover:opacity-80 transition"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-foreground text-sm">{project.name}</p>
+                            <Badge className="border-gray-500/50 bg-gray-500/20 text-gray-300" variant="outline">
+                              Arquivado
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">{t('projects.promptsCount', { count: project.stats?.total ?? 0 })}</Badge>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              title="Restaurar projeto"
+                              onClick={() => handleUnarchiveProject(project)}
+                              disabled={updateProject.isPending}
+                            >
+                              <ArchiveRestore className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="text-red-400 hover:text-red-300"
+                              title="Excluir projeto"
+                              onClick={() => handleDeleteProject(project)}
+                              disabled={deleteProject.isPending}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                          <span>Done: {project.stats?.done ?? 0}</span>
+                          <span>Failed: {project.stats?.failed ?? 0}</span>
+                          <span>Total: {project.stats?.total ?? 0}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
