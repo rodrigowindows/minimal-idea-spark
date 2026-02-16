@@ -47,7 +47,7 @@ if (typeof window !== 'undefined') {
 export async function getCachedResponse(url: string): Promise<Response | null> {
   if (!('caches' in window)) return null;
   const cache = await caches.open(CACHE_NAME);
-  return cache.match(url);
+  return (await cache.match(url)) ?? null;
 }
 
 export async function cacheResponse(url: string, response: Response): Promise<void> {

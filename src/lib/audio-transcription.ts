@@ -153,7 +153,7 @@ export function createBrowserRecognizer(
       r.onresult = onResult;
       r.onend = onEnd;
       r.onerror = onError;
-      recognizer = r;
+      recognizer = r as any;
       r.start();
     },
     stop() {
