@@ -39,12 +39,21 @@ import {
   usePipelinePromptsQuery,
   useProjectsQuery,
   useProjectPromptsQuery,
+  useTemplatesQuery,
+  useCreateTemplateMutation,
+  useUpdateTemplateMutation,
+  useDeleteTemplateMutation,
   useCreatePromptMutation,
   useCreateProjectMutation,
+  useUpdateProjectMutation,
   useMovePromptMutation,
+  useReorderPrioritizedMutation,
+  useEditPromptMutation,
+  useReprocessPromptMutation,
   useLogsQuery,
 } from '@/hooks/useNightWorkerApi'
 import { ApiError } from '@/contexts/NightWorkerContext'
+import { normalizeTemplateItem } from '@/hooks/night-worker/shared'
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -170,6 +179,33 @@ describe('normalizePromptItem (via usePromptsQuery)', () => {
     expect(result.current.data![0].id).toBe('a1')
     expect(result.current.data![1].id).toBe('a2')
   })
+
+  it('normaliza template_id e template_version', async () => {
+    mockApiFetch.mockResolvedValueOnce([
+      { id: 'p-tpl', provider: 'claude', status: 'done', template_id: 'tpl-1', template_version: 3 },
+    ])
+
+    const { result } = renderHook(() => usePromptsQuery(30000, { enabled: true }), { wrapper: createWrapper() })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data![0].template_id).toBe('tpl-1')
+    expect(result.current.data![0].template_version).toBe(3)
+  })
+
+  it('normaliza queue_stage para pending como "prioritized"', async () => {
+    mockApiFetch.mockResolvedValueOnce([
+      { id: 'p-qs1', provider: 'claude', status: 'pending' },
+      { id: 'p-qs2', provider: 'claude', status: 'done', queue_stage: 'backlog' },
+    ])
+
+    const { result } = renderHook(() => usePromptsQuery(30000, { enabled: true }), { wrapper: createWrapper() })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data![0].queue_stage).toBe('prioritized')
+    expect(result.current.data![1].queue_stage).toBe('backlog')
+  })
 })
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -217,11 +253,12 @@ describe('normalizeProjectItem (via useProjectsQuery)', () => {
     expect(result.current.data![0].name).toBe('sem-nome')
   })
 
-  it('status padrao e "active" se nao for "archived"', async () => {
+  it('status padrao e "active" se nao for "archived" ou "paused"', async () => {
     mockApiFetch.mockResolvedValueOnce([
       { id: 'p1', name: 'A', status: 'archived' },
-      { id: 'p2', name: 'B', status: 'whatever' },
-      { id: 'p3', name: 'C' },
+      { id: 'p2', name: 'B', status: 'paused' },
+      { id: 'p3', name: 'C', status: 'whatever' },
+      { id: 'p4', name: 'D' },
     ])
 
     const { result } = renderHook(() => useProjectsQuery('all'), { wrapper: createWrapper() })
@@ -229,8 +266,9 @@ describe('normalizeProjectItem (via useProjectsQuery)', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
     expect(result.current.data![0].status).toBe('archived')
-    expect(result.current.data![1].status).toBe('active')
+    expect(result.current.data![1].status).toBe('paused')
     expect(result.current.data![2].status).toBe('active')
+    expect(result.current.data![3].status).toBe('active')
   })
 
   it('stats sao coercidos para numeros', async () => {
@@ -247,6 +285,142 @@ describe('normalizeProjectItem (via useProjectsQuery)', () => {
     const stats = result.current.data![0].stats
     expect(stats?.total).toBe(5)
     expect(typeof stats?.total).toBe('number')
+  })
+
+  it('normaliza campos SLA com defaults', async () => {
+    mockApiFetch.mockResolvedValueOnce([
+      {
+        id: 'proj-sla',
+        name: 'SLA Test',
+        sla_timeout_seconds: 600,
+        sla_max_retries: 5,
+        sla_retry_delay_seconds: 120,
+      },
+    ])
+
+    const { result } = renderHook(() => useProjectsQuery('active'), { wrapper: createWrapper() })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    const project = result.current.data![0]
+    expect(project.sla_timeout_seconds).toBe(600)
+    expect(project.sla_max_retries).toBe(5)
+    expect(project.sla_retry_delay_seconds).toBe(120)
+  })
+
+  it('usa defaults SLA quando campos ausentes', async () => {
+    mockApiFetch.mockResolvedValueOnce([{ id: 'proj-no-sla', name: 'No SLA' }])
+
+    const { result } = renderHook(() => useProjectsQuery('active'), { wrapper: createWrapper() })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    const project = result.current.data![0]
+    expect(project.sla_timeout_seconds).toBe(300)
+    expect(project.sla_max_retries).toBe(3)
+    expect(project.sla_retry_delay_seconds).toBe(60)
+  })
+
+  it('coerce SLA strings para numeros', async () => {
+    mockApiFetch.mockResolvedValueOnce([
+      {
+        id: 'proj-sla-str',
+        name: 'SLA String',
+        sla_timeout_seconds: '450',
+        sla_max_retries: '2',
+        sla_retry_delay_seconds: '90',
+      },
+    ])
+
+    const { result } = renderHook(() => useProjectsQuery('active'), { wrapper: createWrapper() })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    const project = result.current.data![0]
+    expect(typeof project.sla_timeout_seconds).toBe('number')
+    expect(project.sla_timeout_seconds).toBe(450)
+    expect(project.sla_max_retries).toBe(2)
+    expect(project.sla_retry_delay_seconds).toBe(90)
+  })
+})
+
+describe('normalizeTemplateItem', () => {
+  it('normaliza template completo', () => {
+    const item = {
+      id: 'tpl-1',
+      name: 'My Template',
+      description: 'A test template',
+      steps: [
+        { provider: 'gemini', role: 'validate', instruction: 'Validate:\n{input}' },
+        { provider: 'claude', role: 'review', instruction: 'Review:\n{previous_result}' },
+      ],
+      version: 3,
+      is_default: true,
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-02T00:00:00Z',
+    }
+
+    const result = normalizeTemplateItem(item)
+
+    expect(result.id).toBe('tpl-1')
+    expect(result.name).toBe('My Template')
+    expect(result.description).toBe('A test template')
+    expect(result.steps).toHaveLength(2)
+    expect(result.version).toBe(3)
+    expect(result.is_default).toBe(true)
+    expect(result.created_at).toBe('2026-01-01T00:00:00Z')
+    expect(result.updated_at).toBe('2026-01-02T00:00:00Z')
+  })
+
+  it('preenche defaults para campos ausentes', () => {
+    const result = normalizeTemplateItem({ id: 42 })
+
+    expect(result.id).toBe('42')
+    expect(result.name).toBe('template')
+    expect(result.description).toBe('')
+    expect(result.steps).toEqual([])
+    expect(result.version).toBe(1)
+    expect(result.is_default).toBe(false)
+    expect(result.created_at).toBeTruthy()
+    expect(result.updated_at).toBeTruthy()
+  })
+
+  it('coerce id numerico para string', () => {
+    const result = normalizeTemplateItem({ id: 123, name: 'Test' })
+
+    expect(result.id).toBe('123')
+    expect(typeof result.id).toBe('string')
+  })
+
+  it('steps invalido vira array vazio', () => {
+    const result = normalizeTemplateItem({ id: '1', steps: 'not-array' })
+
+    expect(result.steps).toEqual([])
+  })
+
+  it('version invalido resulta em NaN (comportamento atual)', () => {
+    const result = normalizeTemplateItem({ id: '1', version: 'abc' })
+
+    expect(Number.isNaN(result.version)).toBe(true)
+  })
+
+  it('is_default e coercido para boolean', () => {
+    const truthy = normalizeTemplateItem({ id: '1', is_default: 1 })
+    const falsy = normalizeTemplateItem({ id: '2', is_default: 0 })
+    const nullish = normalizeTemplateItem({ id: '3', is_default: null })
+
+    expect(truthy.is_default).toBe(true)
+    expect(falsy.is_default).toBe(false)
+    expect(nullish.is_default).toBe(false)
+  })
+
+  it('updated_at usa created_at como fallback', () => {
+    const result = normalizeTemplateItem({
+      id: '1',
+      created_at: '2026-06-01T00:00:00Z',
+    })
+
+    expect(result.updated_at).toBe('2026-06-01T00:00:00Z')
   })
 })
 
@@ -375,6 +549,95 @@ describe('useProjectPromptsQuery', () => {
   })
 })
 
+describe('useTemplatesQuery', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('retorna templates normalizados da API', async () => {
+    mockApiFetch.mockResolvedValueOnce({
+      templates: [
+        {
+          id: 'tpl-1',
+          name: 'Quick',
+          description: 'Fast',
+          steps: [{ provider: 'gemini', role: 'v', instruction: '{input}' }],
+          version: 1,
+        },
+        { id: 'tpl-2', name: 'Full', description: 'Complete', steps: [], version: 2 },
+      ],
+    })
+
+    const { result } = renderHook(() => useTemplatesQuery(), { wrapper: createWrapper() })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data).toHaveLength(2)
+    expect(result.current.data![0].id).toBe('tpl-1')
+    expect(result.current.data![1].id).toBe('tpl-2')
+  })
+
+  it('aceita formato array direto da API', async () => {
+    mockApiFetch.mockResolvedValueOnce([{ id: 'tpl-1', name: 'Test', steps: [], version: 1 }])
+
+    const { result } = renderHook(() => useTemplatesQuery(), { wrapper: createWrapper() })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data).toHaveLength(1)
+    expect(result.current.data![0].id).toBe('tpl-1')
+  })
+
+  it('seed defaults quando API retorna lista vazia', async () => {
+    mockApiFetch
+      .mockResolvedValueOnce({ templates: [] })
+      .mockResolvedValueOnce({ id: 's1' })
+      .mockResolvedValueOnce({ id: 's2' })
+      .mockResolvedValueOnce({ id: 's3' })
+      .mockResolvedValueOnce({
+        templates: [
+          {
+            id: 's1',
+            name: 'Quick Validate',
+            steps: [{ provider: 'gemini', role: 'v', instruction: '{input}' }],
+            version: 1,
+          },
+          { id: 's2', name: 'Full Pipeline', steps: [], version: 1 },
+          { id: 's3', name: 'Deep Review', steps: [], version: 1 },
+        ],
+      })
+
+    const { result } = renderHook(() => useTemplatesQuery(), { wrapper: createWrapper() })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data!.length).toBeGreaterThan(0)
+    const postCalls = mockApiFetch.mock.calls.filter((call) => call[1]?.method === 'POST')
+    expect(postCalls.length).toBe(3)
+  })
+
+  it('retorna defaults locais no 404/501', async () => {
+    mockApiFetch.mockRejectedValueOnce(new ApiError('Not Found', 404))
+
+    const { result } = renderHook(() => useTemplatesQuery(), { wrapper: createWrapper() })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data!.length).toBe(3)
+    expect(result.current.data![0].name).toBe('Quick Validate')
+  })
+
+  it('propaga outros erros normalmente', async () => {
+    mockApiFetch.mockRejectedValueOnce(new ApiError('Server Error', 500))
+
+    const { result } = renderHook(() => useTemplatesQuery(), { wrapper: createWrapper() })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+
+    expect(result.current.error).toBeTruthy()
+  })
+})
+
 describe('useCreatePromptMutation', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -448,6 +711,226 @@ describe('useMovePromptMutation', () => {
 
     const body = JSON.parse(mockApiFetch.mock.calls[0][1].body)
     expect(body.stage).toBe('backlog')
+  })
+})
+
+describe('useCreateTemplateMutation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('envia POST para /templates com body correto', async () => {
+    mockApiFetch.mockResolvedValueOnce({
+      id: 'tpl-new',
+      name: 'New Template',
+      steps: [{ provider: 'claude', role: 'review', instruction: '{input}' }],
+    })
+
+    const { result } = renderHook(() => useCreateTemplateMutation(), { wrapper: createWrapper() })
+
+    await result.current.mutateAsync({
+      name: 'New Template',
+      description: 'A new template',
+      steps: [{ provider: 'claude', role: 'review', instruction: '{input}' }],
+      is_default: false,
+    })
+
+    expect(mockApiFetch).toHaveBeenCalledWith('/templates', expect.objectContaining({ method: 'POST' }))
+
+    const body = JSON.parse(mockApiFetch.mock.calls[0][1].body)
+    expect(body.name).toBe('New Template')
+    expect(body.description).toBe('A new template')
+    expect(body.steps).toHaveLength(1)
+    expect(body.is_default).toBe(false)
+  })
+})
+
+describe('useUpdateTemplateMutation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('envia PATCH para /templates/{id}', async () => {
+    mockApiFetch.mockResolvedValueOnce({ id: 'tpl-1', name: 'Updated' })
+
+    const { result } = renderHook(() => useUpdateTemplateMutation(), { wrapper: createWrapper() })
+
+    await result.current.mutateAsync({
+      id: 'tpl-1',
+      name: 'Updated',
+      steps: [{ provider: 'gemini', role: 'validate', instruction: '{input}' }],
+    })
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      '/templates/tpl-1',
+      expect.objectContaining({ method: 'PATCH' }),
+    )
+
+    const body = JSON.parse(mockApiFetch.mock.calls[0][1].body)
+    expect(body.name).toBe('Updated')
+  })
+})
+
+describe('useDeleteTemplateMutation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('envia DELETE para /templates/{id}', async () => {
+    mockApiFetch.mockResolvedValueOnce({ id: 'tpl-1', deleted: true })
+
+    const { result } = renderHook(() => useDeleteTemplateMutation(), { wrapper: createWrapper() })
+
+    await result.current.mutateAsync({ id: 'tpl-1' })
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      '/templates/tpl-1',
+      expect.objectContaining({ method: 'DELETE' }),
+    )
+  })
+})
+
+describe('useUpdateProjectMutation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('envia PATCH para /projects/{id} com campos atualizados', async () => {
+    mockApiFetch.mockResolvedValueOnce({ id: 'proj-1', name: 'Updated Project', status: 'active' })
+
+    const { result } = renderHook(() => useUpdateProjectMutation(), { wrapper: createWrapper() })
+
+    await result.current.mutateAsync({
+      id: 'proj-1',
+      name: 'Updated Project',
+      description: 'New description',
+      status: 'paused',
+    })
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      '/projects/proj-1',
+      expect.objectContaining({ method: 'PATCH' }),
+    )
+
+    const body = JSON.parse(mockApiFetch.mock.calls[0][1].body)
+    expect(body.name).toBe('Updated Project')
+    expect(body.description).toBe('New description')
+    expect(body.status).toBe('paused')
+  })
+
+  it('envia campos SLA na atualizacao', async () => {
+    mockApiFetch.mockResolvedValueOnce({ id: 'proj-1' })
+
+    const { result } = renderHook(() => useUpdateProjectMutation(), { wrapper: createWrapper() })
+
+    await result.current.mutateAsync({
+      id: 'proj-1',
+      sla_timeout_seconds: 600,
+      sla_max_retries: 5,
+      sla_retry_delay_seconds: 120,
+    })
+
+    const body = JSON.parse(mockApiFetch.mock.calls[0][1].body)
+    expect(body.sla_timeout_seconds).toBe(600)
+    expect(body.sla_max_retries).toBe(5)
+    expect(body.sla_retry_delay_seconds).toBe(120)
+  })
+})
+
+describe('useReorderPrioritizedMutation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('envia POST para /prompts/reorder com array de ids', async () => {
+    mockApiFetch.mockResolvedValueOnce({ ok: true })
+
+    const { result } = renderHook(() => useReorderPrioritizedMutation(), { wrapper: createWrapper() })
+
+    await result.current.mutateAsync(['prompt-3', 'prompt-1', 'prompt-2'])
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      '/prompts/reorder',
+      expect.objectContaining({ method: 'POST' }),
+    )
+
+    const body = JSON.parse(mockApiFetch.mock.calls[0][1].body)
+    expect(body.ids).toEqual(['prompt-3', 'prompt-1', 'prompt-2'])
+  })
+})
+
+describe('useEditPromptMutation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('envia POST para /prompts/{id}/edit com campos editados', async () => {
+    mockApiFetch.mockResolvedValueOnce({ ok: true })
+
+    const { result } = renderHook(() => useEditPromptMutation(), { wrapper: createWrapper() })
+
+    await result.current.mutateAsync({
+      id: 'prompt-edit-1',
+      name: 'renamed-prompt',
+      content: 'updated content here',
+      target_folder: '/new/folder',
+    })
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      '/prompts/prompt-edit-1/edit',
+      expect.objectContaining({ method: 'POST' }),
+    )
+
+    const body = JSON.parse(mockApiFetch.mock.calls[0][1].body)
+    expect(body.name).toBe('renamed-prompt')
+    expect(body.content).toBe('updated content here')
+    expect(body.target_folder).toBe('/new/folder')
+  })
+
+  it('envia apenas campos fornecidos (parcial)', async () => {
+    mockApiFetch.mockResolvedValueOnce({ ok: true })
+
+    const { result } = renderHook(() => useEditPromptMutation(), { wrapper: createWrapper() })
+
+    await result.current.mutateAsync({
+      id: 'prompt-edit-2',
+      name: 'only-rename',
+    })
+
+    const body = JSON.parse(mockApiFetch.mock.calls[0][1].body)
+    expect(body.name).toBe('only-rename')
+    expect(body).not.toHaveProperty('content')
+    expect(body).not.toHaveProperty('target_folder')
+  })
+})
+
+describe('useReprocessPromptMutation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('envia POST para /prompts/{id}/reprocess', async () => {
+    mockApiFetch.mockResolvedValueOnce({ id: 'prompt-reprocessed' })
+
+    const { result } = renderHook(() => useReprocessPromptMutation(), { wrapper: createWrapper() })
+
+    await result.current.mutateAsync({ id: 'prompt-failed-1' })
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      '/prompts/prompt-failed-1/reprocess',
+      expect.objectContaining({ method: 'POST' }),
+    )
+  })
+
+  it('envia nome customizado no reprocessamento', async () => {
+    mockApiFetch.mockResolvedValueOnce({ id: 'prompt-reprocessed-2' })
+
+    const { result } = renderHook(() => useReprocessPromptMutation(), { wrapper: createWrapper() })
+
+    await result.current.mutateAsync({ id: 'prompt-failed-2', name: 'retry-with-new-name' })
+
+    const body = JSON.parse(mockApiFetch.mock.calls[0][1].body)
+    expect(body.name).toBe('retry-with-new-name')
   })
 })
 

@@ -11,8 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { ProviderBadge } from '@/components/night-worker/ProviderBadge'
-import { useCreatePromptMutation, useProjectsQuery, useTemplatesQuery } from '@/hooks/useNightWorkerApi'
-import type { PipelineConfig } from '@/types/night-worker'
+import { useCreatePipeline, useProjectsQuery, useTemplatesQuery } from '@/hooks/useNightWorkerApi'
 import { toast } from 'sonner'
 import { ArrowLeft, Play, Send } from 'lucide-react'
 
@@ -24,24 +23,10 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
-function slug(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9\s_-]/g, '-')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-}
-
-function isUuid(value?: string | null) {
-  if (!value) return false
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
-}
-
 export default function NWRunTemplate() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const createPrompt = useCreatePromptMutation()
+  const { runPipeline, isLoading: pipelineLoading } = useCreatePipeline()
   const { data: projects = [] } = useProjectsQuery('active')
   const { data: templates = [], isLoading: loadingTemplates } = useTemplatesQuery()
 
@@ -66,42 +51,13 @@ export default function NWRunTemplate() {
   const onSubmit = async (values: FormValues) => {
     if (!template || template.steps.length === 0) return
 
-    const pipelineId = crypto.randomUUID()
-    const firstStep = template.steps[0]
-
-    const pipelineConfig: PipelineConfig = {
-      template_version: 1,
-      steps: template.steps,
-      original_input: values.content,
-    }
-
-    const promptName = slug(`${template.name}-step1-${firstStep.role}`).slice(0, 500) || `pipeline-step1-${firstStep.provider}`
-    const renderedContent = firstStep.instruction
-      .split('{input}')
-      .join(values.content)
-      .split('{previous_result}')
-      .join('')
-    const templateId = isUuid(template.id) ? template.id : null
-
     try {
-      const res = await createPrompt.mutateAsync({
-        provider: firstStep.provider,
-        name: promptName,
-        content: renderedContent,
-        target_folder: values.target_folder,
-        pipeline_config: pipelineConfig,
-        template_id: templateId,
-        template_version: templateId ? (template.version ?? 1) : null,
-        pipeline_id: pipelineId,
-        pipeline_step: 1,
-        pipeline_total_steps: template.steps.length,
-        pipeline_template_name: template.name,
-        queue_stage: 'prioritized',
-        project_id: values.project_id?.trim() ? values.project_id : null,
+      await runPipeline({
+        template,
+        content: values.content,
+        targetFolder: values.target_folder,
+        projectId: values.project_id,
       })
-
-      toast.success('Pipeline iniciado')
-      navigate(`/nw/prompts/${res.id}`)
     } catch {
       toast.error('Falha ao iniciar pipeline')
     }
@@ -204,8 +160,8 @@ export default function NWRunTemplate() {
               </div>
 
               <div className="flex justify-end">
-                <Button type="submit" disabled={createPrompt.isPending}>
-                  {createPrompt.isPending ? (
+                <Button type="submit" disabled={pipelineLoading}>
+                  {pipelineLoading ? (
                     <>
                       <Send className="mr-2 h-4 w-4 animate-pulse" /> Iniciando...
                     </>

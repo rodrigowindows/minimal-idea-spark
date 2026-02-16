@@ -59,6 +59,7 @@ const NWTemplates = lazy(() => import("@/pages/NWTemplates"));
 const NWRunTemplate = lazy(() => import("@/pages/NWRunTemplate"));
 const NWProjects = lazy(() => import("@/pages/NWProjects"));
 const NWTestDashboard = lazy(() => import("@/pages/NWTestDashboard"));
+const NWProjectDetail = lazy(() => import("@/pages/NWProjectDetail"));
 
 // Auth & shared pages
 const AcceptInvite = lazy(() => import("@/pages/AcceptInvite").then((m) => ({ default: m.AcceptInvite })));
@@ -122,7 +123,26 @@ function AppContent() {
       }
       refreshCacheFromServer().catch(() => {});
     }, 5000);
-    return () => clearTimeout(timer);
+
+    // Prefetch common page chunks so navigation is instant
+    const prefetchTimer = setTimeout(() => {
+      import("@/pages/NWDashboard");
+      import("@/pages/NWPrompts");
+      import("@/pages/NWPromptDetail");
+      import("@/pages/NWProjects");
+      import("@/pages/NWProjectDetail");
+      import("@/pages/NWLogs");
+      import("@/pages/NWSubmit");
+      import("@/pages/NWSettings");
+      import("@/pages/NWTemplates");
+      import("@/pages/Settings");
+      import("@/pages/Dashboard");
+    }, 1500);
+
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(prefetchTimer);
+    };
   }, []);
 
   useEffect(() => {
@@ -174,6 +194,7 @@ function AppContent() {
           <Route path="/nw/submit" element={<Suspense fallback={<PageFallback />}><NWSubmit /></Suspense>} />
           <Route path="/nw/prompts/:id" element={<Suspense fallback={<PageFallback />}><NWPromptDetail /></Suspense>} />
           <Route path="/nw/prompts" element={<Suspense fallback={<PageFallback />}><NWPrompts /></Suspense>} />
+          <Route path="/nw/projects/:id" element={<Suspense fallback={<PageFallback />}><NWProjectDetail /></Suspense>} />
           <Route path="/nw/projects" element={<Suspense fallback={<PageFallback />}><NWProjects /></Suspense>} />
           <Route path="/nw/templates" element={<Suspense fallback={<PageFallback />}><NWTemplates /></Suspense>} />
           <Route path="/nw/templates/:id/run" element={<Suspense fallback={<PageFallback />}><NWRunTemplate /></Suspense>} />

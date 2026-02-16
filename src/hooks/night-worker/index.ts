@@ -13,3 +13,4 @@ export {
   useReprocessPromptMutation,
 } from './usePromptMutations'
 export { useLogsQuery } from './useLogsQuery'
+export { useCreatePipeline } from './useCreatePipeline'

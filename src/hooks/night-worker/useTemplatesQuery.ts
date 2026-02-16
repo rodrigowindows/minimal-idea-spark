@@ -20,22 +20,48 @@ export function useTemplatesQuery() {
 
       try {
         const templates = await fetchTemplates()
-        if (templates.length > 0) return templates
-
         const defaults = getDefaultPipelineTemplates()
-        for (const template of defaults) {
-          await apiFetch('/templates', {
-            method: 'POST',
-            body: JSON.stringify({
-              name: template.name,
-              description: template.description,
-              steps: template.steps,
-              is_default: Boolean(template.is_default),
-            }),
-          })
+
+        if (templates.length === 0) {
+          // No templates at all - create all defaults
+          for (const template of defaults) {
+            try {
+              await apiFetch('/templates', {
+                method: 'POST',
+                body: JSON.stringify({
+                  name: template.name,
+                  description: template.description,
+                  steps: template.steps,
+                  is_default: true,
+                }),
+              })
+            } catch {}
+          }
+          return await fetchTemplates()
         }
 
-        return await fetchTemplates()
+        // Templates exist - check if defaults are missing by name
+        const existingNames = new Set(templates.map((t) => t.name))
+        const missingDefaults = defaults.filter((d) => !existingNames.has(d.name))
+
+        if (missingDefaults.length > 0) {
+          for (const template of missingDefaults) {
+            try {
+              await apiFetch('/templates', {
+                method: 'POST',
+                body: JSON.stringify({
+                  name: template.name,
+                  description: template.description,
+                  steps: template.steps,
+                  is_default: true,
+                }),
+              })
+            } catch {}
+          }
+          return await fetchTemplates()
+        }
+
+        return templates
       } catch (error) {
         if (error instanceof ApiError && (error.status === 404 || error.status === 501)) {
           return getDefaultPipelineTemplates()

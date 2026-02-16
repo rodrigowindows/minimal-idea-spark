@@ -1,19 +1,21 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { StatusBadge } from '@/components/night-worker/StatusBadge'
 import { ProviderBadge } from '@/components/night-worker/ProviderBadge'
-import { useEditPromptMutation, usePipelinePromptsQuery, usePromptStatusQuery, useReprocessPromptMutation } from '@/hooks/useNightWorkerApi'
+import { PipelineProgress } from '@/components/night-worker/PipelineProgress'
+import { RetryConfirmDialog } from '@/components/night-worker/RetryConfirmDialog'
+import type { PipelineStepView } from '@/components/night-worker/PipelineProgress'
+import { useEditPromptMutation, usePromptStatusQuery, useReprocessPromptMutation } from '@/hooks/useNightWorkerApi'
 import { useNightWorker } from '@/contexts/NightWorkerContext'
 import { toast } from 'sonner'
-import { ArrowLeft, CheckCircle2, Circle, Copy, ExternalLink, Loader2, Pencil, RefreshCw, Save, Send, XCircle } from 'lucide-react'
+import { ArrowLeft, Copy, ExternalLink, Loader2, Pencil, RefreshCw, Save, Send } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import type { PipelineStep, PromptItem } from '@/types/night-worker'
 
 export default function NWPromptDetail() {
   const { id } = useParams<{ id: string }>()
@@ -28,6 +30,7 @@ export default function NWPromptDetail() {
   const [draftName, setDraftName] = useState('')
   const [draftContent, setDraftContent] = useState('')
   const [draftTargetFolder, setDraftTargetFolder] = useState('')
+  const [retryTarget, setRetryTarget] = useState<{ promptId: string; stepView: PipelineStepView } | null>(null)
 
   useEffect(() => {
     if (data) {
@@ -41,60 +44,6 @@ export default function NWPromptDetail() {
   const canEdit = data?.status === 'pending'
   const canReprocess = data?.status === 'done' || data?.status === 'failed'
   const pipelineId = data?.pipeline_id ?? null
-  const pipelineQuery = usePipelinePromptsQuery(pipelineId)
-
-  const pipelineView = useMemo(() => {
-    if (!data?.pipeline_id || !data.pipeline_step || !data.pipeline_total_steps) return null
-
-    const list = pipelineQuery.data ?? []
-    const configSteps = Array.isArray(data.pipeline_config?.steps) ? data.pipeline_config.steps : []
-    const totalSteps = Number(data.pipeline_total_steps) || configSteps.length || 0
-    if (totalSteps < 1) return null
-
-    const pickPromptForStep = (step: number): PromptItem | null => {
-      const items = list.filter((item) => Number(item.pipeline_step) === step)
-      if (items.length === 0) return null
-      const score = (status: string) => {
-        if (status === 'processing') return 4
-        if (status === 'pending') return 3
-        if (status === 'done') return 2
-        if (status === 'failed') return 1
-        return 0
-      }
-      return items
-        .slice()
-        .sort((a, b) => {
-          const statusDelta = score(b.status) - score(a.status)
-          if (statusDelta !== 0) return statusDelta
-          const aTime = new Date(a.updated_at || a.created_at || 0).getTime()
-          const bTime = new Date(b.updated_at || b.created_at || 0).getTime()
-          return bTime - aTime
-        })[0]
-    }
-
-    const steps = Array.from({ length: totalSteps }).map((_, index) => {
-      const stepNum = index + 1
-      const mappedPrompt = pickPromptForStep(stepNum)
-      const configStep = configSteps[index] as PipelineStep | undefined
-      const provider = configStep?.provider ?? mappedPrompt?.provider ?? 'unknown'
-      const role = configStep?.role ?? `step-${stepNum}`
-      const status = mappedPrompt?.status ?? (stepNum === data.pipeline_step ? data.status : stepNum < data.pipeline_step ? 'done' : 'pending')
-      return {
-        step: stepNum,
-        provider,
-        role,
-        status,
-        promptId: mappedPrompt?.id ?? (stepNum === data.pipeline_step ? data.id : null),
-      }
-    })
-
-    return {
-      templateName: data.pipeline_template_name || 'Pipeline',
-      currentStep: data.pipeline_step,
-      totalSteps,
-      steps,
-    }
-  }, [data, pipelineQuery.data])
 
   const handleCopy = (text?: string | null) => {
     if (!text) return
@@ -105,12 +54,7 @@ export default function NWPromptDetail() {
   const handleSaveEdit = () => {
     if (!id || !canEdit) return
     editMutation.mutate(
-      {
-        id,
-        name: draftName.trim(),
-        content: draftContent,
-        target_folder: draftTargetFolder.trim() || null,
-      },
+      { id, name: draftName.trim(), content: draftContent, target_folder: draftTargetFolder.trim() || null },
       {
         onSuccess: () => {
           toast.success('Prompt atualizado')
@@ -139,6 +83,27 @@ export default function NWPromptDetail() {
     )
   }
 
+  const handleRetryStep = (promptId: string, stepView: PipelineStepView) => {
+    setRetryTarget({ promptId, stepView })
+  }
+
+  const confirmRetry = () => {
+    if (!retryTarget) return
+    reprocessMutation.mutate(
+      { id: retryTarget.promptId },
+      {
+        onSuccess: (res) => {
+          toast.success('Passo reprocessado')
+          setRetryTarget(null)
+          if (res?.id) navigate(`/nw/prompts/${res.id}`)
+        },
+        onError: () => {
+          toast.error('Falha ao reprocessar passo')
+        },
+      }
+    )
+  }
+
   if (!id) return null
 
   return (
@@ -147,7 +112,11 @@ export default function NWPromptDetail() {
         <Alert className="mb-4 border-amber-500/40 bg-amber-500/10 text-amber-100">
           <AlertTitle>Configure a conexao</AlertTitle>
           <AlertDescription>
-            Defina a URL/token em <button className="underline" onClick={() => navigate('/nw/connect')}>/connect</button> para ver os detalhes.
+            Defina a URL/token em{' '}
+            <button className="underline" onClick={() => navigate('/nw/connect')}>
+              /connect
+            </button>{' '}
+            para ver os detalhes.
           </AlertDescription>
         </Alert>
       )}
@@ -157,7 +126,9 @@ export default function NWPromptDetail() {
           <AlertTitle>Erro ao carregar prompt</AlertTitle>
           <AlertDescription className="space-y-2">
             <div>{error instanceof Error ? error.message : 'Nao foi possivel consultar o prompt.'}</div>
-            <Button size="sm" variant="outline" onClick={() => refetch()}>Tentar novamente</Button>
+            <Button size="sm" variant="outline" onClick={() => refetch()}>
+              Tentar novamente
+            </Button>
           </AlertDescription>
         </Alert>
       )}
@@ -174,7 +145,9 @@ export default function NWPromptDetail() {
               {data && <StatusBadge status={data.status} pulse={data.status === 'pending' || data.status === 'processing'} />}
               {data && <ProviderBadge provider={data.provider} />}
               {data?.cloned_from && <Badge variant="outline">Reprocessado</Badge>}
-              <Badge variant="outline" className="font-mono text-xs">ID: {id}</Badge>
+              <Badge variant="outline" className="font-mono text-xs">
+                ID: {id}
+              </Badge>
             </div>
           </div>
         </div>
@@ -183,46 +156,16 @@ export default function NWPromptDetail() {
         </Button>
       </div>
 
-      {pipelineView && (
+      {pipelineId && data && (
         <Card className="mb-4 border border-blue-500/30 bg-blue-500/5">
           <CardHeader>
             <CardTitle className="text-base">
-              Pipeline: {pipelineView.templateName} (Passo {pipelineView.currentStep}/{pipelineView.totalSteps})
+              Pipeline: {data.pipeline_template_name || 'Pipeline'} (Passo {data.pipeline_step}/{data.pipeline_total_steps})
             </CardTitle>
-            <CardDescription>
-              {pipelineQuery.isFetching ? 'Atualizando progresso...' : 'Fluxo multi-step deste prompt'}
-            </CardDescription>
+            <CardDescription>Fluxo multi-step deste prompt</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              {pipelineView.steps.map((step, index) => (
-                <div key={`pipeline-step-${step.step}`} className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={!step.promptId}
-                    onClick={() => step.promptId && navigate(`/nw/prompts/${step.promptId}`)}
-                    className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition ${
-                      step.status === 'done'
-                        ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-200'
-                        : step.status === 'processing'
-                          ? 'border-blue-500/50 bg-blue-500/10 text-blue-200'
-                          : step.status === 'failed'
-                            ? 'border-red-500/50 bg-red-500/10 text-red-200'
-                            : 'border-border/60 bg-background/40 text-muted-foreground'
-                    } ${step.promptId ? 'hover:border-blue-400/60 hover:text-foreground' : 'cursor-default'}`}
-                  >
-                    <StepStatusIcon status={step.status} />
-                    <span>
-                      {step.step}. {step.provider} {step.role}
-                    </span>
-                  </button>
-                  {index < pipelineView.steps.length - 1 && <span className="text-muted-foreground">-&gt;</span>}
-                </div>
-              ))}
-            </div>
-            {pipelineQuery.isError && (
-              <p className="text-xs text-amber-300">Nao foi possivel carregar todos os passos do pipeline agora.</p>
-            )}
+          <CardContent>
+            <PipelineProgress pipelineId={pipelineId} currentPrompt={data} onRetryStep={handleRetryStep} />
           </CardContent>
         </Card>
       )}
@@ -257,7 +200,11 @@ export default function NWPromptDetail() {
                 {isEditing ? (
                   <div className="space-y-3 rounded-xl border border-border/60 bg-background/50 p-4">
                     <Input value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder="Nome do prompt" />
-                    <Input value={draftTargetFolder} onChange={(e) => setDraftTargetFolder(e.target.value)} placeholder="Pasta alvo" />
+                    <Input
+                      value={draftTargetFolder}
+                      onChange={(e) => setDraftTargetFolder(e.target.value)}
+                      placeholder="Pasta alvo"
+                    />
                     <Textarea
                       rows={14}
                       value={draftContent}
@@ -300,7 +247,10 @@ export default function NWPromptDetail() {
                   <MetaItem label="Stage" value={data.queue_stage || '-'} />
                   <MetaItem label="Prioridade" value={data.priority_order ?? '-'} />
                   <MetaItem label="Pipeline ID" value={data.pipeline_id || '-'} />
-                  <MetaItem label="Pipeline passo" value={data.pipeline_step ? `${data.pipeline_step}/${data.pipeline_total_steps ?? '-'}` : '-'} />
+                  <MetaItem
+                    label="Pipeline passo"
+                    value={data.pipeline_step ? `${data.pipeline_step}/${data.pipeline_total_steps ?? '-'}` : '-'}
+                  />
                   <MetaItem label="Pipeline template" value={data.pipeline_template_name || '-'} />
                   {data.result_path && <MetaItem label="Arquivo resultado" value={data.result_path} />}
                 </div>
@@ -335,11 +285,7 @@ export default function NWPromptDetail() {
                       <Copy className="h-4 w-4" />
                     </Button>
                     {data.result_path && (
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => window.open(`file://${data.result_path}`, '_blank')}
-                      >
+                      <Button variant="outline" size="icon" onClick={() => window.open(`file://${data.result_path}`, '_blank')}>
                         <ExternalLink className="h-4 w-4" />
                       </Button>
                     )}
@@ -380,9 +326,7 @@ export default function NWPromptDetail() {
                       </ReactMarkdown>
                     </div>
                     {data.result_content && (
-                      <p className="text-[11px] text-muted-foreground">
-                        {data.result_content.length.toLocaleString()} caracteres
-                      </p>
+                      <p className="text-[11px] text-muted-foreground">{data.result_content.length.toLocaleString()} caracteres</p>
                     )}
                   </div>
                 )}
@@ -408,6 +352,16 @@ export default function NWPromptDetail() {
           </div>
         </>
       )}
+
+      <RetryConfirmDialog
+        open={!!retryTarget}
+        onOpenChange={(open) => {
+          if (!open) setRetryTarget(null)
+        }}
+        stepInfo={retryTarget?.stepView}
+        isRetrying={reprocessMutation.isPending}
+        onConfirm={confirmRetry}
+      />
     </div>
   )
 }
@@ -419,13 +373,6 @@ function MetaItem({ label, value }: { label: string; value?: string | number | n
       <p className="font-semibold text-foreground">{value ?? '-'}</p>
     </div>
   )
-}
-
-function StepStatusIcon({ status }: { status: string }) {
-  if (status === 'done') return <CheckCircle2 className="h-3.5 w-3.5" />
-  if (status === 'processing') return <Loader2 className="h-3.5 w-3.5 animate-spin" />
-  if (status === 'failed') return <XCircle className="h-3.5 w-3.5" />
-  return <Circle className="h-3.5 w-3.5" />
 }
 
 function formatDate(value?: string | null) {

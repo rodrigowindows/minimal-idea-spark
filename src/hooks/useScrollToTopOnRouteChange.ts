@@ -8,9 +8,9 @@ export function useScrollToTopOnRouteChange() {
   useEffect(() => {
     const main = document.getElementById('main-content')
     if (main) {
-      main.scrollTo({ top: 0, behavior: 'smooth' })
+      main.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
     } else {
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
     }
   }, [pathname])
 }

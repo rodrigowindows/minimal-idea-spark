@@ -15,6 +15,7 @@ export function getDefaultPipelineTemplates(): PipelineTemplate[] {
       id: 'tpl-quick-validate',
       name: 'Quick Validate',
       description: 'Gemini valida, Claude confere',
+      is_default: true,
       steps: [
         {
           provider: 'gemini',
@@ -34,6 +35,7 @@ export function getDefaultPipelineTemplates(): PipelineTemplate[] {
       id: 'tpl-full-pipeline',
       name: 'Full Pipeline',
       description: 'Gemini valida -> Codex implementa -> Claude revisa',
+      is_default: true,
       steps: [
         {
           provider: 'gemini',
@@ -59,6 +61,7 @@ export function getDefaultPipelineTemplates(): PipelineTemplate[] {
       id: 'tpl-deep-review',
       name: 'Deep Review',
       description: 'Gemini valida -> Claude confere -> Codex implementa -> Claude revisa final',
+      is_default: true,
       steps: [
         {
           provider: 'gemini',

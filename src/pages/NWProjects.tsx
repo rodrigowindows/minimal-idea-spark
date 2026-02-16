@@ -16,16 +16,15 @@ import { ProviderBadge } from '@/components/night-worker/ProviderBadge'
 import { StatusBadge } from '@/components/night-worker/StatusBadge'
 import {
   useCreateProjectMutation,
-  useCreatePromptMutation,
+  useCreatePipeline,
   useProjectPromptsQuery,
   useProjectsQuery,
   useTemplatesQuery,
   useUpdateProjectMutation,
 } from '@/hooks/useNightWorkerApi'
-import type { NightWorkerProject, PipelineConfig } from '@/types/night-worker'
+import type { NightWorkerProject } from '@/types/night-worker'
 import { ArrowRight, Briefcase, FolderPlus, GitBranch, Play, Plus, Send } from 'lucide-react'
 
-const PROMPT_NAME_MAX_LENGTH = 500
 const RECENT_PROMPTS_LIMIT = 10
 const PROJECT_NAME_MIN_LENGTH = 3
 const DEFAULT_SLA_TIMEOUT_SECONDS = 300
@@ -38,24 +37,10 @@ type RunValues = {
   target_folder: string
 }
 
-function slug(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9\s_-]/g, '-')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-}
-
 function formatDate(value?: string | null) {
   if (!value) return '-'
   const d = new Date(value)
   return Number.isNaN(d.getTime()) ? value : d.toLocaleString()
-}
-
-function isUuid(value?: string | null) {
-  if (!value) return false
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
 }
 
 export default function NWProjects() {
@@ -80,7 +65,7 @@ export default function NWProjects() {
   const projects = useMemo(() => allProjects.filter((entry) => entry.status !== 'archived'), [allProjects])
   const createProject = useCreateProjectMutation()
   const updateProject = useUpdateProjectMutation()
-  const createPrompt = useCreatePromptMutation()
+  const { runPipeline, isLoading: pipelineLoading } = useCreatePipeline()
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>('')
   const [newProjectName, setNewProjectName] = useState('')
@@ -187,46 +172,16 @@ export default function NWProjects() {
       return
     }
 
-    const pipelineId = crypto.randomUUID()
-    const firstStep = template.steps[0]
-    const pipelineConfig: PipelineConfig = {
-      template_version: 1,
-      steps: template.steps,
-      original_input: values.content,
-    }
-
-    const renderedContent = firstStep.instruction
-      .split('{input}')
-      .join(values.content)
-      .split('{previous_result}')
-      .join('')
-    const templateId = isUuid(template.id) ? template.id : null
-
-    const promptName =
-      slug(`${selectedProject.name}-${template.name}-step1-${firstStep.role}`).slice(0, PROMPT_NAME_MAX_LENGTH) ||
-      `pipeline-step1-${firstStep.provider}`
-
     try {
-      const res = await createPrompt.mutateAsync({
-        provider: firstStep.provider,
-        name: promptName,
-        content: renderedContent,
-        target_folder: values.target_folder,
-        queue_stage: 'prioritized',
-        project_id: selectedProject.id,
-        template_id: templateId,
-        template_version: templateId ? (template.version ?? 1) : null,
-        pipeline_config: pipelineConfig,
-        pipeline_id: pipelineId,
-        pipeline_step: 1,
-        pipeline_total_steps: template.steps.length,
-        pipeline_template_name: template.name,
+      await runPipeline({
+        template,
+        content: values.content,
+        targetFolder: values.target_folder,
+        projectId: selectedProject.id,
+        projectName: selectedProject.name,
       })
-
-      toast.success(t('projects.toast.processStarted'))
-      navigate(`/nw/prompts/${res.id}`)
     } catch {
-      toast.error(t('projects.toast.processFailed'))
+      // toast handled by useCreatePipeline hook
     }
   }
 
@@ -378,6 +333,17 @@ export default function NWProjects() {
                       <Button
                         type="button"
                         size="sm"
+                        variant="ghost"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          navigate(`/nw/projects/${project.id}`)
+                        }}
+                      >
+                        <ArrowRight className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
                         variant="outline"
                         onClick={(event) => {
                           event.stopPropagation()
@@ -479,8 +445,8 @@ export default function NWProjects() {
                   )}
 
                   <div className="flex justify-end">
-                    <Button type="submit" disabled={createPrompt.isPending || !selectedProject || selectedProject.status === 'paused'}>
-                      {createPrompt.isPending ? (
+                    <Button type="submit" disabled={pipelineLoading || !selectedProject || selectedProject.status === 'paused'}>
+                      {pipelineLoading ? (
                         <>
                           <Send className="mr-2 h-4 w-4 animate-pulse" /> {t('projects.starting')}
                         </>
