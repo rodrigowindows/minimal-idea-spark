@@ -216,3 +216,202 @@ export default function NWDashboard() {
 
   const codexHealth = healthQuery.data?.workers?.find((worker) => worker.provider?.includes('codex'))
   const claudeHealth = healthQuery.data?.workers?.find((worker) => worker.provider?.includes('claude'))
+
+  return (
+    <div className="space-y-6 px-4 pb-12 md:px-8">
+      {!isConnected && (
+        <Alert className="border-amber-500/40 bg-amber-500/10 text-amber-100">
+          <AlertTitle>Configure a conexao</AlertTitle>
+          <AlertDescription>
+            Defina a URL e token em{' '}
+            <button className="underline" onClick={() => navigate('/nw/connect')}>
+              /connect
+            </button>{' '}
+            para carregar metricas.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {promptsQuery.isError && (
+        <Alert className="border-red-500/40 bg-red-500/10 text-red-100">
+          <AlertTitle>Erro ao buscar prompts</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <div>{promptsQuery.error instanceof Error ? promptsQuery.error.message : 'Falha ao contatar a API de prompts.'}</div>
+            <Button size="sm" variant="outline" onClick={() => promptsQuery.refetch()}>
+              Tentar novamente
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {healthQuery.isError && !isHealthNotFound && (
+        <Alert className="border-red-500/40 bg-red-500/10 text-red-100">
+          <AlertTitle>Erro ao consultar /health</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <div>{healthQuery.error instanceof Error ? healthQuery.error.message : 'Nao foi possivel obter o status dos workers.'}</div>
+            <Button size="sm" variant="outline" onClick={() => healthQuery.refetch()}>
+              Recarregar
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-[0.1em] text-blue-200">Night Worker</p>
+          <h1 className="text-3xl font-bold text-foreground">Dashboard de Metricas</h1>
+          <p className="text-sm text-muted-foreground">Fila, tempos de execucao, providers e performance por projeto.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Badge
+            variant="outline"
+            className={`flex items-center gap-2 rounded-full px-3 py-1.5 ${
+              healthQuery.data?.status === 'ok'
+                ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-200'
+                : 'border-red-500/50 bg-red-500/10 text-red-200'
+            }`}
+          >
+            <span className="h-2 w-2 rounded-full bg-current shadow-[0_0_0_4px_rgba(34,197,94,0.25)]" />
+            {healthQuery.data?.status === 'ok' ? 'Conectado' : 'Verificar conexao'}
+          </Badge>
+          <Button variant="outline" onClick={() => navigate('/nw/projects')}>
+            Projetos
+          </Button>
+          <Button variant="outline" onClick={() => navigate('/nw/templates')}>
+            Templates
+          </Button>
+          <Button variant="outline" size="icon" onClick={() => navigate('/nw/settings')}>
+            <Settings2 className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard title="Fila ativa" value={metrics.queueActive} hint="Pendentes + processando" icon={Clock3} accent="yellow" />
+        <MetricCard title="Done 24h" value={metrics.done24h} hint="Concluidos nas ultimas 24h" icon={CheckCircle2} accent="green" />
+        <MetricCard title="Falhas 24h" value={metrics.failed24h} hint={`Taxa: ${formatPercent(metrics.failureRate24h)}`} icon={AlertCircle} accent="red" />
+        <MetricCard title="Workers ativos" value={metrics.activeWorkers} hint="Claude e Codex" icon={Cpu} accent="blue" />
+        <MetricCard title="Tempo medio total" value={formatDuration(metrics.avgLeadMs)} hint="Criacao ate update" icon={TimerReset} accent="purple" />
+        <MetricCard title="Tempo medio proc" value={formatDuration(metrics.avgProcessingMs)} hint="processing_started_at ate fim" icon={Activity} accent="blue" />
+        <MetricCard title="P95 processamento" value={formatDuration(metrics.p95ProcessingMs)} hint="Cauda de latencia" icon={TrendingUp} accent="purple" />
+        <MetricCard title="Pipelines ativos" value={metrics.activePipelines} hint={`Item mais antigo: ${formatDuration(metrics.oldestQueueAgeMs)}`} icon={Cpu} accent="yellow" />
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <WorkerCard
+          title="Claude Worker"
+          config={config.workers.claude}
+          queue={claudeHealth?.queue}
+          lastRun={claudeHealth?.lastRun}
+          nextRetry={claudeHealth?.window}
+        />
+        <WorkerCard
+          title="Codex Worker"
+          config={config.workers.codex}
+          queue={codexHealth?.queue}
+          lastRun={codexHealth?.lastRun}
+          nextRetry={codexHealth?.window}
+        />
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <Card className="border border-white/10 bg-card/70 backdrop-blur">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-lg">Metricas por projeto</CardTitle>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/nw/projects')}>
+              Abrir projetos
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto rounded-xl border border-border/70 bg-background/50 shadow-inner">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border/60">
+                    <TableHead>Projeto</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Ativos</TableHead>
+                    <TableHead>Done</TableHead>
+                    <TableHead>Falhas</TableHead>
+                    <TableHead>Sucesso</TableHead>
+                    <TableHead>T. total</TableHead>
+                    <TableHead>T. proc</TableHead>
+                    <TableHead>Ultima atividade</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {metrics.projectRows.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={9} className="py-6 text-center text-muted-foreground">
+                        Nenhum dado de projeto.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {metrics.projectRows.map((row) => (
+                    <TableRow key={row.key} className="border-border/60">
+                      <TableCell className="font-semibold text-foreground">{row.projectName}</TableCell>
+                      <TableCell>{row.total}</TableCell>
+                      <TableCell>{row.active}</TableCell>
+                      <TableCell>{row.done}</TableCell>
+                      <TableCell>{row.failed}</TableCell>
+                      <TableCell>{formatPercent(row.successRate)}</TableCell>
+                      <TableCell>{formatDuration(row.avgLeadMs)}</TableCell>
+                      <TableCell>{formatDuration(row.avgProcessingMs)}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{formatDateTime(row.lastUpdatedTs)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-white/10 bg-card/70 backdrop-blur">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-lg">Metricas por provider</CardTitle>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/nw/prompts')}>
+              Abrir prompts
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto rounded-xl border border-border/70 bg-background/50 shadow-inner">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border/60">
+                    <TableHead>Provider</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Ativos</TableHead>
+                    <TableHead>Done</TableHead>
+                    <TableHead>Falhas</TableHead>
+                    <TableHead>Sucesso</TableHead>
+                    <TableHead>T. total</TableHead>
+                    <TableHead>T. proc</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {metrics.providerRows.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="py-6 text-center text-muted-foreground">
+                        Sem dados de provider.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {metrics.providerRows.map((row) => (
+                    <TableRow key={row.provider} className="border-border/60">
+                      <TableCell>
+                        <ProviderBadge provider={row.provider} />
+                      </TableCell>
+                      <TableCell>{row.total}</TableCell>
+                      <TableCell>{row.active}</TableCell>
+                      <TableCell>{row.done}</TableCell>
+                      <TableCell>{row.failed}</TableCell>
+                      <TableCell>{formatPercent(row.successRate)}</TableCell>
+                      <TableCell>{formatDuration(row.avgLeadMs)}</TableCell>
+                      <TableCell>{formatDuration(row.avgProcessingMs)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
