@@ -114,11 +114,8 @@ export default function NWProjects() {
   }, [runForm, templateFromQuery, templates])
 
   useEffect(() => {
-    if (!selectedProject?.default_target_folder) return
-    const current = runForm.getValues('target_folder')
-    if (!current || current === 'C:\\code\\my-project') {
-      runForm.setValue('target_folder', selectedProject.default_target_folder)
-    }
+    if (!selectedProject) return
+    runForm.setValue('target_folder', selectedProject.default_target_folder || '')
   }, [selectedProject, runForm])
 
   const selectedTemplate = useMemo(() => {
