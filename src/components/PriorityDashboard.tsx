@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -43,16 +43,8 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AIFeatureInfo } from '@/components/AIFeatureInfo'
-import { usePriorities } from '@/hooks/usePriorities'
-import { useLocalData } from '@/hooks/useLocalData'
+import { usePriorityDashboard } from '@/hooks/usePriorityDashboard'
 import type { Priority, PriorityLevel, PriorityCategory, KeyResult, PriorityInsight } from '@/lib/rag/priority-context'
-import {
-  loadPersistentContext,
-  savePersistentContext,
-  shouldAutoReevaluate,
-  markReevaluated,
-  syncPrioritiesToPersistentContext,
-} from '@/lib/rag/priority-context'
 import { suggestPriorityLevel } from '@/lib/rag/goal-embeddings'
 import { toast } from 'sonner'
 
@@ -82,7 +74,6 @@ const INSIGHT_ICONS: Record<PriorityInsight['type'], typeof AlertCircle> = {
 }
 
 export function PriorityDashboard() {
-  const { opportunities, goals } = useLocalData()
   const {
     priorities,
     activePriorities,
@@ -98,38 +89,17 @@ export function PriorityDashboard() {
     updateKeyResult,
     addKeyResult,
     removeKeyResult,
-  } = usePriorities(opportunities, goals)
-
-  const [showNewDialog, setShowNewDialog] = useState(false)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [objectivesInput, setObjectivesInput] = useState('')
-  const [showObjectives, setShowObjectives] = useState(false)
-
-  // Load persistent context for objectives editor
-  const persistentCtx = useMemo(() => loadPersistentContext(), [priorities])
-
-  // Sync priorities to persistent context when they change
-  useEffect(() => {
-    syncPrioritiesToPersistentContext(priorities)
-  }, [priorities])
-
-  // Auto-reevaluation check
-  useEffect(() => {
-    if (shouldAutoReevaluate(priorities)) {
-      markReevaluated()
-    }
-  }, [priorities])
-
-  function handleSaveObjectives() {
-    const objectives = objectivesInput
-      .split('\n')
-      .map(l => l.trim())
-      .filter(l => l.length > 0)
-    const ctx = loadPersistentContext()
-    savePersistentContext({ ...ctx, objectives })
-    toast.success('Objectives updated!')
-    setShowObjectives(false)
-  }
+    showNewDialog,
+    setShowNewDialog,
+    expandedId,
+    setExpandedId,
+    objectivesInput,
+    setObjectivesInput,
+    showObjectives,
+    setShowObjectives,
+    persistentCtx,
+    handleSaveObjectives,
+  } = usePriorityDashboard()
 
   return (
     <div className="min-h-screen p-4 md:p-6 lg:p-8">

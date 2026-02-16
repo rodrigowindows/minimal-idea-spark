@@ -1,6 +1,4 @@
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { DeepWorkOverlay } from "@/components/deep-work/DeepWorkOverlay";
@@ -11,17 +9,9 @@ import { WelcomeModal } from "@/components/Onboarding/WelcomeModal";
 import { Tour } from "@/components/Onboarding/Tour";
 import { ReminderChecker } from "@/components/ReminderChecker";
 import { useNotificationGenerator } from "@/hooks/useNotificationGenerator";
-import { AppProvider, useAppContext } from "@/contexts/AppContext";
-import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
-import { LanguageProvider } from "@/contexts/LanguageContext";
-import { ThemeProvider } from "@/contexts/ThemeContext";
-import { WarRoomLayoutProvider } from "@/contexts/WarRoomLayoutContext";
+import { useAppContext } from "@/contexts/AppContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { RealtimeProvider } from "@/contexts/RealtimeContext";
-import { NightWorkerProvider, useNightWorker } from "@/contexts/NightWorkerContext";
-import { ShortcutProvider } from "@/contexts/ShortcutContext";
-import { NetworkStatusProvider } from "@/contexts/NetworkStatusContext";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { useNightWorker } from "@/contexts/NightWorkerContext";
 import { PriorityDashboard } from "@/components/PriorityDashboard";
 import { NightWorkerSimpleInterface } from "@/components/night-worker/SimpleInterface";
 import NotFound from "./pages/NotFound";
@@ -32,6 +22,7 @@ import { processQueue } from "@/lib/pwa/sync-queue";
 import { createSyncProcessor } from "@/lib/pwa/sync-processor";
 import { supabase } from "@/integrations/supabase/client";
 import { refreshCacheFromServer } from "@/lib/offline/sync-manager";
+import { AppProviders, AuthenticatedProviders } from "@/providers/AppProviders";
 
 // Main pages
 const Dashboard = lazy(() => import("@/pages/Dashboard").then((m) => ({ default: m.Dashboard })));
@@ -239,41 +230,20 @@ function AuthGate() {
   }
 
   return (
-    <ErrorBoundary>
-      <ThemeProvider>
-        <NetworkStatusProvider>
-        <WarRoomLayoutProvider>
-        <LanguageProvider>
-        <AppProvider>
-          <ShortcutProvider>
-          <WorkspaceProvider>
-            <RealtimeProvider>
-              <AppContent />
-            </RealtimeProvider>
-          </WorkspaceProvider>
-          </ShortcutProvider>
-        </AppProvider>
-      </LanguageProvider>
-      </WarRoomLayoutProvider>
-        </NetworkStatusProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
+    <AuthenticatedProviders>
+      <AppContent />
+    </AuthenticatedProviders>
   );
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Sonner />
-      <NightWorkerProvider>
-        <BrowserRouter>
-          <AuthProvider>
-            <AuthGate />
-          </AuthProvider>
-        </BrowserRouter>
-      </NightWorkerProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <AppProviders queryClient={queryClient}>
+    <BrowserRouter>
+      <AuthProvider>
+        <AuthGate />
+      </AuthProvider>
+    </BrowserRouter>
+  </AppProviders>
 );
 
 export default App;

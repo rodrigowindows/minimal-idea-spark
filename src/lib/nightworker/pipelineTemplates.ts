@@ -1,6 +1,4 @@
-﻿import type { NightWorkerProvider, PipelineStep, PipelineTemplate } from '@/types/night-worker'
-
-export const PIPELINE_TEMPLATES_STORAGE_KEY = 'nightworker_templates'
+import type { PipelineTemplate } from '@/types/night-worker'
 
 function nowIso() {
   return new Date().toISOString()
@@ -88,77 +86,4 @@ export function getDefaultPipelineTemplates(): PipelineTemplate[] {
       ],
     }),
   ]
-}
-
-function isProvider(value: unknown): value is NightWorkerProvider {
-  return typeof value === 'string' && value.trim().length > 0
-}
-
-function normalizeStep(step: unknown): PipelineStep | null {
-  if (!step || typeof step !== 'object') return null
-  const raw = step as Record<string, unknown>
-  const provider = raw.provider
-  const role = typeof raw.role === 'string' ? raw.role.trim() : ''
-  const instruction = typeof raw.instruction === 'string' ? raw.instruction : ''
-  if (!isProvider(provider) || !role || !instruction) return null
-  return {
-    provider,
-    role,
-    instruction,
-  }
-}
-
-function normalizeTemplate(input: unknown): PipelineTemplate | null {
-  if (!input || typeof input !== 'object') return null
-  const raw = input as Record<string, unknown>
-  const id = typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim() : crypto.randomUUID()
-  const name = typeof raw.name === 'string' ? raw.name.trim() : ''
-  const description = typeof raw.description === 'string' ? raw.description.trim() : ''
-  const steps = Array.isArray(raw.steps) ? raw.steps.map((s) => normalizeStep(s)).filter((s): s is PipelineStep => Boolean(s)) : []
-  if (!name || steps.length === 0) return null
-
-  return {
-    id,
-    name,
-    description,
-    steps,
-    created_at: typeof raw.created_at === 'string' ? raw.created_at : nowIso(),
-    updated_at: typeof raw.updated_at === 'string' ? raw.updated_at : nowIso(),
-  }
-}
-
-function normalizeTemplates(input: unknown): PipelineTemplate[] {
-  if (!Array.isArray(input)) return []
-  return input
-    .map((entry) => normalizeTemplate(entry))
-    .filter((entry): entry is PipelineTemplate => Boolean(entry))
-}
-
-export function loadPipelineTemplates(): PipelineTemplate[] {
-  if (typeof window === 'undefined') {
-    return getDefaultPipelineTemplates()
-  }
-
-  try {
-    const raw = localStorage.getItem(PIPELINE_TEMPLATES_STORAGE_KEY)
-    if (!raw) {
-      const defaults = getDefaultPipelineTemplates()
-      savePipelineTemplates(defaults)
-      return defaults
-    }
-    const parsed = JSON.parse(raw)
-    const normalized = normalizeTemplates(parsed)
-    if (normalized.length > 0) return normalized
-  } catch {
-    // ignore and reset below
-  }
-
-  const defaults = getDefaultPipelineTemplates()
-  savePipelineTemplates(defaults)
-  return defaults
-}
-
-export function savePipelineTemplates(templates: PipelineTemplate[]) {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(PIPELINE_TEMPLATES_STORAGE_KEY, JSON.stringify(templates))
 }

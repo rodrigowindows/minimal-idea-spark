@@ -1,54 +1,25 @@
-import { useMemo, useRef, useState } from 'react'
+import { format } from 'date-fns'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { WeeklyScorecard } from './WeeklyScorecard'
 import { ActivityHeatmap } from './ActivityHeatmap'
 import { Charts } from './Charts'
 import { XPProgressBar } from '@/components/gamification/XPProgressBar'
-import { useXPSystem } from '@/hooks/useXPSystem'
-import { useLocalData } from '@/hooks/useLocalData'
+import { useAnalyticsDashboard } from '@/hooks/useAnalyticsDashboard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { GAMIFICATION_CONFIG } from '@/lib/constants'
-import {
-  DEFAULT_KPIS,
-  generateDailyDataPoints,
-  calculateProductivityScore,
-  type PeriodStats,
-} from '@/lib/analytics/metrics'
-import { exportToCSV, type ExportRow } from '@/lib/analytics/export'
-import { predictTrend, type DataPoint } from '@/lib/analytics/predictions'
-import {
-  generateInsightsFromMetrics,
-  generatePredictionInsights,
-  type GeneratedInsight,
-} from '@/lib/ai/insights-generator'
+import { DEFAULT_KPIS } from '@/lib/analytics/metrics'
 import {
   Trophy, Flame, Brain, Footprints, Scale, Lightbulb, Crown, Star, RotateCcw, Zap, Target,
   Download, FileText, TrendingUp, AlertTriangle,
   BarChart3, Sparkles, ChevronRight, Clock, Heart,
 } from 'lucide-react'
-import { startOfWeek, endOfWeek, isWithinInterval, parseISO, subDays, format } from 'date-fns'
 
 const ACHIEVEMENT_ICONS: Record<string, typeof Star> = {
   footprints: Footprints, flame: Flame, brain: Brain, trophy: Trophy,
   scale: Scale, lightbulb: Lightbulb, crown: Crown, star: Star, zap: Zap,
-}
-
-const STATUS_COLORS: Record<string, string> = {
-  backlog: '#6b7280',
-  doing: '#3b82f6',
-  review: '#f59e0b',
-  done: '#22c55e',
-}
-
-const TYPE_COLORS: Record<string, string> = {
-  action: '#3b82f6',
-  study: '#8b5cf6',
-  insight: '#f59e0b',
-  networking: '#ec4899',
 }
 
 function SummaryCard({
@@ -81,161 +52,40 @@ function SummaryCard({
 }
 
 export function AnalyticsDashboard() {
-  const { opportunities, domains, dailyLogs, habits, goals, isLoading, weeklyTargets } = useLocalData()
   const {
-    level, xpTotal, levelTitle, achievements, streakDays,
-    deepWorkMinutes, opportunitiesCompleted, resetXP,
-  } = useXPSystem()
-  const [dashboardTab, setDashboardTab] = useState('overview')
-
-  const allAchievements = GAMIFICATION_CONFIG.ACHIEVEMENTS
-  const unlockedNames = new Set(achievements.map(a => a.name))
-
-  const weeklyDomainStats = useMemo(() => {
-    const now = new Date()
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 })
-    const weekEnd = endOfWeek(now, { weekStartsOn: 1 })
-    const stats: Record<string, number> = {}
-    opportunities.forEach(opp => {
-      if (opp.status === 'done' && opp.domain_id) {
-        try {
-          const created = parseISO(opp.created_at)
-          if (isWithinInterval(created, { start: weekStart, end: weekEnd })) {
-            stats[opp.domain_id] = (stats[opp.domain_id] || 0) + 1
-          }
-        } catch { /* ignore */ }
-      }
-    })
-    return stats
-  }, [opportunities])
-
-  const hasTargets = weeklyTargets.length > 0 && weeklyTargets.some(t => t.opportunities_target > 0 || t.hours_target > 0)
-
-  const metricsForInsights = useMemo(() => ({
-    tasksCompleted: opportunitiesCompleted,
-    deepWorkMinutes,
-    xpGained: xpTotal,
+    opportunities,
+    domains,
+    dailyLogs,
+    habits,
+    goals,
+    isLoading,
+    level,
+    xpTotal,
+    levelTitle,
+    achievements,
     streakDays,
-    domainsTouched: Array.from(new Set(opportunities.filter(o => o.domain_id).map(o => o.domain_id!))),
-  }), [opportunitiesCompleted, deepWorkMinutes, xpTotal, streakDays, opportunities])
-
-  const insights: GeneratedInsight[] = useMemo(() => generateInsightsFromMetrics(metricsForInsights), [metricsForInsights])
-  const predictionInsights = useMemo(
-    () => generatePredictionInsights(streakDays, xpTotal, opportunitiesCompleted, level),
-    [streakDays, xpTotal, opportunitiesCompleted, level],
-  )
-  const allInsights = useMemo(() => [...insights, ...predictionInsights].slice(0, 10), [insights, predictionInsights])
-
-  const weeklyChartData = useMemo(() => {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-    return days.map((day, i) => ({
-      day,
-      xp: Math.floor(Math.random() * 60) + 20 + (i % 3) * 10,
-      tasks: Math.floor(Math.random() * 3) + 1,
-    }))
-  }, [])
-
-  const domainChartData = useMemo(() => {
-    if (!domains.length) return []
-    const counts: Record<string, number> = {}
-    opportunities.forEach(o => { if (o.domain_id) counts[o.domain_id] = (counts[o.domain_id] || 0) + 1 })
-    return domains.map(d => ({ name: d.name, value: counts[d.id] || 0, fill: d.color_theme }))
-  }, [domains, opportunities])
-
-  const dailyData = useMemo(
-    () => generateDailyDataPoints(opportunities, dailyLogs, 30),
-    [opportunities, dailyLogs],
-  )
-
-  const statusData = useMemo(() => {
-    const counts: Record<string, number> = {}
-    opportunities.forEach(o => { counts[o.status] = (counts[o.status] || 0) + 1 })
-    return Object.entries(counts).map(([name, value]) => ({
-      name: name.charAt(0).toUpperCase() + name.slice(1),
-      value,
-      fill: STATUS_COLORS[name] || '#6b7280',
-    }))
-  }, [opportunities])
-
-  const typeData = useMemo(() => {
-    const counts: Record<string, number> = {}
-    opportunities.forEach(o => { counts[o.type] = (counts[o.type] || 0) + 1 })
-    return Object.entries(counts).map(([name, value]) => ({
-      name: name.charAt(0).toUpperCase() + name.slice(1),
-      value,
-      fill: TYPE_COLORS[name] || '#6b7280',
-    }))
-  }, [opportunities])
-
-  const kpiValues = useMemo(() => ({
-    tasks: opportunitiesCompleted,
-    deep_work: deepWorkMinutes,
-    xp: xpTotal,
-    streak: streakDays,
-  }), [opportunitiesCompleted, deepWorkMinutes, xpTotal, streakDays])
-
-  const predictionPoints: DataPoint[] = useMemo(() => {
-    return [0, 1, 2, 3, 4, 5, 6].map(i => ({
-      date: format(subDays(new Date(), 6 - i), 'yyyy-MM-dd'),
-      value: opportunitiesCompleted + Math.floor(Math.random() * 3) - 1,
-    }))
-  }, [opportunitiesCompleted])
-  const prediction = useMemo(() => predictTrend(predictionPoints, 'tasks'), [predictionPoints])
-
-  const productivityScore = useMemo(() => {
-    const stats: PeriodStats = {
-      tasksCompleted: opportunitiesCompleted,
-      tasksByStatus: {},
-      tasksByDomain: {},
-      tasksByType: {},
-      deepWorkMinutes,
-      xpGained: xpTotal,
-      streakDays,
-      logsCount: dailyLogs.length,
-      avgMood: 0,
-      avgEnergy: 0,
-      domainsTouched: Array.from(new Set(opportunities.filter(o => o.domain_id).map(o => o.domain_id!))),
-      habitsCompletionRate: 0,
-      goalsProgress: 0,
-    }
-    return calculateProductivityScore(stats)
-  }, [opportunitiesCompleted, deepWorkMinutes, xpTotal, streakDays, dailyLogs, opportunities])
-
-  const csvRows: ExportRow[] = useMemo(() => {
-    const rows: ExportRow[] = [
-      { metric: 'Tasks completed', value: opportunitiesCompleted, period: 'all' },
-      { metric: 'Deep work (min)', value: deepWorkMinutes, period: 'all' },
-      { metric: 'XP total', value: xpTotal, period: 'all' },
-      { metric: 'Streak days', value: streakDays, period: 'all' },
-      { metric: 'Productivity score', value: productivityScore, period: 'all' },
-      { metric: 'Journal entries', value: dailyLogs.length, period: 'all' },
-      { metric: 'Habits count', value: habits.length, period: 'all' },
-      { metric: 'Goals count', value: goals.length, period: 'all' },
-    ]
-    domains.forEach(d => {
-      const count = opportunities.filter(o => o.domain_id === d.id).length
-      rows.push({ metric: `Domain: ${d.name}`, value: count, period: 'all' })
-    })
-    allInsights.forEach((insight, i) => {
-      rows.push({ metric: `Insight ${i + 1}`, value: `[${insight.type}] ${insight.title}: ${insight.body}` as any, period: 'all' })
-    })
-    return rows
-  }, [opportunitiesCompleted, deepWorkMinutes, xpTotal, streakDays, productivityScore, dailyLogs, habits, goals, domains, opportunities, allInsights])
-
-  const printRef = useRef<HTMLDivElement>(null)
-  const handleExportCSV = () => exportToCSV(csvRows, `analytics-${format(new Date(), 'yyyy-MM-dd')}.csv`)
-  const handlePrint = () => {
-    if (printRef.current) {
-      const win = window.open('', '_blank')
-      if (!win) { window.print(); return }
-      win.document.write(`
-        <!DOCTYPE html><html><head><title>LifeOS Analytics Report</title>
-        <style>body{ font-family: system-ui; padding: 24px; } .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px; }</style></head>
-        <body>${printRef.current.innerHTML}</body></html>`)
-      win.document.close()
-      win.onload = () => { win.print(); win.close() }
-    } else window.print()
-  }
+    deepWorkMinutes,
+    opportunitiesCompleted,
+    resetXP,
+    dashboardTab,
+    setDashboardTab,
+    allAchievements,
+    unlockedNames,
+    weeklyDomainStats,
+    hasTargets,
+    allInsights,
+    weeklyChartData,
+    domainChartData,
+    dailyData,
+    statusData,
+    typeData,
+    kpiValues,
+    prediction,
+    productivityScore,
+    printRef,
+    handleExportCSV,
+    handlePrint,
+  } = useAnalyticsDashboard()
 
   return (
     <div className="min-h-screen p-4 md:p-6 lg:p-8">
