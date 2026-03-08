@@ -37,6 +37,8 @@ export function Auth() {
 
         if (error) throw error;
         toast.success('Check your email for confirmation!');
+        // With auto-confirm, user is already logged in — redirect to dashboard
+        navigate('/');
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Authentication failed';
