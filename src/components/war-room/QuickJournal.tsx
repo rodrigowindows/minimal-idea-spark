@@ -10,7 +10,7 @@ import { toast } from 'sonner'
 import { useLocalData } from '@/hooks/useLocalData'
 import { useXPSystem } from '@/hooks/useXPSystem'
 import { VoiceInput } from '@/components/smart-capture/VoiceInput'
-import { AudioToText } from '@/components/AudioToText'
+
 
 export function QuickJournal() {
   const [content, setContent] = useState('')
@@ -64,11 +64,6 @@ export function QuickJournal() {
           <div className="absolute right-1 top-1 flex items-center gap-0.5">
             <VoiceInput
               onTranscript={(text) => setContent((prev) => (prev ? prev + ' ' + text : text))}
-            />
-            <AudioToText
-              compact
-              sourcePage="quick-journal"
-              onTranscription={(text) => setContent((prev) => (prev ? prev + ' ' + text : text))}
             />
           </div>
         </div>

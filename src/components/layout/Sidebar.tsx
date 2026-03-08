@@ -11,7 +11,7 @@ import { usePromptsQuery } from '@/hooks/useNightWorkerApi'
 import { useRecentPages } from '@/hooks/useRecentPages'
 import { NotificationCenter } from '@/components/NotificationCenter'
 import { SyncStatusIndicator } from '@/components/SyncStatusIndicator'
-import { WorkspaceSwitcher } from '@/components/WorkspaceSwitcher'
+
 
 import { SidebarFooter } from './SidebarFooter'
 import { SidebarNavigation } from './SidebarNavigation'
@@ -193,9 +193,6 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </div>
       </div>
 
-      <div className={cn('border-b border-border/50 px-2 py-2', collapsed && 'px-1')}>
-        <WorkspaceSwitcher collapsed={collapsed} />
-      </div>
 
       <SidebarXPBar collapsed={collapsed} />
 

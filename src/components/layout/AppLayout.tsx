@@ -15,10 +15,7 @@ import {
 } from '@/components/ui/sheet'
 import { MobileNav } from '@/components/MobileNav'
 import { Sidebar } from './Sidebar'
-import { PresenceIndicator } from '@/components/PresenceIndicator'
-import { NotificationCenter } from '@/components/NotificationCenter'
-import { CollaborativeCursor } from '@/components/CollaborativeCursor'
-import { useRealtime } from '@/contexts/RealtimeContext'
+
 import { SkipLink } from '@/components/SkipLink'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { KeyboardShortcutsHelp } from '@/components/layout/KeyboardShortcutsHelp'
@@ -37,7 +34,7 @@ import { PageTransition } from '@/components/layout/PageTransition'
 
 // Routes where breadcrumbs should not appear
 const NO_BREADCRUMB_ROUTES = new Set(['/'])
-const ENABLE_COLLAB_CURSORS = import.meta.env.VITE_ENABLE_COLLAB_CURSORS === 'true'
+
 
 export function AppLayout() {
   const { t } = useTranslation()
@@ -59,7 +56,7 @@ export function AppLayout() {
   const showBackButton = location.pathname.split('/').filter(Boolean).length > 1 && !deepWorkMode
   const isMobile = !useMediaQuery('(min-width: 768px)')
   const [mobileOpen, setMobileOpen] = useState(false)
-  const { presences, currentUserId, isConnected } = useRealtime()
+  
   useKeyboardShortcuts()
 
   return (
@@ -75,9 +72,6 @@ export function AppLayout() {
         }}
       />
 
-      {ENABLE_COLLAB_CURSORS && isConnected && !deepWorkMode && (
-        <CollaborativeCursor presences={presences} currentUserId={currentUserId} />
-      )}
 
       {isMobile && !deepWorkMode && (
         <>
@@ -104,8 +98,6 @@ export function AppLayout() {
             </Button>
             <div className="flex items-center gap-1">
               <SyncStatusIndicator className="shrink-0" />
-              <NotificationCenter />
-              <PresenceIndicator presences={presences} currentUserId={currentUserId} maxDisplay={3} />
             </div>
           </header>
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -142,9 +134,6 @@ export function AppLayout() {
         {!isMobile && !deepWorkMode && (
           <div className="sticky top-0 z-30 flex items-center justify-end gap-2 px-4 py-2 bg-background/80 backdrop-blur-sm border-b border-border/30">
             <SyncStatusIndicator showBar className="mr-auto" />
-            {presences.filter(p => p.user_id !== currentUserId).length > 0 && (
-              <PresenceIndicator presences={presences} currentUserId={currentUserId} maxDisplay={5} />
-            )}
           </div>
         )}
 

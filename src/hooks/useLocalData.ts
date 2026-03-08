@@ -5,11 +5,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import type { DailyLog, LifeDomain, Opportunity } from '@/types'
 import { useAuth } from '@/contexts/AuthContext'
-import type { Automation } from '@/lib/automation/engine'
-import type { Trigger } from '@/lib/automation/triggers'
-import type { Action } from '@/lib/automation/actions'
-import { createSnapshot } from '@/lib/versioning/manager'
-import type { EntityType } from '@/lib/db/schema-versions'
+
 import { enqueue } from '@/lib/pwa/sync-queue'
 import { calculateGoalProgress } from '@/lib/goals/goal-service'
 
@@ -132,9 +128,6 @@ export function useLocalData() {
   const [weeklyTargets, setWeeklyTargets] = useState<WeeklyTarget[]>(() =>
     loadFromStorage(STORAGE_KEYS.weeklyTargets, [])
   )
-  const [automations, setAutomations] = useState<Automation[]>(() =>
-    loadFromStorage(STORAGE_KEYS.automations, [])
-  )
 
   // Persist on change
   useEffect(() => { saveToStorage(STORAGE_KEYS.domains, domains) }, [domains])
@@ -143,22 +136,11 @@ export function useLocalData() {
   useEffect(() => { saveToStorage(STORAGE_KEYS.habits, habits) }, [habits])
   useEffect(() => { saveToStorage(STORAGE_KEYS.goals, goals) }, [goals])
   useEffect(() => { saveToStorage(STORAGE_KEYS.weeklyTargets, weeklyTargets) }, [weeklyTargets])
-  useEffect(() => { saveToStorage(STORAGE_KEYS.automations, automations) }, [automations])
 
-  // Auto-versioning: debounced snapshot creation on entity changes
-  const snapshotTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+  // No-op auto snapshot (versioning removed)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const autoSnapshot = useCallback((_type: string, _id: string, _content: string, _comment: string) => {}, [])
 
-  const autoSnapshot = useCallback((entityType: EntityType, entityId: string, content: string, comment: string) => {
-    const key = `${entityType}:${entityId}`
-    if (snapshotTimers.current[key]) clearTimeout(snapshotTimers.current[key])
-    snapshotTimers.current[key] = setTimeout(() => {
-      try {
-        createSnapshot(entityType, entityId, content, comment)
-      } catch { /* silent fail for auto-snapshot */ }
-    }, 2000) // 2 second debounce to avoid excessive snapshots
-  }, [])
-
-  // Enrich opportunities with domain
   const enrichedOpportunities = opportunities.map(opp => ({
     ...opp,
     domain: domains.find(d => d.id === opp.domain_id),
@@ -410,29 +392,6 @@ export function useLocalData() {
     setWeeklyTargets(prev => prev.filter(t => t.domain_id !== domainId))
   }, [])
 
-  // ---- Automation CRUD ----
-  const addAutomation = useCallback((data: { name: string; description: string; enabled: boolean; trigger: Trigger; actions: Action[] }) => {
-    const newAuto: Automation = {
-      ...data,
-      id: `auto-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      runCount: 0,
-    }
-    setAutomations(prev => [newAuto, ...prev])
-    return newAuto
-  }, [])
-
-  const updateAutomation = useCallback((id: string, data: Partial<Automation>) => {
-    setAutomations(prev => prev.map(a => a.id === id ? { ...a, ...data } : a))
-  }, [])
-
-  const deleteAutomation = useCallback((id: string) => {
-    setAutomations(prev => prev.filter(a => a.id !== id))
-  }, [])
-
-  const toggleAutomation = useCallback((id: string) => {
-    setAutomations(prev => prev.map(a => a.id === id ? { ...a, enabled: !a.enabled } : a))
-  }, [])
 
   // ---- Export / Import ----
   const exportData = useCallback(() => {
@@ -445,7 +404,7 @@ export function useLocalData() {
       habits,
       goals,
       weeklyTargets,
-      automations,
+      
       xpState: localStorage.getItem('minimal_idea_spark_xp_state'),
     }
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
@@ -467,7 +426,7 @@ export function useLocalData() {
       if (data.habits) setHabits(data.habits)
       if (data.goals) setGoals(data.goals)
       if (data.weeklyTargets) setWeeklyTargets(data.weeklyTargets)
-      if (data.automations) setAutomations(data.automations)
+      
       if (data.xpState) localStorage.setItem('minimal_idea_spark_xp_state', data.xpState)
       return true
     } catch {
@@ -520,12 +479,6 @@ export function useLocalData() {
     setWeeklyTarget,
     removeWeeklyTarget,
 
-    // Automation actions
-    automations,
-    addAutomation,
-    updateAutomation,
-    deleteAutomation,
-    toggleAutomation,
 
     // Export/Import
     exportData,

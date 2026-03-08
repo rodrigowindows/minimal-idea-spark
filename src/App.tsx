@@ -35,17 +35,8 @@ const Habits = lazy(() => import("@/pages/Habits").then((m) => ({ default: m.Hab
 const Goals = lazy(() => import("@/pages/Goals").then((m) => ({ default: m.Goals })));
 const CalendarPage = lazy(() => import("@/pages/CalendarPage").then((m) => ({ default: m.CalendarPage })));
 const WeeklyReview = lazy(() => import("@/pages/WeeklyReview").then((m) => ({ default: m.WeeklyReview })));
-const ContentGeneratorPage = lazy(() => import("@/pages/ContentGeneratorPage").then((m) => ({ default: m.ContentGeneratorPage })));
-const AutomationPage = lazy(() => import("@/pages/AutomationPage").then((m) => ({ default: m.AutomationPage })));
-const TemplatesPage = lazy(() => import("@/pages/TemplatesPage").then((m) => ({ default: m.TemplatesPage })));
-const ImageGenerationPage = lazy(() => import("@/pages/ImageGenerationPage").then((m) => ({ default: m.ImageGenerationPage })));
-const VersionHistoryPage = lazy(() => import("@/pages/VersionHistoryPage").then((m) => ({ default: m.VersionHistoryPage })));
 const NotificationsPage = lazy(() => import("@/pages/Notifications").then((m) => ({ default: m.NotificationsPage })));
 const Help = lazy(() => import("@/pages/Help").then((m) => ({ default: m.Help })));
-const ImportPage = lazy(() => import("@/pages/ImportPage").then((m) => ({ default: m.ImportPage })));
-const ReportsPage = lazy(() => import("@/pages/ReportsPage").then((m) => ({ default: m.ReportsPage })));
-const Integrations = lazy(() => import("@/pages/Integrations").then((m) => ({ default: m.Integrations })));
-const Workspace = lazy(() => import("@/pages/Workspace").then((m) => ({ default: m.Workspace })));
 const Settings = lazy(() => import("@/pages/Settings").then((m) => ({ default: m.Settings })));
 
 // Night Worker pages
@@ -63,8 +54,8 @@ const NWTestDashboard = lazy(() => import("@/pages/NWTestDashboard"));
 const NWProjectDetail = lazy(() => import("@/pages/NWProjectDetail"));
 
 // Auth & shared pages
-const AcceptInvite = lazy(() => import("@/pages/AcceptInvite").then((m) => ({ default: m.AcceptInvite })));
-const SharedView = lazy(() => import("@/pages/SharedView").then((m) => ({ default: m.SharedView })));
+
+
 const Auth = lazy(() => import("@/pages/Auth").then((m) => ({ default: m.Auth })));
 
 const PageFallback = () => (
@@ -177,18 +168,9 @@ function AppContent() {
           <Route path="/calendar" element={<Suspense fallback={<PageFallback />}><CalendarPage /></Suspense>} />
           <Route path="/priorities" element={<PriorityDashboard />} />
           <Route path="/weekly-review" element={<Suspense fallback={<PageFallback />}><WeeklyReview /></Suspense>} />
-          <Route path="/content-generator" element={<Suspense fallback={<PageFallback />}><ContentGeneratorPage /></Suspense>} />
-          <Route path="/automation" element={<Suspense fallback={<PageFallback />}><ErrorBoundary><AutomationPage /></ErrorBoundary></Suspense>} />
-          <Route path="/templates" element={<Suspense fallback={<PageFallback />}><TemplatesPage /></Suspense>} />
-          <Route path="/images" element={<Suspense fallback={<PageFallback />}><ImageGenerationPage /></Suspense>} />
-          <Route path="/version-history" element={<Suspense fallback={<PageFallback />}><VersionHistoryPage /></Suspense>} />
           <Route path="/notifications" element={<Suspense fallback={<PageFallback />}><NotificationsPage /></Suspense>} />
           <Route path="/settings" element={<Suspense fallback={<PageFallback />}><Settings /></Suspense>} />
           <Route path="/help" element={<Suspense fallback={<PageFallback />}><Help /></Suspense>} />
-          <Route path="/import" element={<Suspense fallback={<PageFallback />}><ImportPage /></Suspense>} />
-          <Route path="/reports" element={<Suspense fallback={<PageFallback />}><ReportsPage /></Suspense>} />
-          <Route path="/integrations" element={<Suspense fallback={<PageFallback />}><Integrations /></Suspense>} />
-          <Route path="/workspace" element={<Suspense fallback={<PageFallback />}><Workspace /></Suspense>} />
 
           {/* Night Worker pages (Standard /nw prefix) */}
           <Route path="/nw" element={<Suspense fallback={<PageFallback />}><NWDashboard /></Suspense>} />
@@ -212,8 +194,6 @@ function AppContent() {
           <Route path="/logs" element={<Navigate to="/nw/logs" replace />} />
           <Route path="/connect" element={<Navigate to="/nw/connect" replace />} />
         </Route>
-        <Route path="/invite/:token" element={<Suspense fallback={<PageFallback />}><AcceptInvite /></Suspense>} />
-        <Route path="/shared/:token" element={<Suspense fallback={<PageFallback />}><SharedView /></Suspense>} />
         <Route path="/auth" element={<Navigate to="/" replace />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
@@ -244,8 +224,8 @@ function AuthGate() {
     return (
       <Routes>
         <Route path="/auth" element={<Suspense fallback={<PageFallback />}><Auth /></Suspense>} />
-        <Route path="/invite/:token" element={<Suspense fallback={<PageFallback />}><AcceptInvite /></Suspense>} />
-        <Route path="/shared/:token" element={<Suspense fallback={<PageFallback />}><SharedView /></Suspense>} />
+        
+        
         <Route path="/connect" element={<Suspense fallback={<PageFallback />}><NWConnect /></Suspense>} />
         <Route path="*" element={<Navigate to="/auth" replace />} />
       </Routes>

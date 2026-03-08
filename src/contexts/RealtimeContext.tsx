@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { useRealtimeSync, useCursorTracking } from '@/hooks/useRealtimeSync';
 import { useAuth } from '@/contexts/AuthContext';
-import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
+
 import type { Presence, CollaborativeEdit, ChatMessage, ActiveEditor } from '@/lib/realtime/collaboration';
 import { useLocation } from 'react-router-dom';
 
@@ -29,7 +29,7 @@ const RealtimeContext = createContext<RealtimeContextValue | undefined>(undefine
 
 export function RealtimeProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const { currentOrg } = useWorkspaceContext();
+  const currentOrg = { id: 'default-room' }; // simplified after workspace removal
   const location = useLocation();
 
   const currentUserId = user?.id ?? 'mock-user-001';

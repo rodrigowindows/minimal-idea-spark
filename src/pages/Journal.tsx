@@ -13,7 +13,7 @@ import { useXPSystem } from '@/hooks/useXPSystem'
 import { BookOpen, Plus, Calendar, Sparkles, Send, Trash2, Zap } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { VoiceInput } from '@/components/smart-capture/VoiceInput'
-import { AudioToText } from '@/components/AudioToText'
+
 import { EmptyState } from '@/components/EmptyState'
 import { VirtualList } from '@/components/VirtualList'
 import { format, parseISO } from 'date-fns'
@@ -196,11 +196,6 @@ export function Journal() {
               <div className="absolute right-2 top-2 flex items-center gap-1">
                 <VoiceInput
                   onTranscript={(text) => setContent((prev) => prev ? prev + ' ' + text : text)}
-                />
-                <AudioToText
-                  onTranscription={(text) => setContent((prev) => prev ? prev + ' ' + text : text)}
-                  sourcePage="journal"
-                  compact
                 />
               </div>
             </div>

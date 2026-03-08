@@ -4,11 +4,9 @@ import { useTranslation } from 'react-i18next'
 import { PageContent } from '@/components/layout/PageContent'
 import { PageHeader } from '@/components/layout/PageHeader'
 
-import { BackupSettings } from './BackupSettings'
 import { DemoSettings } from './DemoSettings'
 import { DomainSettings } from './DomainSettings'
 import { GeneralSettings } from './GeneralSettings'
-import { IntegrationSettings } from './IntegrationSettings'
 import { SecuritySettings } from './SecuritySettings'
 import { TagSettings } from './TagSettings'
 
@@ -26,8 +24,6 @@ export function Settings() {
       <div className="grid gap-6 lg:grid-cols-2">
         <GeneralSettings />
         <SecuritySettings />
-        <IntegrationSettings />
-        <BackupSettings />
         <DomainSettings />
         <TagSettings />
         <DemoSettings />
@@ -35,4 +31,3 @@ export function Settings() {
     </PageContent>
   )
 }
-

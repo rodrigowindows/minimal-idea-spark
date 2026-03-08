@@ -24,7 +24,7 @@ import {
   Send,
 } from 'lucide-react'
 import { VoiceInput } from '@/components/smart-capture/VoiceInput'
-import { AudioToText } from '@/components/AudioToText'
+
 import { format, subDays, startOfWeek, endOfWeek } from 'date-fns'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { PageContent } from '@/components/layout/PageContent'
@@ -269,11 +269,6 @@ export function WeeklyReview() {
                     <VoiceInput
                       onTranscript={(text) => setReflections((prev) => prev ? prev + ' ' + text : text)}
                     />
-                    <AudioToText
-                      onTranscription={(text) => setReflections((prev) => prev ? prev + ' ' + text : text)}
-                      sourcePage="weekly-review"
-                      compact
-                    />
                   </div>
                 </div>
               </div>
@@ -292,11 +287,6 @@ export function WeeklyReview() {
                   <div className="absolute right-2 top-2 flex items-center gap-1">
                     <VoiceInput
                       onTranscript={(text) => setNextWeekPlan((prev) => prev ? prev + ' ' + text : text)}
-                    />
-                    <AudioToText
-                      onTranscription={(text) => setNextWeekPlan((prev) => prev ? prev + ' ' + text : text)}
-                      sourcePage="weekly-review"
-                      compact
                     />
                   </div>
                 </div>

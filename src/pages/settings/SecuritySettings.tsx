@@ -4,7 +4,7 @@ import { Bell, LogOut, Shield } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { useAuth } from '@/contexts/AuthContext'
-import { useWorkspaceContext } from '@/contexts/WorkspaceContext'
+
 import { useNotifications } from '@/hooks/useNotifications'
 import { signOutAllDevices } from '@/lib/auth/sessions'
 import { Enable2FAModal } from '@/components/Security/Enable2FAModal'
@@ -19,7 +19,7 @@ import { Switch } from '@/components/ui/switch'
 export function SecuritySettings() {
   const { t } = useTranslation()
   const { user, signOut } = useAuth()
-  const { logActivity } = useWorkspaceContext()
+  const logActivity = (..._args: unknown[]) => {} // simplified after workspace removal
   const { preferences: notifPrefs, updatePreferences } = useNotifications()
   const [security2FAOpen, setSecurity2FAOpen] = useState(false)
 
