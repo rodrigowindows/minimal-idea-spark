@@ -30,6 +30,7 @@ export interface Goal {
   key_results: KeyResult[]
   cycle: OKRCycle
   status: 'active' | 'completed' | 'cancelled'
+  priority_level: PriorityLevel
   final_score?: number
   created_at: string
 }
