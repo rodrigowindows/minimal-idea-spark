@@ -309,12 +309,29 @@ export function WeeklyReview() {
 
         {/* Sidebar */}
         <div className="space-y-6 lg:col-span-4">
-          {/* AI Insights */}
+          {/* AI-Powered Insights */}
+          <AIWeeklyInsights
+            metrics={{
+              tasks_completed: weekStats.done,
+              tasks_doing: weekStats.doing,
+              deep_work_minutes: deepWorkMinutes,
+              streak_days: streakDays,
+              xp_gained: xpTotal,
+              avg_mood: undefined,
+              avg_energy: undefined,
+              habits_rate: undefined,
+              goals_count: weekStats.goalsActive,
+              goals_progress: weekStats.goalsProgress,
+              domains: Object.keys(weekStats.domainCounts),
+            }}
+          />
+
+          {/* Rule-based Insights */}
           <Card className="rounded-xl">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Lightbulb className="h-5 w-5 text-amber-400" />
-                Insights
+                Quick Insights
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
