@@ -171,10 +171,6 @@ function AppContent() {
           <Route path="/notifications" element={<Suspense fallback={<PageFallback />}><NotificationsPage /></Suspense>} />
           <Route path="/settings" element={<Suspense fallback={<PageFallback />}><Settings /></Suspense>} />
           <Route path="/help" element={<Suspense fallback={<PageFallback />}><Help /></Suspense>} />
-          <Route path="/import" element={<Suspense fallback={<PageFallback />}><ImportPage /></Suspense>} />
-          <Route path="/reports" element={<Suspense fallback={<PageFallback />}><ReportsPage /></Suspense>} />
-          <Route path="/integrations" element={<Suspense fallback={<PageFallback />}><Integrations /></Suspense>} />
-          <Route path="/workspace" element={<Suspense fallback={<PageFallback />}><Workspace /></Suspense>} />
 
           {/* Night Worker pages (Standard /nw prefix) */}
           <Route path="/nw" element={<Suspense fallback={<PageFallback />}><NWDashboard /></Suspense>} />
