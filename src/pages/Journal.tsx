@@ -52,7 +52,7 @@ export function Journal() {
   async function generateEmbeddingForLog(logId: string, text: string) {
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) return // Not authenticated, skip embedding
+      if (!session?.access_token) return
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
       await fetch(`${supabaseUrl}/functions/v1/generate-embedding`, {
@@ -69,36 +69,7 @@ export function Journal() {
         }),
       })
     } catch {
-      // Embedding generation is best-effort, don't block the user
-    }
-  }
-
-  async function syncLogToSupabase(logData: {
-    content: string
-    mood: string | null
-    energy_level: number
-    log_date: string
-  }) {
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user) return null // Not authenticated, skip sync
-
-      const { data, error } = await (supabase as any)
-        .from('daily_logs')
-        .insert({
-          user_id: session.user.id,
-          content: logData.content,
-          mood: logData.mood,
-          energy_level: logData.energy_level,
-          log_date: logData.log_date,
-        })
-        .select('id')
-        .single()
-
-      if (error || !data) return null
-      return data.id as string
-    } catch {
-      return null
+      // Embedding generation is best-effort
     }
   }
 
