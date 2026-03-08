@@ -7,7 +7,8 @@ import { corsHeaders } from '../_shared/cors.ts'
 import { getSupabaseClient } from '../_shared/supabase.ts'
 import { createEmbedding } from '../_shared/openai.ts'
 
-const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
+const AI_GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions'
 
 interface ChatRequest {
   message: string
@@ -215,14 +216,18 @@ serve(async (req) => {
 
     if (stream) {
       // --- SSE Streaming Response ---
-      const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      if (!LOVABLE_API_KEY) {
+        throw new Error('LOVABLE_API_KEY is not configured')
+      }
+
+      const aiResponse = await fetch(AI_GATEWAY_URL, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'google/gemini-3-flash-preview',
           messages,
           temperature: 0.7,
           max_tokens: 1024,
@@ -230,11 +235,23 @@ serve(async (req) => {
         }),
       })
 
-      if (!openaiResponse.ok) {
-        throw new Error(`OpenAI API error: ${openaiResponse.statusText}`)
+      if (aiResponse.status === 429) {
+        return new Response(JSON.stringify({ error: 'Rate limit exceeded. Try again shortly.' }), {
+          status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      if (aiResponse.status === 402) {
+        return new Response(JSON.stringify({ error: 'AI credits exhausted. Please top up.' }), {
+          status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      if (!aiResponse.ok) {
+        const errText = await aiResponse.text()
+        console.error('AI gateway error:', aiResponse.status, errText)
+        throw new Error(`AI gateway error: ${aiResponse.status}`)
       }
 
-      const reader = openaiResponse.body!.getReader()
+      const reader = aiResponse.body!.getReader()
       const decoder = new TextDecoder()
       let fullResponse = ''
 
@@ -303,25 +320,31 @@ serve(async (req) => {
       })
     } else {
       // --- Non-streaming JSON Response ---
-      const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      if (!LOVABLE_API_KEY) {
+        throw new Error('LOVABLE_API_KEY is not configured')
+      }
+
+      const aiResponse = await fetch(AI_GATEWAY_URL, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'google/gemini-3-flash-preview',
           messages,
           temperature: 0.7,
           max_tokens: 1024,
         }),
       })
 
-      if (!openaiResponse.ok) {
-        throw new Error(`OpenAI API error: ${openaiResponse.statusText}`)
+      if (!aiResponse.ok) {
+        const errText = await aiResponse.text()
+        console.error('AI gateway error:', aiResponse.status, errText)
+        throw new Error(`AI gateway error: ${aiResponse.status}`)
       }
 
-      const data = await openaiResponse.json()
+      const data = await aiResponse.json()
       const assistantResponse = data.choices[0].message.content
 
       await supabase.from('chat_history').insert({
