@@ -5,6 +5,8 @@ import { PageContent } from '@/components/layout/PageContent'
 import { PageHeader } from '@/components/layout/PageHeader'
 
 import { DemoSettings } from './DemoSettings'
+import { DomainSettings } from './DomainSettings'
+import { GeneralSettings } from './GeneralSettings'
 import { SecuritySettings } from './SecuritySettings'
 import { TagSettings } from './TagSettings'
 
@@ -29,4 +31,3 @@ export function Settings() {
     </PageContent>
   )
 }
-
