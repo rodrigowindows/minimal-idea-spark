@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
-// Mock localStorage
 const store: Record<string, string> = {}
 const localStorageMock = {
   getItem: vi.fn((key: string) => store[key] ?? null),
@@ -10,35 +9,44 @@ const localStorageMock = {
 }
 Object.defineProperty(window, 'localStorage', { value: localStorageMock })
 
-// Dynamic import after mocks are set up
-let enqueue: any, getQueue: any, clearQueue: any
-
-beforeEach(async () => {
-  localStorageMock.clear()
-  vi.clearAllMocks()
-  vi.resetModules()
-  const mod = await import('./sync-queue')
-  enqueue = mod.enqueue
-  getQueue = mod.getQueue
-  clearQueue = mod.clearQueue
-})
+import { enqueue, getQueue, clearQueue } from './sync-queue'
 
 describe('sync-queue', () => {
+  beforeEach(() => {
+    localStorageMock.clear()
+    clearQueue()
+    vi.clearAllMocks()
+  })
+
   it('should enqueue an item', () => {
-    enqueue({ type: 'create_opportunity', payload: { title: 'Test' } })
+    enqueue('create_opportunity', { title: 'Test' })
     const queue = getQueue()
-    expect(queue.length).toBeGreaterThanOrEqual(1)
+    expect(queue.length).toBe(1)
+    expect(queue[0].type).toBe('create_opportunity')
+  })
+
+  it('should enqueue multiple items', () => {
+    enqueue('create_opportunity', { title: 'A' })
+    enqueue('create_daily_log', { content: 'B' })
+    expect(getQueue()).toHaveLength(2)
   })
 
   it('should clear the queue', () => {
-    enqueue({ type: 'create_daily_log', payload: { content: 'Hello' } })
+    enqueue('create_daily_log', { content: 'Hello' })
     clearQueue()
-    const queue = getQueue()
-    expect(queue).toHaveLength(0)
+    expect(getQueue()).toHaveLength(0)
   })
 
   it('should persist queue to localStorage', () => {
-    enqueue({ type: 'create_opportunity', payload: { title: 'Persisted' } })
+    enqueue('create_opportunity', { title: 'Persisted' })
     expect(localStorageMock.setItem).toHaveBeenCalled()
+  })
+
+  it('items should have id and createdAt', () => {
+    enqueue('update_opportunity', { id: 'opp-1', title: 'Updated' })
+    const item = getQueue()[0]
+    expect(item.id).toBeTruthy()
+    expect(item.createdAt).toBeTruthy()
+    expect(item.retries).toBe(0)
   })
 })
