@@ -6,11 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+type AuthMode = 'login' | 'signup' | 'forgot';
+
 export function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isLogin, setIsLogin] = useState(true);
+  const [mode, setMode] = useState<AuthMode>('login');
   const [formError, setFormError] = useState<string | null>(null);
   const navigate = useNavigate();
 
@@ -20,24 +22,22 @@ export function Auth() {
     setFormError(null);
 
     try {
-      if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+      if (mode === 'forgot') {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth`,
         });
-
+        if (error) throw error;
+        toast.success('Password reset email sent! Check your inbox.');
+        setMode('login');
+      } else if (mode === 'login') {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success('Login successful!');
         navigate('/');
       } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-
+        const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         toast.success('Check your email for confirmation!');
-        // With auto-confirm, user is already logged in — redirect to dashboard
         navigate('/');
       }
     } catch (error) {
@@ -49,14 +49,18 @@ export function Auth() {
     }
   };
 
+  const titles: Record<AuthMode, { title: string; desc: string }> = {
+    login: { title: 'Login', desc: 'Enter your credentials to access your account' },
+    signup: { title: 'Create Account', desc: 'Create a new account to get started' },
+    forgot: { title: 'Reset Password', desc: 'Enter your email to receive a reset link' },
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted">
+    <div className="flex min-h-screen items-center justify-center bg-muted px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>{isLogin ? 'Login' : 'Create Account'}</CardTitle>
-          <CardDescription>
-            {isLogin ? 'Enter your credentials to access your account' : 'Create a new account to get started'}
-          </CardDescription>
+          <CardTitle>{titles[mode].title}</CardTitle>
+          <CardDescription>{titles[mode].desc}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -68,34 +72,61 @@ export function Auth() {
               onChange={(e) => setEmail(e.target.value)}
               required
             />
-            <FormField
-              id="password"
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              error={formError ?? undefined}
-            />
+            {mode !== 'forgot' && (
+              <FormField
+                id="password"
+                label="Password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                error={formError ?? undefined}
+              />
+            )}
+            {mode === 'forgot' && formError && (
+              <p className="text-sm text-destructive">{formError}</p>
+            )}
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Processing...' : isLogin ? 'Login' : 'Sign Up'}
+              {isLoading
+                ? 'Processing...'
+                : mode === 'login'
+                  ? 'Login'
+                  : mode === 'signup'
+                    ? 'Sign Up'
+                    : 'Send Reset Link'}
             </Button>
           </form>
-          <div className="mt-4 text-center text-sm">
-            {isLogin ? (
+
+          <div className="mt-4 space-y-2 text-center text-sm">
+            {mode === 'login' && (
               <>
-                Don't have an account?{' '}
-                <Button variant="link" onClick={() => setIsLogin(false)} className="p-0 h-auto">
-                  Sign up
-                </Button>
+                <div>
+                  Don't have an account?{' '}
+                  <Button variant="link" onClick={() => { setMode('signup'); setFormError(null); }} className="p-0 h-auto">
+                    Sign up
+                  </Button>
+                </div>
+                <div>
+                  <Button variant="link" onClick={() => { setMode('forgot'); setFormError(null); }} className="p-0 h-auto text-muted-foreground">
+                    Forgot password?
+                  </Button>
+                </div>
               </>
-            ) : (
-              <>
+            )}
+            {mode === 'signup' && (
+              <div>
                 Already have an account?{' '}
-                <Button variant="link" onClick={() => setIsLogin(true)} className="p-0 h-auto">
+                <Button variant="link" onClick={() => { setMode('login'); setFormError(null); }} className="p-0 h-auto">
                   Login
                 </Button>
-              </>
+              </div>
+            )}
+            {mode === 'forgot' && (
+              <div>
+                <Button variant="link" onClick={() => { setMode('login'); setFormError(null); }} className="p-0 h-auto">
+                  Back to login
+                </Button>
+              </div>
             )}
           </div>
         </CardContent>

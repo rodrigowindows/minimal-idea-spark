@@ -7,11 +7,9 @@ import { getStorageItem, setStorageItem } from '@/lib/storage'
 import { useAppContext } from '@/contexts/AppContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { usePromptsQuery } from '@/hooks/useNightWorkerApi'
 import { useRecentPages } from '@/hooks/useRecentPages'
 import { NotificationCenter } from '@/components/NotificationCenter'
 import { SyncStatusIndicator } from '@/components/SyncStatusIndicator'
-
 
 import { SidebarFooter } from './SidebarFooter'
 import { SidebarNavigation } from './SidebarNavigation'
@@ -41,22 +39,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { language, toggleLanguage } = useLanguage()
   const { user } = useAuth()
 
-  const [promptsSubmenuOpen, setPromptsSubmenuOpen] = useState(false)
-  const shouldLoadPromptData = promptsSubmenuOpen
-  const { data: promptData } = usePromptsQuery(30000, {
-    enabled: shouldLoadPromptData,
-    refetchOnMount: false,
-  })
-
-  const pendingCount = promptData?.filter((prompt) => prompt.status === 'pending').length ?? 0
-
-  const navItemsWithBadges = useMemo(
-    () =>
-      NAV_ITEMS.map((item) =>
-        item.to === '/nw/prompts' ? { ...item, badge: pendingCount } : item,
-      ),
-    [pendingCount],
-  )
+  const navItemsWithBadges = useMemo(() => NAV_ITEMS, [])
 
   const storageKey = useMemo(
     () => (user?.id ? `${SIDEBAR_SECTIONS_STORAGE_KEY}_${user.id}` : SIDEBAR_SECTIONS_STORAGE_KEY),
@@ -149,7 +132,6 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     const grouped: Record<NavSection, NavItem[]> = {
       principal: [],
       tools: [],
-      nightworker: [],
       config: [],
     }
     navItemsWithBadges.forEach((item) => {
@@ -170,7 +152,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <div className="flex h-16 items-center justify-between border-b border-border/50 px-4">
         <div className="flex items-center gap-2">
           <Sparkles className="h-6 w-6 shrink-0 text-primary" aria-hidden="true" />
-          {!collapsed && <span className="text-lg font-semibold tracking-tight">Night Worker</span>}
+          {!collapsed && <span className="text-lg font-semibold tracking-tight">LifeOS</span>}
         </div>
         <div className="flex items-center gap-1">
           <SyncStatusIndicator className="shrink-0" />
@@ -193,7 +175,6 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </div>
       </div>
 
-
       <SidebarXPBar collapsed={collapsed} />
 
       <SidebarNavigation
@@ -202,9 +183,6 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         sections={sections}
         favoriteNavItems={favoriteNavItems}
         recentNavItems={recentNavItems}
-        promptData={promptData}
-        promptsSubmenuOpen={promptsSubmenuOpen}
-        onSetPromptsSubmenuOpen={setPromptsSubmenuOpen}
         isSectionOpen={isSectionOpen}
         onToggleSection={toggleSection}
         onToggleFavorite={toggleFavorite}
@@ -220,4 +198,3 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     </aside>
   )
 }
-

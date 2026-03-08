@@ -11,7 +11,7 @@ import { LanguageProvider } from '@/contexts/LanguageContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { WarRoomLayoutProvider } from '@/contexts/WarRoomLayoutContext'
 import { RealtimeProvider } from '@/contexts/RealtimeContext'
-import { NightWorkerProvider } from '@/contexts/NightWorkerContext'
+
 import { ShortcutProvider } from '@/contexts/ShortcutContext'
 import { NetworkStatusProvider } from '@/contexts/NetworkStatusContext'
 
@@ -59,7 +59,7 @@ export function AppProviders({ queryClient, children }: AppProvidersProps) {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Sonner />
-        <NightWorkerProvider>{children}</NightWorkerProvider>
+        {children}
       </TooltipProvider>
     </QueryClientProvider>
   )
