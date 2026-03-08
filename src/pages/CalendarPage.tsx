@@ -184,18 +184,18 @@ export function CalendarPage() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Carga de Trabalho Hoje</span>
+              <span className="text-sm font-medium">{t('calendarPage.workloadToday')}</span>
             </div>
             <Badge
               variant={todayWorkload.level === 'heavy' ? 'destructive' : 'secondary'}
             >
-              {todayWorkload.level === 'heavy' ? 'Pesada' : todayWorkload.level === 'moderate' ? 'Moderada' : 'Leve'}
+              {todayWorkload.level === 'heavy' ? t('calendarPage.heavy') : todayWorkload.level === 'moderate' ? t('calendarPage.moderate') : t('calendarPage.light')}
             </Badge>
           </div>
           <Progress value={todayWorkload.utilizationPercent} className="h-2" />
           <div className="flex justify-between text-xs text-muted-foreground mt-1">
-            <span>{todayWorkload.totalEvents} eventos</span>
-            <span>{Math.round(todayWorkload.totalMinutes / 60 * 10) / 10}h de 8h</span>
+            <span>{todayWorkload.totalEvents} {t('calendarPage.events')}</span>
+            <span>{Math.round(todayWorkload.totalMinutes / 60 * 10) / 10}h {t('calendarPage.of8h')}</span>
           </div>
         </CardContent>
       </Card>
