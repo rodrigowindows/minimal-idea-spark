@@ -376,7 +376,7 @@ export function WeeklyReview() {
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Lightbulb className="h-5 w-5 text-amber-400" />
-                Quick Insights
+                {t('weeklyReview.quickInsights')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
