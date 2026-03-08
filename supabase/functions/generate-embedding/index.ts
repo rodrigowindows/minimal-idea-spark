@@ -4,7 +4,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 import { getSupabaseClient } from '../_shared/supabase.ts'
-import { createEmbedding } from '../_shared/openai.ts'
+import { createEmbedding } from '../_shared/ai-gateway.ts'
 
 interface EmbeddingRequest {
   text: string
