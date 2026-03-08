@@ -36,6 +36,7 @@ import { useAuth } from '@/contexts/AuthContext'
 export function WeeklyReview() {
   const { opportunities, dailyLogs, habits, domains } = useLocalData()
   const { user } = useAuth()
+  const { t } = useTranslation()
   const { xpTotal, streakDays, deepWorkMinutes, opportunitiesCompleted, level, addXP } = useXPSystem()
   const [reflections, setReflections] = useState('')
   const [nextWeekPlan, setNextWeekPlan] = useState('')
