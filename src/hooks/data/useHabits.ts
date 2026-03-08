@@ -63,6 +63,57 @@ export function useHabits() {
     load()
   }, [userId])
 
+  // Realtime subscription for cross-device sync
+  useEffect(() => {
+    if (!userId) return
+
+    const channel = supabase
+      .channel('habits-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'habits' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const h = payload.new as any
+          if (h.user_id !== userId) return
+          setHabits(prev => {
+            if (prev.some(x => x.id === h.id)) return prev
+            return [{
+              id: h.id, user_id: h.user_id, name: h.title, domain_id: null,
+              frequency: h.frequency as 'daily' | 'weekly', target_count: h.target_count,
+              color: '#8b5cf6', created_at: h.created_at, completions: [],
+            }, ...prev]
+          })
+        } else if (payload.eventType === 'UPDATE') {
+          const h = payload.new as any
+          setHabits(prev => prev.map(x => x.id === h.id ? {
+            ...x, name: h.title, frequency: h.frequency as 'daily' | 'weekly',
+            target_count: h.target_count,
+          } : x))
+        } else if (payload.eventType === 'DELETE') {
+          const old = payload.old as any
+          setHabits(prev => prev.filter(x => x.id !== old.id))
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'habit_completions' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const c = payload.new as any
+          if (c.user_id !== userId) return
+          setCompletions(prev => {
+            const current = prev[c.habit_id] ?? []
+            if (current.includes(c.completed_date)) return prev
+            return { ...prev, [c.habit_id]: [...current, c.completed_date] }
+          })
+        } else if (payload.eventType === 'DELETE') {
+          const c = payload.old as any
+          setCompletions(prev => {
+            const current = prev[c.habit_id] ?? []
+            return { ...prev, [c.habit_id]: current.filter(d => d !== c.completed_date) }
+          })
+        }
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [userId])
+
   // Merge completions into habits
   const habitsWithCompletions = habits.map(h => ({
     ...h,
