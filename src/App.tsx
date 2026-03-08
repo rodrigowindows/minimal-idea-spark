@@ -37,6 +37,7 @@ const NotificationsPage = lazy(() => import("@/pages/Notifications").then((m) =>
 const Help = lazy(() => import("@/pages/Help").then((m) => ({ default: m.Help })));
 const Settings = lazy(() => import("@/pages/Settings").then((m) => ({ default: m.Settings })));
 const Auth = lazy(() => import("@/pages/Auth").then((m) => ({ default: m.Auth })));
+const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
 
 const PageFallback = () => (
   <div className="flex min-h-[50vh] items-center justify-center" role="status" aria-label="Loading page">
