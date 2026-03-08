@@ -98,7 +98,6 @@ export function getBackupSummary(payload: BackupPayload): BackupSummary {
     goals: count('goals'),
     domains: count('life_domains'),
     calendarEvents: count('calendar_events'),
-    priorities: count('user_priorities'),
     weeklyTargets: count('weekly_targets'),
     weeklyReviews: count('weekly_reviews'),
     totalKeys: Object.keys(payload.data).length,
