@@ -154,6 +154,11 @@ export function GoalCard({
               </div>
 
               <div className="mt-2 flex flex-wrap items-center gap-2">
+                {goal.priority_level && goal.priority_level !== 'medium' && (
+                  <Badge variant={goal.priority_level === 'critical' ? 'destructive' : goal.priority_level === 'high' ? 'default' : 'outline'} className="text-xs">
+                    {goal.priority_level === 'critical' ? '🔴' : goal.priority_level === 'high' ? '🟠' : '⚪'} {goal.priority_level}
+                  </Badge>
+                )}
                 {domain && (
                   <Badge variant="outline" className="text-xs" style={{ borderColor: domain.color_theme, color: domain.color_theme }}>
                     {domain.name}

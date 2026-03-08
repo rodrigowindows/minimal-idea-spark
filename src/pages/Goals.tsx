@@ -21,7 +21,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useLocalData } from '@/hooks/useLocalData'
-import type { OKRCycle, Goal } from '@/hooks/useLocalData'
+import type { OKRCycle, Goal, PriorityLevel } from '@/hooks/useLocalData'
 import { toast } from 'sonner'
 import {
   Flag,
@@ -61,6 +61,7 @@ export function Goals() {
   const [newStartDate, setNewStartDate] = useState(new Date().toISOString().split('T')[0])
   const [newCycle, setNewCycle] = useState<OKRCycle>(getCurrentCycle())
   const [newMilestones, setNewMilestones] = useState<string[]>([''])
+  const [newPriority, setNewPriority] = useState<PriorityLevel>('medium')
 
   function handleCreateGoal(e: React.FormEvent) {
     e.preventDefault()
@@ -79,6 +80,7 @@ export function Goals() {
       key_results: [],
       cycle: newCycle,
       status: 'active',
+      priority_level: newPriority,
     })
 
     setNewTitle('')
@@ -88,6 +90,7 @@ export function Goals() {
     setNewStartDate(new Date().toISOString().split('T')[0])
     setNewCycle(getCurrentCycle())
     setNewMilestones([''])
+    setNewPriority('medium')
     setShowNew(false)
     toast.success(t('goals.goalCreated'))
   }
@@ -288,7 +291,7 @@ export function Goals() {
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>{t('goals.domain')}</Label>
                 <Select value={newDomainId} onValueChange={setNewDomainId}>
@@ -309,6 +312,18 @@ export function Goals() {
                     {(['Q1', 'Q2', 'Q3', 'Q4', 'S1', 'S2', 'annual', 'custom'] as OKRCycle[]).map(c => (
                       <SelectItem key={c} value={c}>{getCycleLabel(c)}</SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Priority</Label>
+                <Select value={newPriority} onValueChange={(v) => setNewPriority(v as PriorityLevel)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="critical">🔴 Critical</SelectItem>
+                    <SelectItem value="high">🟠 High</SelectItem>
+                    <SelectItem value="medium">🔵 Medium</SelectItem>
+                    <SelectItem value="low">⚪ Low</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

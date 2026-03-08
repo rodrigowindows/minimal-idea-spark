@@ -6,6 +6,7 @@ import type { Opportunity, DailyLog, LifeDomain } from '@/types'
 export type { Opportunity, DailyLog, LifeDomain }
 
 export type OKRCycle = 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'S1' | 'S2' | 'annual' | 'custom'
+export type PriorityLevel = 'critical' | 'high' | 'medium' | 'low'
 
 export interface KeyResult {
   id: string
@@ -29,6 +30,7 @@ export interface Goal {
   key_results: KeyResult[]
   cycle: OKRCycle
   status: 'active' | 'completed' | 'cancelled'
+  priority_level: PriorityLevel
   final_score?: number
   created_at: string
 }

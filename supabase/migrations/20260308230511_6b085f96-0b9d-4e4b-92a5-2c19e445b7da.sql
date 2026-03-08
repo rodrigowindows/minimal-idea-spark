@@ -1,0 +1,1 @@
+ALTER TABLE public.goals ADD COLUMN IF NOT EXISTS priority_level text NOT NULL DEFAULT 'medium';
