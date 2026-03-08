@@ -92,8 +92,10 @@ export function Consultant() {
   }, [messages, isTyping, rag.streamingContent])
 
   async function handleSend(content: string) {
+    const msgId = `user-${Date.now()}`
+    knownIdsRef.current.add(msgId)
     const userMessage: ChatMessageType = {
-      id: `user-${Date.now()}`, role: 'user', content, timestamp: new Date(),
+      id: msgId, role: 'user', content, timestamp: new Date(),
     }
     setMessages(prev => [...prev, userMessage])
     setIsTyping(true)
@@ -102,8 +104,10 @@ export function Consultant() {
     const result = await rag.sendMessage(content)
 
     if (result) {
+      const assistantId = `assistant-${Date.now()}`
+      knownIdsRef.current.add(assistantId)
       const assistantMessage: ChatMessageType = {
-        id: `assistant-${Date.now()}`, role: 'assistant',
+        id: assistantId, role: 'assistant',
         content: result.content, timestamp: new Date(),
         sources: result.sources as ContextSource[],
       }
