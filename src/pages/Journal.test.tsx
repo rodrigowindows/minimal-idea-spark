@@ -85,9 +85,7 @@ vi.mock("@/components/smart-capture/VoiceInput", () => ({
   VoiceInput: () => null,
 }));
 
-vi.mock("@/components/AudioToText", () => ({
-  AudioToText: () => null,
-}));
+// AudioToText was removed from the project
 
 // Mock PWA sync
 vi.mock("@/lib/pwa/sync-queue", () => ({
