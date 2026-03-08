@@ -8,4 +8,4 @@ export { useHabits } from './useHabits'
 export { useGoals } from './useGoals'
 export { useWeeklyTargets } from './useWeeklyTargets'
 
-export type { Goal, Habit, KeyResult, OKRCycle, WeeklyTarget } from './types'
+export type { Goal, Habit, KeyResult, OKRCycle, PriorityLevel, WeeklyTarget } from './types'
