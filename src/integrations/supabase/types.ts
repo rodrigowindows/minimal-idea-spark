@@ -666,6 +666,90 @@ export type Database = {
         }
         Relationships: []
       }
+      user_priorities: {
+        Row: {
+          ai_suggestions: Json
+          category: string
+          created_at: string
+          description: string
+          due_date: string | null
+          id: string
+          key_results: Json
+          priority_level: string
+          progress: number
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_suggestions?: Json
+          category?: string
+          created_at?: string
+          description?: string
+          due_date?: string | null
+          id?: string
+          key_results?: Json
+          priority_level?: string
+          progress?: number
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_suggestions?: Json
+          category?: string
+          created_at?: string
+          description?: string
+          due_date?: string | null
+          id?: string
+          key_results?: Json
+          priority_level?: string
+          progress?: number
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      weekly_reviews: {
+        Row: {
+          created_at: string
+          id: string
+          next_week_plan: string
+          reflections: string
+          score: number
+          stats: Json
+          updated_at: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          next_week_plan?: string
+          reflections?: string
+          score?: number
+          stats?: Json
+          updated_at?: string
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          next_week_plan?: string
+          reflections?: string
+          score?: number
+          stats?: Json
+          updated_at?: string
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
       weekly_targets: {
         Row: {
           created_at: string
