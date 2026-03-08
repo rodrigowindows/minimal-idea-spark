@@ -35,7 +35,6 @@ export async function generateBackupFromSupabase(): Promise<BackupPayload> {
     'goals',
     'life_domains',
     'calendar_events',
-    'user_priorities',
     'weekly_targets',
     'weekly_reviews',
     'xp_summaries',
