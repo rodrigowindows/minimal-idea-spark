@@ -1,21 +1,16 @@
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import type { CalendarEvent, Opportunity } from '@/types'
 import { useAuth } from '@/contexts/AuthContext'
+import { supabase } from '@/integrations/supabase/client'
 import {
-  format,
   startOfMonth,
   endOfMonth,
   startOfWeek,
   endOfWeek,
-  startOfDay,
-  endOfDay,
   addMinutes,
   parseISO,
   isWithinInterval,
   isSameDay,
-  addDays,
-  addWeeks,
-  addMonths,
 } from 'date-fns'
 
 const STORAGE_KEY = 'lifeos_calendar_events'
@@ -28,46 +23,117 @@ const EVENT_COLORS: Record<CalendarEvent['category'], string> = {
   reminder: '#ef4444',
 }
 
-function loadEvents(): CalendarEvent[] {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) return JSON.parse(stored)
-  } catch { /* ignore */ }
-  return []
-}
-
-function saveEvents(events: CalendarEvent[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(events))
-}
-
 export function useCalendarEvents() {
   const { user } = useAuth()
-  const userId = user?.id ?? 'mock-user-001'
+  const userId = user?.id
+  const loadedForUser = useRef<string | null>(null)
 
-  const [events, setEvents] = useState<CalendarEvent[]>(loadEvents)
+  const [events, setEvents] = useState<CalendarEvent[]>([])
 
+  // Load from Supabase + migrate localStorage
   useEffect(() => {
-    saveEvents(events)
-  }, [events])
+    if (!userId) {
+      setEvents([])
+      loadedForUser.current = null
+      return
+    }
+    if (loadedForUser.current === userId) return
+    loadedForUser.current = userId
+
+    async function load() {
+      try {
+        const { data, error } = await supabase
+          .from('calendar_events')
+          .select('*')
+          .order('start', { ascending: true })
+
+        if (!error && data && data.length > 0) {
+          setEvents(data as unknown as CalendarEvent[])
+          // Clear legacy localStorage
+          try { localStorage.removeItem(STORAGE_KEY) } catch {}
+        } else if (!error && (!data || data.length === 0)) {
+          // Migrate from localStorage if exists
+          try {
+            const stored = localStorage.getItem(STORAGE_KEY)
+            if (stored) {
+              const localEvents: CalendarEvent[] = JSON.parse(stored)
+              if (localEvents.length > 0) {
+                setEvents(localEvents)
+                const rows = localEvents.map(e => ({
+                  id: undefined as any, // let DB generate
+                  user_id: userId!,
+                  title: e.title,
+                  description: e.description ?? null,
+                  start: e.start,
+                  end: e.end,
+                  color: e.color || '#3b82f6',
+                  category: e.category || 'task',
+                  opportunity_id: e.opportunity_id ?? null,
+                  reminder_minutes: e.reminder_minutes ?? null,
+                  recurrence: e.recurrence ?? null,
+                }))
+                // Remove undefined id so DB auto-generates
+                const cleanRows = rows.map(({ id, ...rest }) => rest)
+                const { data: inserted } = await supabase.from('calendar_events').insert(cleanRows).select()
+                if (inserted) setEvents(inserted as unknown as CalendarEvent[])
+                localStorage.removeItem(STORAGE_KEY)
+              }
+            }
+          } catch { /* ignore migration errors */ }
+        }
+      } catch { /* ignore */ }
+    }
+    load()
+  }, [userId])
 
   const addEvent = useCallback((data: Omit<CalendarEvent, 'id' | 'user_id' | 'created_at'>) => {
+    if (!userId) return null as unknown as CalendarEvent
+    const tempId = crypto.randomUUID()
     const newEvent: CalendarEvent = {
       ...data,
-      id: `cal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: tempId,
       user_id: userId,
       color: data.color || EVENT_COLORS[data.category] || '#3b82f6',
       created_at: new Date().toISOString(),
     }
     setEvents(prev => [...prev, newEvent])
+
+    supabase.from('calendar_events').insert({
+      user_id: userId,
+      title: data.title,
+      description: data.description ?? null,
+      start: data.start,
+      end: data.end,
+      color: newEvent.color,
+      category: data.category || 'task',
+      opportunity_id: data.opportunity_id ?? null,
+      reminder_minutes: data.reminder_minutes ?? null,
+      recurrence: data.recurrence ?? null,
+    }).select().single().then(({ data: row, error }) => {
+      if (error) {
+        console.error('[addCalendarEvent]', error)
+      } else if (row) {
+        // Replace temp event with server version (real id)
+        setEvents(prev => prev.map(e => e.id === tempId ? (row as unknown as CalendarEvent) : e))
+      }
+    })
+
     return newEvent
   }, [userId])
 
   const updateEvent = useCallback((id: string, updates: Partial<CalendarEvent>) => {
     setEvents(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e))
+    const { id: _id, user_id: _uid, created_at: _ca, ...safeUpdates } = updates as any
+    supabase.from('calendar_events').update(safeUpdates).eq('id', id).then(({ error }) => {
+      if (error) console.error('[updateCalendarEvent]', error)
+    })
   }, [])
 
   const deleteEvent = useCallback((id: string) => {
     setEvents(prev => prev.filter(e => e.id !== id))
+    supabase.from('calendar_events').delete().eq('id', id).then(({ error }) => {
+      if (error) console.error('[deleteCalendarEvent]', error)
+    })
   }, [])
 
   const getEventsForDate = useCallback((date: Date) => {
@@ -110,7 +176,6 @@ export function useCalendarEvents() {
     })
   }, [addEvent])
 
-  // Workload analysis for a given date
   const getWorkload = useCallback((date: Date) => {
     const dayEvents = getEventsForDate(date)
     const totalMinutes = dayEvents.reduce((sum, e) => {
