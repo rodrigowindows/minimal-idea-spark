@@ -100,20 +100,25 @@ export function CommandPalette() {
     }
   }, [commandPaletteOpen])
 
+  // Store mutable refs to avoid re-creating the keydown handler on every render
+  const stateRef = useRef({ selectedIndex, totalItems, quickActions, searchResultsWithHref, recentPages, filteredPages, query })
+  stateRef.current = { selectedIndex, totalItems, quickActions, searchResultsWithHref, recentPages, filteredPages, query }
+
   useEffect(() => {
     if (!commandPaletteOpen) return
     const onKeyDown = (e: KeyboardEvent) => {
+      const s = stateRef.current
       if (e.key === 'ArrowDown') {
         e.preventDefault()
-        setSelectedIndex((i) => (i + 1) % Math.max(1, totalItems))
+        setSelectedIndex((i) => (i + 1) % Math.max(1, s.totalItems))
       } else if (e.key === 'ArrowUp') {
         e.preventDefault()
-        setSelectedIndex((i) => (i - 1 + totalItems) % Math.max(1, totalItems))
+        setSelectedIndex((i) => (i - 1 + s.totalItems) % Math.max(1, s.totalItems))
       } else if (e.key === 'Enter') {
         e.preventDefault()
         let idx = 0
-        for (const a of quickActions) {
-          if (idx === selectedIndex) {
+        for (const a of s.quickActions) {
+          if (idx === s.selectedIndex) {
             if (a.action) a.action()
             else if (a.path) {
               navigate(a.path)
@@ -129,9 +134,9 @@ export function CommandPalette() {
           }
           idx++
         }
-        if (query.length >= 1) {
-          for (const r of searchResultsWithHref) {
-            if (idx === selectedIndex) {
+        if (s.query.length >= 1) {
+          for (const r of s.searchResultsWithHref) {
+            if (idx === s.selectedIndex) {
               navigate(r.href)
               close()
               return
@@ -139,9 +144,9 @@ export function CommandPalette() {
             idx++
           }
         }
-        if (query.length < 1) {
-          for (const p of recentPages.slice(0, 5)) {
-            if (idx === selectedIndex) {
+        if (s.query.length < 1) {
+          for (const p of s.recentPages.slice(0, 5)) {
+            if (idx === s.selectedIndex) {
               navigate(p.path)
               close()
               return
@@ -149,8 +154,8 @@ export function CommandPalette() {
             idx++
           }
         }
-        for (const p of filteredPages) {
-          if (idx === selectedIndex) {
+        for (const p of s.filteredPages) {
+          if (idx === s.selectedIndex) {
             navigate(p.to)
             close()
             return
@@ -163,7 +168,7 @@ export function CommandPalette() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [commandPaletteOpen, selectedIndex, totalItems, quickActions, searchResultsWithHref, recentPages, filteredPages, query, navigate, close, toggleDeepWorkMode])
+  }, [commandPaletteOpen, navigate, close])
 
   if (!commandPaletteOpen) return null
 
