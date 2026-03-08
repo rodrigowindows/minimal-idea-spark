@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { useXPSystem } from '@/hooks/useXPSystem'
 import { calculateXPReward } from '@/lib/constants'
 import { VoiceInput } from './VoiceInput'
+import { useAICategorize } from '@/hooks/useAIFeatures'
 
 const QUICK_ACTIONS = [
   { label: 'Quick Log', icon: Zap, type: 'log' as const },
