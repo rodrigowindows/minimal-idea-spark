@@ -97,7 +97,7 @@ export function useXPSystem() {
                   xp_total: parsed.xpTotal,
                   xp_current_level: parsed.xpCurrentLevel,
                   streak_days: parsed.streakDays,
-                  achievements: parsed.achievements as unknown as Record<string, unknown>[],
+                  achievements: JSON.parse(JSON.stringify(parsed.achievements)),
                   week_score: parsed.weekScore,
                   deep_work_minutes: parsed.deepWorkMinutes,
                   opportunities_completed: parsed.opportunitiesCompleted,
