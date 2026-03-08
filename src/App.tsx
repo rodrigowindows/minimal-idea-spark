@@ -12,7 +12,7 @@ import { useNotificationGenerator } from "@/hooks/useNotificationGenerator";
 import { useAppContext } from "@/contexts/AppContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { Suspense, lazy, useEffect, useState } from "react";
-const PriorityDashboard = lazy(() => import("@/components/PriorityDashboard").then((m) => ({ default: m.PriorityDashboard })));
+
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
