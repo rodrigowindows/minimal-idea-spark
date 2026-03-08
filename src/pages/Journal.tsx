@@ -82,7 +82,7 @@ export function Journal() {
     const logDate = new Date().toISOString().split('T')[0]
     const trimmedContent = content.trim()
 
-    // Save locally
+    // addDailyLog already persists to Supabase — no dual-write needed
     const newLog = addDailyLog({
       content: trimmedContent,
       mood: selectedMood,
@@ -103,25 +103,9 @@ export function Journal() {
     setEnergyLevel(5)
     setShowNewEntry(false)
 
-    // Sync to Supabase and generate embedding (best-effort, async)
+    // Generate embedding (best-effort, async) — uses the ID already persisted by addDailyLog
     const embeddingText = `${trimmedContent} | Mood: ${selectedMood ?? 'N/A'} | Energy: ${energyLevel}/10 | Date: ${logDate}`
-    const supabaseLogId = await syncLogToSupabase({
-      content: trimmedContent,
-      mood: selectedMood,
-      energy_level: energyLevel,
-      log_date: logDate,
-    })
-    if (supabaseLogId) {
-      generateEmbeddingForLog(supabaseLogId, embeddingText)
-    } else if (!navigator.onLine) {
-      // Offline: ensure entry is in sync queue (addDailyLog already enqueues when offline; this is a fallback)
-      enqueue('create_daily_log', {
-        content: trimmedContent,
-        mood: selectedMood,
-        energy_level: energyLevel,
-        log_date: logDate,
-      }, newLog.id)
-    }
+    generateEmbeddingForLog(newLog.id, embeddingText)
   }
 
   function handleDelete(id: string) {

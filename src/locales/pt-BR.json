@@ -803,6 +803,28 @@
     "serverTitle": "Erro no servidor",
     "serverDescription": "Algo deu errado do nosso lado. Tente novamente em alguns instantes."
   },
+  "calendarPage": {
+    "title": "Calendário Inteligente",
+    "description": "Gerencie seu tempo com sugestões inteligentes de agendamento",
+    "autoSchedule": "Auto-Agendar Dia",
+    "totalEvents": "Total Eventos",
+    "scheduledHours": "Horas Agendadas",
+    "peakProductivity": "Pico Produtividade",
+    "todayLoad": "Carga Hoje",
+    "workloadToday": "Carga de Trabalho Hoje",
+    "heavy": "Pesada",
+    "moderate": "Moderada",
+    "light": "Leve",
+    "events": "eventos",
+    "of8h": "de 8h",
+    "upcomingEvents": "Próximos Eventos",
+    "eventUpdated": "Evento atualizado",
+    "eventCreated": "Evento criado",
+    "eventDeleted": "Evento excluído",
+    "noDoingOpps": "Nenhuma oportunidade em andamento para agendar",
+    "noSlots": "Sem horários disponíveis para hoje",
+    "autoScheduled": "{{count}} eventos agendados automaticamente"
+  },
   "emptyStates": {
     "journal": "Nenhuma entrada no diário ainda. Comece a refletir sobre seu dia!",
     "journalAction": "Escrever primeira entrada",
