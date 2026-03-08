@@ -325,6 +325,60 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          action_url: string | null
+          archived: boolean
+          body: string
+          channel: string
+          created_at: string
+          group_key: string | null
+          icon: string | null
+          id: string
+          metadata: Json | null
+          priority: number
+          read: boolean
+          snoozed_until: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          action_url?: string | null
+          archived?: boolean
+          body?: string
+          channel?: string
+          created_at?: string
+          group_key?: string | null
+          icon?: string | null
+          id?: string
+          metadata?: Json | null
+          priority?: number
+          read?: boolean
+          snoozed_until?: string | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          action_url?: string | null
+          archived?: boolean
+          body?: string
+          channel?: string
+          created_at?: string
+          group_key?: string | null
+          icon?: string | null
+          id?: string
+          metadata?: Json | null
+          priority?: number
+          read?: boolean
+          snoozed_until?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       nw_projects: {
         Row: {
           created_at: string
