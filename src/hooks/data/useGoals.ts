@@ -29,6 +29,7 @@ export function useGoals(opportunities: Opportunity[]) {
     key_results: (g.key_results as any) ?? [],
     cycle: g.cycle as OKRCycle,
     status: g.status as Goal['status'],
+    priority_level: g.priority_level ?? 'medium',
     final_score: g.final_score ?? undefined,
     created_at: g.created_at,
   }), [])
