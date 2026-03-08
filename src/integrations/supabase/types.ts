@@ -135,6 +135,7 @@ export type Database = {
           id: string
           key_results: Json
           milestones: Json
+          priority_level: string
           progress: number
           start_date: string
           status: string
@@ -152,6 +153,7 @@ export type Database = {
           id?: string
           key_results?: Json
           milestones?: Json
+          priority_level?: string
           progress?: number
           start_date?: string
           status?: string
@@ -169,6 +171,7 @@ export type Database = {
           id?: string
           key_results?: Json
           milestones?: Json
+          priority_level?: string
           progress?: number
           start_date?: string
           status?: string
