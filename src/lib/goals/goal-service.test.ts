@@ -46,6 +46,7 @@ describe('goal-service', () => {
       status: 'active',
       progress: 0,
       milestones: [],
+      priority_level: 'medium',
       final_score: undefined,
       created_at: '',
       key_results: [
