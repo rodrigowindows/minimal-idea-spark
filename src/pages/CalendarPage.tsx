@@ -104,7 +104,7 @@ export function CalendarPage() {
       })
     }
 
-    toast.success(`${suggestions.length} eventos agendados automaticamente`)
+    toast.success(t('calendarPage.autoScheduled', { count: suggestions.length }))
   }
 
   return (
