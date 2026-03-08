@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 
 const STORAGE_KEY_BASE = 'lifeos_recent_pages'
@@ -56,20 +56,16 @@ export function useRecentPages(
   })
 
   // Re-hydrate labels on language change so the "Recent" list follows i18n
-  useEffect(() => {
-    setRecent((prev) =>
-      prev.map((item) => ({
-        ...item,
-        label: item.labelKey ? t(item.labelKey) : item.label ?? item.path,
-      }))
-    )
-  }, [t])
+  // We use a ref for `t` to avoid infinite re-render loops since i18next
+  // may return a new `t` reference on every render.
+  const tRef = useRef(t)
+  tRef.current = t
 
   useEffect(() => {
     if (!pathname || pathname === '/auth' || pathname.startsWith('/invite') || pathname.startsWith('/shared')) return
     const item = navItems.find((n) => n.to === pathname || (pathname.startsWith(n.to + '/') && n.to !== '/'))
     const labelKey = item?.labelKey ?? resolveLabelKey(pathname)
-    const label = labelKey ? t(labelKey) : pathname
+    const label = labelKey ? tRef.current(labelKey) : pathname
     setRecent((prev) => {
       const filtered = prev.filter((p) => p.path !== pathname)
       const next = [{ path: pathname, labelKey, label, timestamp: Date.now() }, ...filtered].slice(0, max)
@@ -80,7 +76,7 @@ export function useRecentPages(
       }
       return next
     })
-  }, [pathname, navItems, t, max, storageKey, resolveLabelKey])
+  }, [pathname, navItems, max, storageKey, resolveLabelKey])
 
   const clearRecent = useCallback(() => {
     setRecent([])
