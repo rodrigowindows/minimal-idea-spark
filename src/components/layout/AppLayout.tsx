@@ -162,6 +162,7 @@ export function AppLayout() {
 
       <CommandPalette />
       <KeyboardShortcutsHelp />
+      <FloatingShortcutsHint />
     </div>
   )
 }
