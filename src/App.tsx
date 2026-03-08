@@ -152,6 +152,7 @@ function AuthGate() {
     return (
       <Routes>
         <Route path="/auth" element={<Suspense fallback={<PageFallback />}><Auth /></Suspense>} />
+        <Route path="/reset-password" element={<Suspense fallback={<PageFallback />}><ResetPassword /></Suspense>} />
         <Route path="*" element={<Navigate to="/auth" replace />} />
       </Routes>
     );
