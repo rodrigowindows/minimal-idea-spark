@@ -356,6 +356,30 @@ export function Journal() {
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
+                      </div>
+                    </div>
+                    {editingId === log.id ? (
+                      <div className="mt-3 space-y-2">
+                        <Textarea
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          className="min-h-[80px] resize-none"
+                          autoFocus
+                        />
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={() => handleSaveEdit(log.id)} className="gap-1">
+                            <Check className="h-3 w-3" />{t('common.save', 'Save')}
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={handleCancelEdit} className="gap-1">
+                            <X className="h-3 w-3" />{t('common.cancel')}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">
+                        {log.content}
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
                 </div>
