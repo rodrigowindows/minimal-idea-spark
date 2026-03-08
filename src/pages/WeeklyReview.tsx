@@ -34,13 +34,37 @@ import { useAuth } from '@/contexts/AuthContext'
 
 export function WeeklyReview() {
   const { opportunities, dailyLogs, habits, domains } = useLocalData()
+  const { user } = useAuth()
   const { xpTotal, streakDays, deepWorkMinutes, opportunitiesCompleted, level, addXP } = useXPSystem()
   const [reflections, setReflections] = useState('')
   const [nextWeekPlan, setNextWeekPlan] = useState('')
   const [saved, setSaved] = useState(false)
+  const loadedRef = useRef(false)
 
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
   const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 })
+  const weekStartStr = format(weekStart, 'yyyy-MM-dd')
+
+  // Load existing review from Supabase
+  useEffect(() => {
+    if (!user?.id || loadedRef.current) return
+    loadedRef.current = true
+
+    async function load() {
+      const { data } = await (supabase as any)
+        .from('weekly_reviews')
+        .select('*')
+        .eq('week_start', weekStartStr)
+        .maybeSingle()
+
+      if (data) {
+        setReflections(data.reflections || '')
+        setNextWeekPlan(data.next_week_plan || '')
+        if (data.reflections || data.next_week_plan) setSaved(true)
+      }
+    }
+    load()
+  }, [user?.id, weekStartStr])
 
   const weekStats = useMemo(() => {
     const doneThisWeek = opportunities.filter(o => o.status === 'done').length
