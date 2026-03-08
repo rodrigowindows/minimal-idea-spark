@@ -111,13 +111,13 @@ export function CalendarPage() {
     <PageContent>
       <PageHeader
         icon={<CalendarDays className="h-6 w-6 text-primary" />}
-        title="Calendario Inteligente"
-        description="Gerencie seu tempo com sugestoes inteligentes de agendamento"
+        title={t('calendarPage.title')}
+        description={t('calendarPage.description')}
         variant="compact"
         actions={
           <Button onClick={handleAutoSchedule} variant="outline" className="gap-2">
             <Sparkles className="h-4 w-4" />
-            Auto-Agendar Dia
+            {t('calendarPage.autoSchedule')}
           </Button>
         }
       />
