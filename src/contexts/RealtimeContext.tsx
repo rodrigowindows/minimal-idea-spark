@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { useRealtimeSync, useCursorTracking } from '@/hooks/useRealtimeSync';
 import { useAuth } from '@/contexts/AuthContext';
-import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
+
 import type { Presence, CollaborativeEdit, ChatMessage, ActiveEditor } from '@/lib/realtime/collaboration';
 import { useLocation } from 'react-router-dom';
 

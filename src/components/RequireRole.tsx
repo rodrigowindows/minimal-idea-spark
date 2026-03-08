@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
+
 import { Unauthorized } from '@/components/Unauthorized';
 import type { MemberRole } from '@/lib/db/schema-organizations';
 

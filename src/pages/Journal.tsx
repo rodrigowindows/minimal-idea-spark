@@ -197,11 +197,6 @@ export function Journal() {
                 <VoiceInput
                   onTranscript={(text) => setContent((prev) => prev ? prev + ' ' + text : text)}
                 />
-                <AudioToText
-                  onTranscription={(text) => setContent((prev) => prev ? prev + ' ' + text : text)}
-                  sourcePage="journal"
-                  compact
-                />
               </div>
             </div>
 

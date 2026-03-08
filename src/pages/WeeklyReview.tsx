@@ -288,11 +288,6 @@ export function WeeklyReview() {
                     <VoiceInput
                       onTranscript={(text) => setNextWeekPlan((prev) => prev ? prev + ' ' + text : text)}
                     />
-                    <AudioToText
-                      onTranscription={(text) => setNextWeekPlan((prev) => prev ? prev + ' ' + text : text)}
-                      sourcePage="weekly-review"
-                      compact
-                    />
                   </div>
                 </div>
               </div>

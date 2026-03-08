@@ -72,9 +72,6 @@ export function AppLayout() {
         }}
       />
 
-      {ENABLE_COLLAB_CURSORS && isConnected && !deepWorkMode && (
-        <CollaborativeCursor presences={presences} currentUserId={currentUserId} />
-      )}
 
       {isMobile && !deepWorkMode && (
         <>

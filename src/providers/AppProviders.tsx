@@ -37,7 +37,7 @@ const AuthenticatedTree = composeProviders(
   LanguageProvider,
   AppProvider,
   ShortcutProvider,
-  WorkspaceProvider,
+  
   RealtimeProvider,
 )
 

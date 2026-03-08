@@ -65,11 +65,6 @@ export function QuickJournal() {
             <VoiceInput
               onTranscript={(text) => setContent((prev) => (prev ? prev + ' ' + text : text))}
             />
-            <AudioToText
-              compact
-              sourcePage="quick-journal"
-              onTranscription={(text) => setContent((prev) => (prev ? prev + ' ' + text : text))}
-            />
           </div>
         </div>
 

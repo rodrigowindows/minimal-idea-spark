@@ -40,7 +40,7 @@ import {
 import { useNotifications } from '@/hooks/useNotifications'
 import { getPriorityLevel } from '@/lib/notifications/priority-engine'
 import type { AppNotification, NotificationType } from '@/lib/notifications/manager'
-import { NotificationDigest } from '@/components/NotificationDigest'
+
 import { VirtualList } from '@/components/VirtualList'
 import { EmptyState } from '@/components/EmptyState'
 import { SearchEmptyState } from '@/components/SearchEmptyState'

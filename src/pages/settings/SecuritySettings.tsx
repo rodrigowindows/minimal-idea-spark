@@ -4,7 +4,7 @@ import { Bell, LogOut, Shield } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { useAuth } from '@/contexts/AuthContext'
-import { useWorkspaceContext } from '@/contexts/WorkspaceContext'
+
 import { useNotifications } from '@/hooks/useNotifications'
 import { signOutAllDevices } from '@/lib/auth/sessions'
 import { Enable2FAModal } from '@/components/Security/Enable2FAModal'
