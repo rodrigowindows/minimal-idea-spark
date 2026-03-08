@@ -39,7 +39,7 @@ export function WeeklyReview() {
   const [reflections, setReflections] = useState('')
   const [nextWeekPlan, setNextWeekPlan] = useState('')
   const [saved, setSaved] = useState(false)
-  const loadedRef = useRef(false)
+  const loadedRef = useRef<string | null>(null)
 
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
   const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 })
@@ -47,8 +47,12 @@ export function WeeklyReview() {
 
   // Load existing review from Supabase
   useEffect(() => {
-    if (!user?.id || loadedRef.current) return
-    loadedRef.current = true
+    if (!user?.id) {
+      loadedRef.current = null
+      return
+    }
+    if (loadedRef.current === user.id) return
+    loadedRef.current = user.id
 
     async function load() {
       const { data } = await (supabase as any)
@@ -65,6 +69,16 @@ export function WeeklyReview() {
     }
     load()
   }, [user?.id, weekStartStr])
+
+  // Reset saved state when user edits after initial load
+  const initialLoadDone = useRef(false)
+  useEffect(() => {
+    if (!initialLoadDone.current) {
+      initialLoadDone.current = true
+      return
+    }
+    setSaved(false)
+  }, [reflections, nextWeekPlan])
 
   const weekStats = useMemo(() => {
     const doneThisWeek = opportunities.filter(o => o.status === 'done').length
