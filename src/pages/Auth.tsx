@@ -5,6 +5,7 @@ import { FormField } from '@/components/ui/FormField';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Sparkles } from 'lucide-react';
 
 type AuthMode = 'login' | 'signup' | 'forgot';
 
@@ -50,87 +51,100 @@ export function Auth() {
   };
 
   const titles: Record<AuthMode, { title: string; desc: string }> = {
-    login: { title: 'Login', desc: 'Enter your credentials to access your account' },
-    signup: { title: 'Create Account', desc: 'Create a new account to get started' },
-    forgot: { title: 'Reset Password', desc: 'Enter your email to receive a reset link' },
+    login: { title: 'Welcome back', desc: 'Sign in to your command center' },
+    signup: { title: 'Get started', desc: 'Create your LifeOS account' },
+    forgot: { title: 'Reset password', desc: 'Enter your email to receive a reset link' },
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>{titles[mode].title}</CardTitle>
-          <CardDescription>{titles[mode].desc}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <FormField
-              id="email"
-              label="Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            {mode !== 'forgot' && (
-              <FormField
-                id="password"
-                label="Password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                error={formError ?? undefined}
-              />
-            )}
-            {mode === 'forgot' && formError && (
-              <p className="text-sm text-destructive">{formError}</p>
-            )}
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading
-                ? 'Processing...'
-                : mode === 'login'
-                  ? 'Login'
-                  : mode === 'signup'
-                    ? 'Sign Up'
-                    : 'Send Reset Link'}
-            </Button>
-          </form>
-
-          <div className="mt-4 space-y-2 text-center text-sm">
-            {mode === 'login' && (
-              <>
-                <div>
-                  Don't have an account?{' '}
-                  <Button variant="link" onClick={() => { setMode('signup'); setFormError(null); }} className="p-0 h-auto">
-                    Sign up
-                  </Button>
-                </div>
-                <div>
-                  <Button variant="link" onClick={() => { setMode('forgot'); setFormError(null); }} className="p-0 h-auto text-muted-foreground">
-                    Forgot password?
-                  </Button>
-                </div>
-              </>
-            )}
-            {mode === 'signup' && (
-              <div>
-                Already have an account?{' '}
-                <Button variant="link" onClick={() => { setMode('login'); setFormError(null); }} className="p-0 h-auto">
-                  Login
-                </Button>
-              </div>
-            )}
-            {mode === 'forgot' && (
-              <div>
-                <Button variant="link" onClick={() => { setMode('login'); setFormError(null); }} className="p-0 h-auto">
-                  Back to login
-                </Button>
-              </div>
-            )}
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="w-full max-w-md space-y-6">
+        {/* Brand header */}
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary/10 px-4 py-2">
+            <Sparkles className="h-6 w-6 text-primary" />
+            <span className="text-xl font-bold tracking-tight">LifeOS</span>
           </div>
-        </CardContent>
-      </Card>
+          <p className="text-sm text-muted-foreground">
+            Your personal command center for goals, habits & productivity
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl">{titles[mode].title}</CardTitle>
+            <CardDescription>{titles[mode].desc}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <FormField
+                id="email"
+                label="Email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              {mode !== 'forgot' && (
+                <FormField
+                  id="password"
+                  label="Password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  error={formError ?? undefined}
+                />
+              )}
+              {mode === 'forgot' && formError && (
+                <p className="text-sm text-destructive">{formError}</p>
+              )}
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading
+                  ? 'Processing...'
+                  : mode === 'login'
+                    ? 'Sign In'
+                    : mode === 'signup'
+                      ? 'Create Account'
+                      : 'Send Reset Link'}
+              </Button>
+            </form>
+
+            <div className="mt-4 space-y-2 text-center text-sm">
+              {mode === 'login' && (
+                <>
+                  <div>
+                    Don't have an account?{' '}
+                    <Button variant="link" onClick={() => { setMode('signup'); setFormError(null); }} className="p-0 h-auto font-semibold">
+                      Sign up
+                    </Button>
+                  </div>
+                  <div>
+                    <Button variant="link" onClick={() => { setMode('forgot'); setFormError(null); }} className="p-0 h-auto text-muted-foreground text-xs">
+                      Forgot password?
+                    </Button>
+                  </div>
+                </>
+              )}
+              {mode === 'signup' && (
+                <div>
+                  Already have an account?{' '}
+                  <Button variant="link" onClick={() => { setMode('login'); setFormError(null); }} className="p-0 h-auto font-semibold">
+                    Sign in
+                  </Button>
+                </div>
+              )}
+              {mode === 'forgot' && (
+                <div>
+                  <Button variant="link" onClick={() => { setMode('login'); setFormError(null); }} className="p-0 h-auto">
+                    ← Back to login
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
