@@ -149,6 +149,38 @@ export type Database = {
         }
         Relationships: []
       }
+      habit_completions: {
+        Row: {
+          completed_date: string
+          created_at: string
+          habit_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          completed_date?: string
+          created_at?: string
+          habit_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          completed_date?: string
+          created_at?: string
+          habit_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "habit_completions_habit_id_fkey"
+            columns: ["habit_id"]
+            isOneToOne: false
+            referencedRelation: "habits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       habits: {
         Row: {
           best_streak: number
@@ -228,6 +260,36 @@ export type Database = {
           created_at?: string
           id?: string
           source_title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      life_domains: {
+        Row: {
+          color_theme: string
+          created_at: string
+          id: string
+          name: string
+          target_percentage: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color_theme?: string
+          created_at?: string
+          id?: string
+          name: string
+          target_percentage?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color_theme?: string
+          created_at?: string
+          id?: string
+          name?: string
+          target_percentage?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -571,6 +633,57 @@ export type Database = {
           id?: string
           query?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      xp_summaries: {
+        Row: {
+          achievements: Json
+          created_at: string
+          deep_work_minutes: number
+          id: string
+          insights_logged: number
+          last_activity_date: string | null
+          level: number
+          opportunities_completed: number
+          streak_days: number
+          updated_at: string
+          user_id: string
+          week_score: number | null
+          xp_current_level: number
+          xp_total: number
+        }
+        Insert: {
+          achievements?: Json
+          created_at?: string
+          deep_work_minutes?: number
+          id?: string
+          insights_logged?: number
+          last_activity_date?: string | null
+          level?: number
+          opportunities_completed?: number
+          streak_days?: number
+          updated_at?: string
+          user_id: string
+          week_score?: number | null
+          xp_current_level?: number
+          xp_total?: number
+        }
+        Update: {
+          achievements?: Json
+          created_at?: string
+          deep_work_minutes?: number
+          id?: string
+          insights_logged?: number
+          last_activity_date?: string | null
+          level?: number
+          opportunities_completed?: number
+          streak_days?: number
+          updated_at?: string
+          user_id?: string
+          week_score?: number | null
+          xp_current_level?: number
+          xp_total?: number
         }
         Relationships: []
       }
