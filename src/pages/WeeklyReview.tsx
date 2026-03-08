@@ -215,7 +215,7 @@ export function WeeklyReview() {
     <PageContent>
       <PageHeader
         icon={<ClipboardCheck className="h-6 w-6 text-primary" />}
-        title="Weekly Review"
+        title={t('weeklyReview.title')}
         description={`${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`}
         variant="compact"
       />
