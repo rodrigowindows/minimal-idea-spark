@@ -35,6 +35,33 @@ export function useDailyLogs() {
     load()
   }, [userId])
 
+  // Realtime subscription for cross-device sync
+  useEffect(() => {
+    if (!userId) return
+
+    const channel = supabase
+      .channel('daily-logs-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_logs' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const row = payload.new as any
+          if (row.user_id !== userId) return
+          setDailyLogs(prev => {
+            if (prev.some(x => x.id === row.id)) return prev
+            return [row as DailyLog, ...prev]
+          })
+        } else if (payload.eventType === 'UPDATE') {
+          const row = payload.new as any
+          setDailyLogs(prev => prev.map(x => x.id === row.id ? { ...x, ...row } as DailyLog : x))
+        } else if (payload.eventType === 'DELETE') {
+          const old = payload.old as any
+          setDailyLogs(prev => prev.filter(x => x.id !== old.id))
+        }
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [userId])
+
   const addDailyLog = useCallback((data: Omit<DailyLog, 'id' | 'user_id' | 'created_at'>) => {
     if (!userId) return null as unknown as DailyLog
     const tempId = crypto.randomUUID()
