@@ -82,9 +82,6 @@ export function Journal() {
     setEnergyLevel(5)
     setShowNewEntry(false)
 
-    // Generate embedding (best-effort, async) — uses the ID already persisted by addDailyLog
-    const embeddingText = `${trimmedContent} | Mood: ${selectedMood ?? 'N/A'} | Energy: ${energyLevel}/10 | Date: ${logDate}`
-    generateEmbeddingForLog(newLog.id, embeddingText)
   }
 
   function handleDelete(id: string) {
