@@ -59,7 +59,7 @@ export function AppProviders({ queryClient, children }: AppProvidersProps) {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Sonner />
-        <NightWorkerProvider>{children}</NightWorkerProvider>
+        {children}
       </TooltipProvider>
     </QueryClientProvider>
   )
