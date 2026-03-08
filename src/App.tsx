@@ -1,5 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { DeepWorkOverlay } from "@/components/deep-work/DeepWorkOverlay";
 import { ConfettiEffect } from "@/components/gamification/ConfettiEffect";
@@ -23,7 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { refreshCacheFromServer } from "@/lib/offline/sync-manager";
 import { AppProviders, AuthenticatedProviders } from "@/providers/AppProviders";
 
-// Main pages
+// Main pages — lazy loaded
 const Dashboard = lazy(() => import("@/pages/Dashboard").then((m) => ({ default: m.Dashboard })));
 const Consultant = lazy(() => import("@/pages/Consultant").then((m) => ({ default: m.Consultant })));
 const Opportunities = lazy(() => import("@/pages/Opportunities").then((m) => ({ default: m.Opportunities })));
@@ -39,12 +39,14 @@ const Settings = lazy(() => import("@/pages/Settings").then((m) => ({ default: m
 const Auth = lazy(() => import("@/pages/Auth").then((m) => ({ default: m.Auth })));
 const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
 
-const PageFallback = () => (
-  <div className="flex min-h-[50vh] items-center justify-center" role="status" aria-label="Loading page">
-    <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" />
-    <span className="sr-only">Loading...</span>
-  </div>
-);
+function PageFallback() {
+  return (
+    <div className="flex min-h-[50vh] items-center justify-center" role="status" aria-label="Loading page">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" />
+      <span className="sr-only">Loading...</span>
+    </div>
+  );
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
