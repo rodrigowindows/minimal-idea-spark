@@ -56,14 +56,10 @@ export function useRecentPages(
   })
 
   // Re-hydrate labels on language change so the "Recent" list follows i18n
-  useEffect(() => {
-    setRecent((prev) =>
-      prev.map((item) => ({
-        ...item,
-        label: item.labelKey ? t(item.labelKey) : item.label ?? item.path,
-      }))
-    )
-  }, [t])
+  // We use a ref for `t` to avoid infinite re-render loops since i18next
+  // may return a new `t` reference on every render.
+  const tRef = useRef(t)
+  tRef.current = t
 
   useEffect(() => {
     if (!pathname || pathname === '/auth' || pathname.startsWith('/invite') || pathname.startsWith('/shared')) return
