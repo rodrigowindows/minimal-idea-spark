@@ -26,25 +26,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useSessionTimeout(
-    () => {
-      void signOut();
-    },
-    () => {
-      // Optional: show warning toast before expiry
-    }
+    () => { void signOut(); },
+    () => { /* Optional: show warning toast before expiry */ }
   );
 
   useEffect(() => {
+    // IMPORTANT: Set up listener BEFORE getSession per Supabase best practices
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+        setLoading(false);
+      }
+    );
+
+    // Then check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
     });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-      }
-    );
 
     return () => subscription.unsubscribe();
   }, []);
