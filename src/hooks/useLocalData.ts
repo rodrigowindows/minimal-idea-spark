@@ -13,7 +13,7 @@ import {
 } from '@/hooks/data'
 
 // Re-export types for backward compat
-export type { Goal, Habit, KeyResult, OKRCycle, WeeklyTarget } from '@/hooks/data'
+export type { Goal, Habit, KeyResult, OKRCycle, PriorityLevel, WeeklyTarget } from '@/hooks/data'
 
 export function useLocalData() {
   const { domains, addDomain } = useDomains()
