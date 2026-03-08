@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/FormField';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Sparkles, Loader2 } from 'lucide-react';
+import { Sparkles, Loader2, ArrowLeft } from 'lucide-react';
 
 type AuthMode = 'login' | 'signup' | 'forgot';
 
@@ -75,22 +76,42 @@ export function Auth() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md space-y-6">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+        className="w-full max-w-md space-y-6"
+      >
         {/* Brand */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary/10 px-4 py-2.5">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary/10 px-4 py-2.5"
+          >
             <Sparkles className="h-6 w-6 text-primary" />
             <span className="text-xl font-bold tracking-tight">LifeOS</span>
-          </div>
+          </motion.div>
           <p className="text-sm text-muted-foreground">
             Your personal command center for goals, habits & productivity
           </p>
         </div>
 
-        <Card className="border-border/60 shadow-lg">
+        <Card className="border-border/60 shadow-lg overflow-hidden">
           <CardHeader className="pb-4">
-            <CardTitle className="text-xl">{titles[mode].title}</CardTitle>
-            <CardDescription>{titles[mode].desc}</CardDescription>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={mode}
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <CardTitle className="text-xl">{titles[mode].title}</CardTitle>
+                <CardDescription>{titles[mode].desc}</CardDescription>
+              </motion.div>
+            </AnimatePresence>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -103,20 +124,39 @@ export function Auth() {
                 required
                 autoComplete="email"
               />
-              {mode !== 'forgot' && (
-                <FormField
-                  id="password"
-                  label="Password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                />
-              )}
-              {formError && (
-                <p className="text-sm text-destructive" role="alert">{formError}</p>
-              )}
+              <AnimatePresence>
+                {mode !== 'forgot' && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <FormField
+                      id="password"
+                      label="Password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <AnimatePresence>
+                {formError && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    className="text-sm text-destructive"
+                    role="alert"
+                  >
+                    {formError}
+                  </motion.p>
+                )}
+              </AnimatePresence>
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (
                   <span className="inline-flex items-center gap-2">
@@ -157,15 +197,20 @@ export function Auth() {
               )}
               {mode === 'forgot' && (
                 <div>
-                  <Button variant="link" onClick={() => switchMode('login')} className="p-0 h-auto">
-                    ← Back to login
+                  <Button variant="link" onClick={() => switchMode('login')} className="p-0 h-auto inline-flex items-center gap-1">
+                    <ArrowLeft className="h-3 w-3" />
+                    Back to login
                   </Button>
                 </div>
               )}
             </div>
           </CardContent>
         </Card>
-      </div>
+
+        <p className="text-center text-xs text-muted-foreground">
+          By signing up, you agree to our terms of service
+        </p>
+      </motion.div>
     </div>
   );
 }
