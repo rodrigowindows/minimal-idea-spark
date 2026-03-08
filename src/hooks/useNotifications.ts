@@ -1,82 +1,92 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
 import {
-  getActiveNotifications,
-  getArchivedNotifications,
-  getSnoozedNotifications,
-  markAsRead,
-  markAllAsRead,
-  removeNotification,
-  addNotification,
-  archiveNotification,
-  archiveAllRead,
-  snoozeNotification,
-  unsnoozeExpired,
+  fetchActiveNotifications,
+  fetchArchivedNotifications,
+  fetchSnoozedNotifications,
+  addNotificationToDb,
+  markAsReadDb,
+  markAllAsReadDb,
+  archiveNotificationDb,
+  archiveAllReadDb,
+  removeNotificationDb,
+  snoozeNotificationDb,
+  unsnoozeExpiredDb,
   getPreferences,
-  setPreferences,
-  type AppNotification,
-  type NotificationChannel,
-  type NotificationType,
-  type NotificationPreferences,
+  setPreferencesLocal,
+} from '@/lib/notifications/supabase-store'
+import type {
+  AppNotification,
+  NotificationChannel,
+  NotificationType,
+  NotificationPreferences,
 } from '@/lib/notifications/manager'
 import { sortByPriority, getSmartGroups, type NotificationGroup } from '@/lib/notifications/priority-engine'
 
 export function useNotifications() {
+  const { user } = useAuth()
+  const userId = user?.id
+
   const [active, setActive] = useState<AppNotification[]>([])
   const [archived, setArchived] = useState<AppNotification[]>([])
   const [snoozed, setSnoozed] = useState<AppNotification[]>([])
   const [prefs, setPrefs] = useState<NotificationPreferences>(() => getPreferences())
 
-  const refresh = useCallback(() => {
-    // Unsnooze any expired snoozed notifications
-    unsnoozeExpired()
-    setActive(sortByPriority(getActiveNotifications()))
-    setArchived(getArchivedNotifications())
-    setSnoozed(getSnoozedNotifications())
+  const refresh = useCallback(async () => {
+    if (!userId) return
+    const [a, ar, s] = await Promise.all([
+      fetchActiveNotifications(userId),
+      fetchArchivedNotifications(userId),
+      fetchSnoozedNotifications(userId),
+    ])
+    setActive(sortByPriority(a))
+    setArchived(ar)
+    setSnoozed(s)
     setPrefs(getPreferences())
-  }, [])
+  }, [userId])
 
   useEffect(() => {
     refresh()
     // Poll for snoozed notification expiry every 30s
-    const interval = setInterval(() => {
-      const unsnoozed = unsnoozeExpired()
-      if (unsnoozed.length > 0) refresh()
+    const interval = setInterval(async () => {
+      const count = await unsnoozeExpiredDb()
+      if (count > 0) refresh()
     }, 30_000)
     return () => clearInterval(interval)
   }, [refresh])
 
-  const markRead = useCallback((id: string) => {
-    markAsRead(id)
-    refresh()
-  }, [refresh])
+  const markRead = useCallback(async (id: string) => {
+    setActive(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
+    await markAsReadDb(id)
+  }, [])
 
-  const markAllRead = useCallback(() => {
-    markAllAsRead()
-    refresh()
-  }, [refresh])
+  const markAllRead = useCallback(async () => {
+    setActive(prev => prev.map(n => ({ ...n, read: true })))
+    await markAllAsReadDb()
+  }, [])
 
-  const remove = useCallback((id: string) => {
-    removeNotification(id)
-    refresh()
-  }, [refresh])
+  const remove = useCallback(async (id: string) => {
+    setActive(prev => prev.filter(n => n.id !== id))
+    await removeNotificationDb(id)
+  }, [])
 
-  const archive = useCallback((id: string) => {
-    archiveNotification(id)
-    refresh()
-  }, [refresh])
+  const archive = useCallback(async (id: string) => {
+    setActive(prev => prev.filter(n => n.id !== id))
+    await archiveNotificationDb(id)
+  }, [])
 
-  const archiveRead = useCallback(() => {
-    archiveAllRead()
-    refresh()
-  }, [refresh])
+  const archiveRead = useCallback(async () => {
+    setActive(prev => prev.filter(n => !n.read))
+    await archiveAllReadDb()
+  }, [])
 
-  const snooze = useCallback((id: string, minutes: number) => {
+  const snooze = useCallback(async (id: string, minutes: number) => {
     const until = new Date(Date.now() + minutes * 60 * 1000)
-    snoozeNotification(id, until)
-    refresh()
-  }, [refresh])
+    setActive(prev => prev.filter(n => n.id !== id))
+    await snoozeNotificationDb(id, until)
+  }, [])
 
-  const notify = useCallback((
+  const notify = useCallback(async (
     title: string,
     body: string,
     options?: {
@@ -89,24 +99,33 @@ export function useNotifications() {
       metadata?: Record<string, unknown>
     }
   ) => {
-    const result = addNotification({
+    if (!userId) return null
+    if (!prefs.enabled) return null
+    const type = options?.type ?? 'general'
+    if (!prefs.types[type]) return null
+    const channel = options?.channel ?? 'in_app'
+    if (!prefs.channels[channel]) return null
+
+    const result = await addNotificationToDb(userId, {
       title,
       body,
-      channel: options?.channel ?? 'in_app',
+      channel,
       priority: options?.priority ?? 0,
-      type: options?.type ?? 'general',
+      type,
       groupKey: options?.groupKey,
-      snoozedUntil: null,
       actionUrl: options?.actionUrl,
       icon: options?.icon,
       metadata: options?.metadata,
+      snoozedUntil: null,
     })
-    refresh()
+    if (result) {
+      setActive(prev => sortByPriority([result, ...prev]))
+    }
     return result
-  }, [refresh])
+  }, [userId, prefs])
 
   const updatePreferences = useCallback((updates: Partial<NotificationPreferences>) => {
-    const updated = setPreferences(updates)
+    const updated = setPreferencesLocal(updates)
     setPrefs(updated)
   }, [])
 
@@ -114,16 +133,13 @@ export function useNotifications() {
   const unreadCount = active.filter(n => !n.read).length
 
   return {
-    // Data
     active,
     archived,
     snoozed,
     groups,
     unreadCount,
     preferences: prefs,
-    // Legacy compat
     list: active,
-    // Actions
     markRead,
     markAllRead,
     remove,
