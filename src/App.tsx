@@ -167,14 +167,16 @@ function AuthGate() {
   );
 }
 
-const App = () => (
-  <AppProviders queryClient={queryClient}>
-    <BrowserRouter>
-      <AuthProvider>
-        <AuthGate />
-      </AuthProvider>
-    </BrowserRouter>
-  </AppProviders>
-);
+function App() {
+  return (
+    <AppProviders queryClient={queryClient}>
+      <BrowserRouter>
+        <AuthProvider>
+          <AuthGate />
+        </AuthProvider>
+      </BrowserRouter>
+    </AppProviders>
+  );
+}
 
 export default App;
