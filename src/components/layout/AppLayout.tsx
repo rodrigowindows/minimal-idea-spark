@@ -31,6 +31,7 @@ import { useBreadcrumbFromPath } from '@/components/layout/PageBreadcrumbs'
 import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs'
 import { BackButton } from '@/components/layout/BackButton'
 import { PageTransition } from '@/components/layout/PageTransition'
+import { FloatingShortcutsHint } from '@/components/ui/FloatingShortcutsHint'
 
 // Routes where breadcrumbs should not appear
 const NO_BREADCRUMB_ROUTES = new Set(['/'])
@@ -161,6 +162,7 @@ export function AppLayout() {
 
       <CommandPalette />
       <KeyboardShortcutsHelp />
+      <FloatingShortcutsHint />
     </div>
   )
 }
