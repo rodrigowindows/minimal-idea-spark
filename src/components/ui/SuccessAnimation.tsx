@@ -38,7 +38,7 @@ export function SuccessAnimation({ show, size = 'md', className, onComplete }: S
         setTimeout(() => onComplete?.(), 800)
       }}
       className={cn(
-        'flex items-center justify-center rounded-full bg-green-500',
+        'flex items-center justify-center rounded-full bg-primary',
         sizeClasses[size],
         className
       )}
@@ -48,7 +48,7 @@ export function SuccessAnimation({ show, size = 'md', className, onComplete }: S
         animate={{ pathLength: 1 }}
         transition={{ delay: 0.1, duration: 0.3 }}
       >
-        <Check className={cn('text-white', iconSizes[size])} strokeWidth={3} />
+        <Check className={cn('text-primary-foreground', iconSizes[size])} strokeWidth={3} />
       </motion.div>
     </motion.div>
   )
@@ -63,7 +63,7 @@ export function SuccessRipple({ show, className }: { show: boolean; className?: 
       animate={{ scale: 2, opacity: 0 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
       className={cn(
-        'absolute inset-0 rounded-full border-2 border-green-500',
+        'absolute inset-0 rounded-full border-2 border-primary',
         className
       )}
     />
