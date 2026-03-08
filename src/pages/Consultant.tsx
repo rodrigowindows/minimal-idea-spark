@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ChatMessage as ChatMessageType, ContextSource } from '@/types'
 import { ChatMessage } from '@/components/consultant/ChatMessage'
@@ -14,10 +14,55 @@ import { AIFeatureInfo } from '@/components/AIFeatureInfo'
 import { useRagChat } from '@/hooks/useRagChat'
 import { Badge } from '@/components/ui/badge'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { supabase } from '@/integrations/supabase/client'
+import { useAuth } from '@/contexts/AuthContext'
 
 export function Consultant() {
   const { t } = useTranslation()
+  const { user } = useAuth()
   const rag = useRagChat()
+  const knownIdsRef = useRef(new Set<string>())
+
+  // Realtime: listen for new messages from other devices
+  useEffect(() => {
+    if (!user?.id || !rag.sessionId) return
+
+    const channel = supabase
+      .channel(`chat-${rag.sessionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_history',
+          filter: `session_id=eq.${rag.sessionId}`,
+        },
+        (payload) => {
+          const row = payload.new as any
+          // Skip if we already have this message locally (sent by this device)
+          if (knownIdsRef.current.has(row.id)) return
+          if (row.user_id !== user.id) return
+
+          const newMsg: ChatMessageType = {
+            id: row.id,
+            role: row.role as 'user' | 'assistant',
+            content: row.content,
+            timestamp: new Date(row.created_at),
+            sources: row.sources ? (row.sources as ContextSource[]) : undefined,
+          }
+          setMessages(prev => {
+            // Avoid duplicates
+            if (prev.some(m => m.id === row.id)) return prev
+            return [...prev, newMsg]
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [user?.id, rag.sessionId])
 
   const SUGGESTED_QUESTIONS = [
     t('consultant.suggestedQuestions.prioritize'),
@@ -47,8 +92,10 @@ export function Consultant() {
   }, [messages, isTyping, rag.streamingContent])
 
   async function handleSend(content: string) {
+    const msgId = `user-${Date.now()}`
+    knownIdsRef.current.add(msgId)
     const userMessage: ChatMessageType = {
-      id: `user-${Date.now()}`, role: 'user', content, timestamp: new Date(),
+      id: msgId, role: 'user', content, timestamp: new Date(),
     }
     setMessages(prev => [...prev, userMessage])
     setIsTyping(true)
@@ -57,8 +104,10 @@ export function Consultant() {
     const result = await rag.sendMessage(content)
 
     if (result) {
+      const assistantId = `assistant-${Date.now()}`
+      knownIdsRef.current.add(assistantId)
       const assistantMessage: ChatMessageType = {
-        id: `assistant-${Date.now()}`, role: 'assistant',
+        id: assistantId, role: 'assistant',
         content: result.content, timestamp: new Date(),
         sources: result.sources as ContextSource[],
       }
