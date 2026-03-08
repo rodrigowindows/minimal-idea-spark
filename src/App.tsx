@@ -118,7 +118,7 @@ function AppContent() {
           <Route path="/habits" element={<Suspense fallback={<PageFallback />}><Habits /></Suspense>} />
           <Route path="/goals" element={<Suspense fallback={<PageFallback />}><Goals /></Suspense>} />
           <Route path="/calendar" element={<Suspense fallback={<PageFallback />}><CalendarPage /></Suspense>} />
-          <Route path="/priorities" element={<Suspense fallback={<PageFallback />}><PriorityDashboard /></Suspense>} />
+          <Route path="/priorities" element={<Navigate to="/goals" replace />} />
           <Route path="/weekly-review" element={<Suspense fallback={<PageFallback />}><WeeklyReview /></Suspense>} />
           <Route path="/notifications" element={<Suspense fallback={<PageFallback />}><NotificationsPage /></Suspense>} />
           <Route path="/settings" element={<Suspense fallback={<PageFallback />}><Settings /></Suspense>} />
