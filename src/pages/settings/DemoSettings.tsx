@@ -12,7 +12,7 @@ import {
 } from '@/lib/ai/usage-tracker'
 import { loadDemoData, unloadDemoData } from '@/lib/demo-data'
 import { useOnboarding } from '@/hooks/useOnboarding'
-import { TranscriptionHistory } from '@/components/TranscriptionHistory'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
