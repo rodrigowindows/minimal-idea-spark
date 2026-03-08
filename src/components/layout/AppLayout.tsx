@@ -56,7 +56,7 @@ export function AppLayout() {
   const showBackButton = location.pathname.split('/').filter(Boolean).length > 1 && !deepWorkMode
   const isMobile = !useMediaQuery('(min-width: 768px)')
   const [mobileOpen, setMobileOpen] = useState(false)
-  const { presences, currentUserId, isConnected } = useRealtime()
+  
   useKeyboardShortcuts()
 
   return (
