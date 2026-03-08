@@ -1,64 +1,13 @@
 /**
- * Backup: export all app data to JSON (and CSV for opportunities/journal).
+ * Backup: export all app data from Supabase to JSON (and CSV for opportunities/journal).
  * Used by Settings "Backup e exportação" and ExportModal. Restore via restore.ts.
- * @see restore.ts - validateBackupFile, restoreFromPayload
  */
-
-/** All localStorage keys that contain user data worth backing up */
-const BACKUP_KEYS = [
-  'lifeos_domains',
-  'lifeos_opportunities',
-  'lifeos_daily_logs',
-  'lifeos_journal',
-  'lifeos_priorities',
-  'lifeos_goals',
-  'lifeos_habits',
-  'lifeos_weekly_targets',
-  'lifeos_automations',
-  'lifeos_version_snapshots',
-  'lifeos_version_branches',
-  'lifeos_templates',
-  'minimal_idea_spark_transcription_history',
-  'lifeos_tags',
-  'lifeos_opportunity_tags',
-  'lifeos_journal_tags',
-  'lifeos_calendar_events',
-  'lifeos_focus_sessions',
-  'lifeos_time_blocks',
-  'lifeos_assistant_threads',
-  'lifeos_notification_preferences',
-  'lifeos_reminders_enabled',
-  'lifeos_session_timeout_min',
-  'lifeos_email_digest_frequency',
-  'lifeos_theme',
-  'lifeos_language',
-  'lifeos_warroom_layout',
-  'lifeos_sidebar_sections',
-  'minimal_idea_spark_xp_state',
-  'lifeos_workspace_activity',
-  'lifeos_workspace_members',
-  'lifeos_workspaces',
-  'lifeos_api_keys',
-  'lifeos_webhooks',
-  'lifeos_search_history',
-] as const
-
-/** Subset of keys containing settings/preferences (as opposed to user content) */
-const SETTINGS_KEYS = new Set([
-  'lifeos_notification_preferences',
-  'lifeos_reminders_enabled',
-  'lifeos_session_timeout_min',
-  'lifeos_email_digest_frequency',
-  'lifeos_theme',
-  'lifeos_language',
-  'lifeos_warroom_layout',
-  'lifeos_sidebar_sections',
-])
+import { supabase } from '@/integrations/supabase/client'
 
 export interface BackupPayload {
   version: number
   exportedAt: string
-  workspaceId?: string
+  source: 'supabase'
   data: Record<string, unknown>
 }
 
@@ -69,36 +18,73 @@ export interface BackupSummary {
   goals: number
   domains: number
   calendarEvents: number
-  focusSessions: number
-  templates: number
-  tags: number
-  automations: number
-  settings: number
+  priorities: number
+  weeklyTargets: number
+  weeklyReviews: number
   totalKeys: number
 }
 
-export function generateBackupJson(workspaceId?: string): BackupPayload {
+/** Fetch all user data from Supabase and build a backup payload */
+export async function generateBackupFromSupabase(): Promise<BackupPayload> {
   const data: Record<string, unknown> = {}
-  for (const key of BACKUP_KEYS) {
-    try {
-      const raw = localStorage.getItem(key)
-      if (raw) data[key] = JSON.parse(raw)
-    } catch {
-      const raw = localStorage.getItem(key)
-      if (raw) data[key] = raw
+
+  const tables = [
+    'opportunities',
+    'daily_logs',
+    'habits',
+    'habit_completions',
+    'goals',
+    'life_domains',
+    'calendar_events',
+    'user_priorities',
+    'weekly_targets',
+    'weekly_reviews',
+    'xp_summaries',
+    'chat_history',
+    'knowledge_base',
+    'search_history',
+  ] as const
+
+  const results = await Promise.allSettled(
+    tables.map(async (table) => {
+      const { data: rows } = await (supabase as any).from(table).select('*')
+      return { table, rows: rows ?? [] }
+    })
+  )
+
+  for (const result of results) {
+    if (result.status === 'fulfilled') {
+      data[result.value.table] = result.value.rows
     }
   }
+
+  // Also include localStorage settings
+  const settingsKeys = [
+    'lifeos_notification_preferences',
+    'lifeos_reminders_enabled',
+    'lifeos_session_timeout_min',
+    'lifeos_theme',
+    'lifeos_language',
+    'lifeos_warroom_layout',
+    'lifeos_sidebar_sections',
+    'lifeos_sidebar_favorites',
+  ]
+  for (const key of settingsKeys) {
+    try {
+      const raw = localStorage.getItem(key)
+      if (raw) data[`settings:${key}`] = JSON.parse(raw)
+    } catch {
+      const raw = localStorage.getItem(key)
+      if (raw) data[`settings:${key}`] = raw
+    }
+  }
+
   return {
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
-    workspaceId,
+    source: 'supabase',
     data,
   }
-}
-
-export function exportToJson(workspaceId?: string): string {
-  const payload = generateBackupJson(workspaceId)
-  return JSON.stringify(payload, null, 2)
 }
 
 /** Build a summary of what's in a backup payload */
@@ -107,29 +93,18 @@ export function getBackupSummary(payload: BackupPayload): BackupSummary {
     const val = payload.data[key]
     return Array.isArray(val) ? val.length : val ? 1 : 0
   }
-  let settingsCount = 0
-  for (const key of Object.keys(payload.data)) {
-    if (SETTINGS_KEYS.has(key)) settingsCount++
-  }
   return {
-    opportunities: count('lifeos_opportunities'),
-    journal: count('lifeos_daily_logs') + count('lifeos_journal'),
-    habits: count('lifeos_habits'),
-    goals: count('lifeos_goals'),
-    domains: count('lifeos_domains'),
-    calendarEvents: count('lifeos_calendar_events'),
-    focusSessions: count('lifeos_focus_sessions'),
-    templates: count('lifeos_templates'),
-    tags: count('lifeos_tags'),
-    automations: count('lifeos_automations'),
-    settings: settingsCount,
+    opportunities: count('opportunities'),
+    journal: count('daily_logs'),
+    habits: count('habits'),
+    goals: count('goals'),
+    domains: count('life_domains'),
+    calendarEvents: count('calendar_events'),
+    priorities: count('user_priorities'),
+    weeklyTargets: count('weekly_targets'),
+    weeklyReviews: count('weekly_reviews'),
     totalKeys: Object.keys(payload.data).length,
   }
-}
-
-/** Get a summary of the current local data */
-export function getCurrentDataSummary(): BackupSummary {
-  return getBackupSummary(generateBackupJson())
 }
 
 // ── CSV Export ──────────────────────────────────────────────
@@ -162,9 +137,7 @@ export interface OpportunityCsvRow {
   created_at?: string
 }
 
-export function exportOpportunitiesToCsv(
-  opportunities: OpportunityCsvRow[]
-): string {
+export function exportOpportunitiesToCsv(opportunities: OpportunityCsvRow[]): string {
   const headers = ['title', 'status', 'type', 'priority', 'strategic_value', 'domain_id', 'description', 'due_date', 'created_at']
   const rows = opportunities.map((o) =>
     headers.map((h) => String((o as unknown as Record<string, unknown>)[h] ?? ''))
@@ -180,9 +153,7 @@ export interface JournalCsvRow {
   created_at?: string
 }
 
-export function exportJournalToCsv(
-  entries: JournalCsvRow[]
-): string {
+export function exportJournalToCsv(entries: JournalCsvRow[]): string {
   const headers = ['content', 'mood', 'energy_level', 'log_date', 'created_at']
   const rows = entries.map((e) =>
     headers.map((h) => String((e as unknown as Record<string, unknown>)[h] ?? ''))
@@ -201,26 +172,25 @@ export function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url)
 }
 
-export function downloadJson(workspaceId?: string) {
-  const json = exportToJson(workspaceId)
+export async function downloadJson() {
+  const payload = await generateBackupFromSupabase()
+  const json = JSON.stringify(payload, null, 2)
   const blob = new Blob([json], { type: 'application/json' })
   downloadBlob(blob, `lifeos-backup-${new Date().toISOString().slice(0, 10)}.json`)
 }
 
-export function downloadOpportunitiesCsv() {
-  const raw = localStorage.getItem('lifeos_opportunities')
-  if (!raw) return
-  const items = JSON.parse(raw) as OpportunityCsvRow[]
-  const csv = exportOpportunitiesToCsv(items)
+export async function downloadOpportunitiesCsv() {
+  const { data } = await (supabase as any).from('opportunities').select('*')
+  if (!data || data.length === 0) return
+  const csv = exportOpportunitiesToCsv(data as OpportunityCsvRow[])
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
   downloadBlob(blob, `lifeos-opportunities-${new Date().toISOString().slice(0, 10)}.csv`)
 }
 
-export function downloadJournalCsv() {
-  const raw = localStorage.getItem('lifeos_daily_logs')
-  if (!raw) return
-  const items = JSON.parse(raw) as JournalCsvRow[]
-  const csv = exportJournalToCsv(items)
+export async function downloadJournalCsv() {
+  const { data } = await (supabase as any).from('daily_logs').select('*')
+  if (!data || data.length === 0) return
+  const csv = exportJournalToCsv(data as JournalCsvRow[])
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
   downloadBlob(blob, `lifeos-journal-${new Date().toISOString().slice(0, 10)}.csv`)
 }

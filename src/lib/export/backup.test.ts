@@ -1,19 +1,22 @@
 import { describe, it, expect } from 'vitest'
-import { generateBackupJson, exportToJson, exportOpportunitiesToCsv } from './backup'
+import { exportOpportunitiesToCsv, getBackupSummary, type BackupPayload } from './backup'
 
 describe('backup', () => {
-  it('generateBackupJson returns version and data object', () => {
-    const payload = generateBackupJson()
-    expect(payload.version).toBe(1)
-    expect(payload.exportedAt).toBeDefined()
-    expect(typeof payload.data).toBe('object')
-  })
-
-  it('exportToJson returns valid JSON string', () => {
-    const json = exportToJson()
-    const parsed = JSON.parse(json)
-    expect(parsed.version).toBe(1)
-    expect(parsed.data).toBeDefined()
+  it('getBackupSummary counts items correctly', () => {
+    const payload: BackupPayload = {
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      source: 'supabase',
+      data: {
+        opportunities: [{ id: '1' }, { id: '2' }],
+        daily_logs: [{ id: '1' }],
+        goals: [],
+      },
+    }
+    const summary = getBackupSummary(payload)
+    expect(summary.opportunities).toBe(2)
+    expect(summary.journal).toBe(1)
+    expect(summary.goals).toBe(0)
   })
 
   it('exportOpportunitiesToCsv includes headers and rows', () => {

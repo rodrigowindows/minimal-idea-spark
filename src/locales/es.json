@@ -512,6 +512,7 @@
     "noEntries": "Sin entradas en el diario. Comienza a reflexionar sobre tu día.",
     "entrySaved": "¡Entrada del diario guardada!",
     "entryDeleted": "Entrada eliminada",
+    "entryUpdated": "Entrada actualizada",
     "writeFirst": "Por favor escribe algo antes de guardar."
   },
   "habits": {

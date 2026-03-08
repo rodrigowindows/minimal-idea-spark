@@ -47,16 +47,10 @@ export function useSearch(options: UseSearchOptions = {}) {
   useEffect(() => {
     if (!autoIndex) return;
 
-    let calendarEvents: any[] = [];
-    try {
-      const stored = localStorage.getItem('lifeos_calendar_events');
-      if (stored) calendarEvents = JSON.parse(stored);
-    } catch { /* ignore */ }
-
     const index = buildSearchIndex({
       opportunities,
       dailyLogs,
-      calendarEvents,
+      calendarEvents: [], // Calendar events are in Supabase; local search covers opportunities/logs/goals/habits
       goals,
       habits,
     });

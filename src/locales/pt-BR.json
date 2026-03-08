@@ -447,6 +447,7 @@
     "noEntries": "Nenhuma entrada no diário ainda. Comece a refletir sobre seu dia.",
     "entrySaved": "Entrada no diário salva!",
     "entryDeleted": "Entrada excluída",
+    "entryUpdated": "Entrada atualizada",
     "writeFirst": "Por favor, escreva algo antes de salvar."
   },
   "habits": {

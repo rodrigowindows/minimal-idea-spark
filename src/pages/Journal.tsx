@@ -10,7 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { MOOD_OPTIONS } from '@/lib/constants'
 import { useXPSystem } from '@/hooks/useXPSystem'
-import { BookOpen, Plus, Calendar, Sparkles, Send, Trash2, Zap } from 'lucide-react'
+import { BookOpen, Plus, Calendar, Sparkles, Send, Trash2, Zap, Pencil, Check, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { VoiceInput } from '@/components/smart-capture/VoiceInput'
 import { JournalCoach } from '@/components/journal/JournalCoach'
@@ -28,12 +28,14 @@ import { supabase } from '@/integrations/supabase/client'
 export function Journal() {
   const { date: dateParam } = useParams<{ date?: string }>()
   const { t } = useTranslation()
-  const { dailyLogs, isLoading, addDailyLog, deleteDailyLog } = useLocalData()
+  const { dailyLogs, isLoading, addDailyLog, updateDailyLog, deleteDailyLog } = useLocalData()
   const { addXP } = useXPSystem()
   const [showNewEntry, setShowNewEntry] = useState(false)
   const [content, setContent] = useState('')
   const [selectedMood, setSelectedMood] = useState<string | null>(null)
   const [energyLevel, setEnergyLevel] = useState(5)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editContent, setEditContent] = useState('')
   const dateTargetRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -110,7 +112,26 @@ export function Journal() {
 
   function handleDelete(id: string) {
     deleteDailyLog(id)
+    if (editingId === id) setEditingId(null)
     toast.success(t('journal.entryDeleted'))
+  }
+
+  function handleStartEdit(log: { id: string; content: string }) {
+    setEditingId(log.id)
+    setEditContent(log.content)
+  }
+
+  function handleSaveEdit(id: string) {
+    if (!editContent.trim()) return
+    updateDailyLog(id, { content: editContent.trim() })
+    setEditingId(null)
+    setEditContent('')
+    toast.success(t('journal.entryUpdated', 'Entry updated'))
+  }
+
+  function handleCancelEdit() {
+    setEditingId(null)
+    setEditContent('')
   }
 
   const getMoodEmoji = (mood: string | null) => {
@@ -323,15 +344,42 @@ export function Journal() {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
+                          onClick={() => handleStartEdit(log)}
+                        >
+                          <Pencil className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
                           onClick={() => handleDelete(log.id)}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
                     </div>
-                    <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">
-                      {log.content}
-                    </p>
+                    {editingId === log.id ? (
+                      <div className="mt-3 space-y-2">
+                        <Textarea
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          className="min-h-[80px] resize-none"
+                          autoFocus
+                        />
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={() => handleSaveEdit(log.id)} className="gap-1">
+                            <Check className="h-3 w-3" />{t('common.save', 'Save')}
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={handleCancelEdit} className="gap-1">
+                            <X className="h-3 w-3" />{t('common.cancel')}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">
+                        {log.content}
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
                 </div>

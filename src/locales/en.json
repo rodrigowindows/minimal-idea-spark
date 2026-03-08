@@ -514,6 +514,7 @@
     "noEntries": "No journal entries yet. Start reflecting on your day.",
     "entrySaved": "Journal entry saved!",
     "entryDeleted": "Entry deleted",
+    "entryUpdated": "Entry updated",
     "writeFirst": "Please write something before saving."
   },
   "habits": {
