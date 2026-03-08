@@ -7,7 +7,8 @@ import { corsHeaders } from '../_shared/cors.ts'
 import { getSupabaseClient } from '../_shared/supabase.ts'
 import { createEmbedding } from '../_shared/openai.ts'
 
-const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
+const AI_GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions'
 
 interface ChatRequest {
   message: string
