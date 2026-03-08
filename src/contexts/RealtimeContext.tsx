@@ -29,7 +29,7 @@ const RealtimeContext = createContext<RealtimeContextValue | undefined>(undefine
 
 export function RealtimeProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const { currentOrg } = useWorkspaceContext();
+  const currentOrg = { id: 'default-room' }; // simplified after workspace removal
   const location = useLocation();
 
   const currentUserId = user?.id ?? 'mock-user-001';

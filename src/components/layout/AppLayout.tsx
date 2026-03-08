@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/sheet'
 import { MobileNav } from '@/components/MobileNav'
 import { Sidebar } from './Sidebar'
-import { useRealtime } from '@/contexts/RealtimeContext'
+
 import { SkipLink } from '@/components/SkipLink'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { KeyboardShortcutsHelp } from '@/components/layout/KeyboardShortcutsHelp'

@@ -18,7 +18,7 @@ const ROLE_HIERARCHY: Record<MemberRole, number> = {
 };
 
 export function RequireRole({ allowed, children, message }: RequireRoleProps) {
-  const { currentRole } = useWorkspaceContext();
+  const currentRole: MemberRole = 'viewer'; // simplified after workspace removal
 
   if (allowed.includes(currentRole)) {
     return <>{children}</>;

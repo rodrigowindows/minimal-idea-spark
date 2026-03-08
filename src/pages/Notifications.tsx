@@ -261,11 +261,6 @@ export function NotificationsPage() {
       </div>
 
       {/* Digest */}
-      {preferences.digestFrequency !== 'none' && (
-        <div className="mb-6">
-          <NotificationDigest />
-        </div>
-      )}
 
       {/* Search + Filter bar */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">

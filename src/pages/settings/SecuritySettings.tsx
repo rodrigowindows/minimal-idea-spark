@@ -19,7 +19,7 @@ import { Switch } from '@/components/ui/switch'
 export function SecuritySettings() {
   const { t } = useTranslation()
   const { user, signOut } = useAuth()
-  const { logActivity } = useWorkspaceContext()
+  const logActivity = (..._args: unknown[]) => {} // simplified after workspace removal
   const { preferences: notifPrefs, updatePreferences } = useNotifications()
   const [security2FAOpen, setSecurity2FAOpen] = useState(false)
 

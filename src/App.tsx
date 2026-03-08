@@ -194,7 +194,6 @@ function AppContent() {
           <Route path="/logs" element={<Navigate to="/nw/logs" replace />} />
           <Route path="/connect" element={<Navigate to="/nw/connect" replace />} />
         </Route>
-        <Route path="/invite/:token" element={<Suspense fallback={<PageFallback />}><AcceptInvite /></Suspense>} />
         <Route path="/auth" element={<Navigate to="/" replace />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
