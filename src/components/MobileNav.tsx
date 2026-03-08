@@ -28,25 +28,19 @@ import {
 // Bottom nav: 4 main items + "More"
 const primaryNavItems = [
   { to: '/', icon: LayoutDashboard, labelKey: 'nav.dashboard' },
-  { to: '/nw/submit', icon: Send, labelKey: 'nav.submit' },
-  { to: '/nw/prompts', icon: ListChecks, labelKey: 'nav.prompts' },
-  { to: '/nw/logs', icon: Terminal, labelKey: 'nav.logs' },
-];
-
-// "More" drawer items — all other pages from the sidebar
-const moreNavItems = [
-  { to: '/consultant', icon: MessageSquare, labelKey: 'nav.consultant' },
   { to: '/opportunities', icon: Lightbulb, labelKey: 'nav.opportunities' },
   { to: '/journal', icon: BookOpen, labelKey: 'nav.journal' },
   { to: '/goals', icon: Target, labelKey: 'nav.goals' },
+];
+
+// "More" drawer items — all other pages
+const moreNavItems = [
+  { to: '/consultant', icon: MessageSquare, labelKey: 'nav.consultant' },
   { to: '/habits', icon: CheckSquare, labelKey: 'nav.habits' },
   { to: '/calendar', icon: Calendar, labelKey: 'nav.calendar' },
   { to: '/analytics', icon: BarChart3, labelKey: 'nav.analytics' },
   { to: '/priorities', icon: Star, labelKey: 'nav.priorities' },
   { to: '/weekly-review', icon: TrendingUp, labelKey: 'nav.weeklyReview' },
-  { to: '/nw', icon: Moon, labelKey: 'nav.nightWorker' },
-  { to: '/nw/projects', icon: ListChecks, labelKey: 'nav.nwProjects' },
-  { to: '/nw/templates', icon: GitBranch, labelKey: 'nav.nwPipelines' },
   { to: '/notifications', icon: Bell, labelKey: 'nav.notifications' },
   { to: '/settings', icon: Settings2, labelKey: 'nav.settings' },
   { to: '/help', icon: HelpCircle, labelKey: 'nav.help' },
