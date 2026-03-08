@@ -13,7 +13,7 @@ import { useXPSystem } from '@/hooks/useXPSystem'
 import { BookOpen, Plus, Calendar, Sparkles, Send, Trash2, Zap } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { VoiceInput } from '@/components/smart-capture/VoiceInput'
-import { AudioToText } from '@/components/AudioToText'
+
 import { EmptyState } from '@/components/EmptyState'
 import { VirtualList } from '@/components/VirtualList'
 import { format, parseISO } from 'date-fns'
