@@ -251,7 +251,7 @@ serve(async (req) => {
         throw new Error(`AI gateway error: ${aiResponse.status}`)
       }
 
-      const reader = openaiResponse.body!.getReader()
+      const reader = aiResponse.body!.getReader()
       const decoder = new TextDecoder()
       let fullResponse = ''
 
