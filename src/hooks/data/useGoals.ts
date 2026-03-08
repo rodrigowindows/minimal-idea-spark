@@ -20,11 +20,12 @@ export function useGoals(opportunities: Opportunity[]) {
     if (!user || initialLoadDone.current) return
     initialLoadDone.current = true
 
-    supabase
-      .from('goals')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .then(({ data, error }) => {
+    async function load() {
+      try {
+        const { data, error } = await supabase
+          .from('goals')
+          .select('*')
+          .order('created_at', { ascending: false })
         if (!error && data) {
           setGoals(data.map(g => ({
             id: g.id,
@@ -43,9 +44,10 @@ export function useGoals(opportunities: Opportunity[]) {
             created_at: g.created_at,
           })))
         }
-        setIsLoading(false)
-      })
-      .catch(() => setIsLoading(false))
+      } catch { /* ignore */ }
+      setIsLoading(false)
+    }
+    load()
   }, [user])
 
   const persistGoal = useCallback((goal: Goal) => {
