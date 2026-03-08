@@ -16,6 +16,23 @@ export function useGoals(opportunities: Opportunity[]) {
   const [goals, setGoals] = useState<Goal[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
+  const mapGoalRow = useCallback((g: any): Goal => ({
+    id: g.id,
+    user_id: g.user_id,
+    title: g.title,
+    description: g.description,
+    domain_id: g.domain_id,
+    target_date: g.target_date,
+    start_date: g.start_date,
+    progress: g.progress,
+    milestones: (g.milestones as any) ?? [],
+    key_results: (g.key_results as any) ?? [],
+    cycle: g.cycle as OKRCycle,
+    status: g.status as Goal['status'],
+    final_score: g.final_score ?? undefined,
+    created_at: g.created_at,
+  }), [])
+
   useEffect(() => {
     if (!userId) {
       setGoals([])
@@ -33,29 +50,33 @@ export function useGoals(opportunities: Opportunity[]) {
           .from('goals')
           .select('*')
           .order('created_at', { ascending: false })
-        if (!error && data) {
-          setGoals(data.map(g => ({
-            id: g.id,
-            user_id: g.user_id,
-            title: g.title,
-            description: g.description,
-            domain_id: g.domain_id,
-            target_date: g.target_date,
-            start_date: g.start_date,
-            progress: g.progress,
-            milestones: (g.milestones as any) ?? [],
-            key_results: (g.key_results as any) ?? [],
-            cycle: g.cycle as OKRCycle,
-            status: g.status as Goal['status'],
-            final_score: g.final_score ?? undefined,
-            created_at: g.created_at,
-          })))
-        }
+        if (!error && data) setGoals(data.map(mapGoalRow))
       } catch { /* ignore */ }
       setIsLoading(false)
     }
     load()
-  }, [userId])
+
+    // Realtime subscription for multi-device sync
+    const channel = supabase
+      .channel('goals-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'goals' }, (payload) => {
+        const row = mapGoalRow(payload.new)
+        if (row.user_id !== userId) return
+        setGoals(prev => prev.some(g => g.id === row.id) ? prev : [row, ...prev])
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'goals' }, (payload) => {
+        const row = mapGoalRow(payload.new)
+        if (row.user_id !== userId) return
+        setGoals(prev => prev.map(g => g.id === row.id ? row : g))
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'goals' }, (payload) => {
+        const old = payload.old as { id: string }
+        setGoals(prev => prev.filter(g => g.id !== old.id))
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [userId, mapGoalRow])
 
   const persistGoal = useCallback((goal: Goal) => {
     const { created_at, ...rest } = goal

@@ -33,6 +33,27 @@ export function useOpportunities(domains: LifeDomain[]) {
       setIsLoading(false)
     }
     load()
+
+    // Realtime subscription for multi-device sync
+    const channel = supabase
+      .channel('opportunities-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'opportunities' }, (payload) => {
+        const row = payload.new as unknown as Opportunity
+        if (row.user_id !== userId) return
+        setOpportunities(prev => prev.some(o => o.id === row.id) ? prev : [row, ...prev])
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'opportunities' }, (payload) => {
+        const row = payload.new as unknown as Opportunity
+        if (row.user_id !== userId) return
+        setOpportunities(prev => prev.map(o => o.id === row.id ? row : o))
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'opportunities' }, (payload) => {
+        const old = payload.old as { id: string }
+        setOpportunities(prev => prev.filter(o => o.id !== old.id))
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
   }, [userId])
 
   const enrichedOpportunities = opportunities.map(opp => ({
