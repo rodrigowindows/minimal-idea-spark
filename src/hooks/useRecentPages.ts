@@ -65,7 +65,7 @@ export function useRecentPages(
     if (!pathname || pathname === '/auth' || pathname.startsWith('/invite') || pathname.startsWith('/shared')) return
     const item = navItems.find((n) => n.to === pathname || (pathname.startsWith(n.to + '/') && n.to !== '/'))
     const labelKey = item?.labelKey ?? resolveLabelKey(pathname)
-    const label = labelKey ? t(labelKey) : pathname
+    const label = labelKey ? tRef.current(labelKey) : pathname
     setRecent((prev) => {
       const filtered = prev.filter((p) => p.path !== pathname)
       const next = [{ path: pathname, labelKey, label, timestamp: Date.now() }, ...filtered].slice(0, max)
@@ -76,7 +76,7 @@ export function useRecentPages(
       }
       return next
     })
-  }, [pathname, navItems, t, max, storageKey, resolveLabelKey])
+  }, [pathname, navItems, max, storageKey, resolveLabelKey])
 
   const clearRecent = useCallback(() => {
     setRecent([])
