@@ -1,36 +1,13 @@
 import { type ReactNode } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, type Transition } from 'framer-motion'
 import { useLocation } from 'react-router-dom'
 
 interface PageTransitionProps {
   children: ReactNode
 }
 
-const pageVariants = {
-  initial: {
-    opacity: 0,
-    y: 8,
-    scale: 0.99,
-  },
-  enter: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: {
-      duration: 0.25,
-      ease: 'easeOut',
-    },
-  },
-  exit: {
-    opacity: 0,
-    y: -8,
-    scale: 0.99,
-    transition: {
-      duration: 0.15,
-      ease: 'easeOut',
-    },
-  },
-}
+const enterTransition: Transition = { duration: 0.25, ease: 'easeOut' }
+const exitTransition: Transition = { duration: 0.15, ease: 'easeOut' }
 
 export function PageTransition({ children }: PageTransitionProps) {
   const location = useLocation()
@@ -39,10 +16,9 @@ export function PageTransition({ children }: PageTransitionProps) {
     <AnimatePresence mode="wait">
       <motion.div
         key={location.pathname}
-        variants={pageVariants}
-        initial="initial"
-        animate="enter"
-        exit="exit"
+        initial={{ opacity: 0, y: 8, scale: 0.99 }}
+        animate={{ opacity: 1, y: 0, scale: 1, transition: enterTransition }}
+        exit={{ opacity: 0, y: -8, scale: 0.99, transition: exitTransition }}
         className="w-full h-full"
       >
         {children}
