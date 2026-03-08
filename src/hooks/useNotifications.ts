@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { supabase } from '@/integrations/supabase/client'
 import {
   fetchActiveNotifications,
   fetchArchivedNotifications,
@@ -14,6 +15,7 @@ import {
   unsnoozeExpiredDb,
   getPreferences,
   setPreferencesLocal,
+  rowToNotification,
 } from '@/lib/notifications/supabase-store'
 import type {
   AppNotification,
@@ -47,13 +49,48 @@ export function useNotifications() {
 
   useEffect(() => {
     refresh()
-    // Poll for snoozed notification expiry every 30s
     const interval = setInterval(async () => {
       const count = await unsnoozeExpiredDb()
       if (count > 0) refresh()
     }, 30_000)
     return () => clearInterval(interval)
   }, [refresh])
+
+  // Realtime subscription for cross-device instant notifications
+  useEffect(() => {
+    if (!userId) return
+
+    const channel = supabase
+      .channel('notifications-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, (payload) => {
+        const row = payload.new as any
+        if (row.user_id !== userId) return
+        const notif = rowToNotification(row)
+        setActive(prev => {
+          if (prev.some(n => n.id === notif.id)) return prev
+          return sortByPriority([notif, ...prev])
+        })
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications' }, (payload) => {
+        const row = payload.new as any
+        if (row.user_id !== userId) return
+        const notif = rowToNotification(row)
+        if (notif.archived) {
+          setActive(prev => prev.filter(n => n.id !== notif.id))
+          setArchived(prev => prev.some(n => n.id === notif.id) ? prev : [notif, ...prev])
+        } else {
+          setActive(prev => sortByPriority(prev.map(n => n.id === notif.id ? notif : n)))
+        }
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'notifications' }, (payload) => {
+        const old = payload.old as { id: string }
+        setActive(prev => prev.filter(n => n.id !== old.id))
+        setArchived(prev => prev.filter(n => n.id !== old.id))
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [userId])
 
   const markRead = useCallback(async (id: string) => {
     setActive(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
