@@ -37,10 +37,6 @@ const CalendarPage = lazy(() => import("@/pages/CalendarPage").then((m) => ({ de
 const WeeklyReview = lazy(() => import("@/pages/WeeklyReview").then((m) => ({ default: m.WeeklyReview })));
 const NotificationsPage = lazy(() => import("@/pages/Notifications").then((m) => ({ default: m.NotificationsPage })));
 const Help = lazy(() => import("@/pages/Help").then((m) => ({ default: m.Help })));
-const ImportPage = lazy(() => import("@/pages/ImportPage").then((m) => ({ default: m.ImportPage })));
-const ReportsPage = lazy(() => import("@/pages/ReportsPage").then((m) => ({ default: m.ReportsPage })));
-const Integrations = lazy(() => import("@/pages/Integrations").then((m) => ({ default: m.Integrations })));
-const Workspace = lazy(() => import("@/pages/Workspace").then((m) => ({ default: m.Workspace })));
 const Settings = lazy(() => import("@/pages/Settings").then((m) => ({ default: m.Settings })));
 
 // Night Worker pages
