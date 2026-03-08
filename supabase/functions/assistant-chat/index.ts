@@ -1,5 +1,5 @@
 import { corsHeaders } from '../_shared/cors.ts'
-import { chatCompletion, chatCompletionWithTools } from '../_shared/openai.ts'
+import { chatCompletion, chatCompletionWithTools } from '../_shared/ai-gateway.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 interface AssistantChatBody {
