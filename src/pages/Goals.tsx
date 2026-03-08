@@ -21,7 +21,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useLocalData } from '@/hooks/useLocalData'
-import type { OKRCycle, Goal } from '@/hooks/useLocalData'
+import type { OKRCycle, Goal, PriorityLevel } from '@/hooks/useLocalData'
 import { toast } from 'sonner'
 import {
   Flag,
