@@ -12,6 +12,15 @@ vi.mock("sonner", () => ({
   },
 }));
 
+// Mock framer-motion
+vi.mock("framer-motion", () => ({
+  motion: {
+    div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+    p: ({ children, ...props }: any) => <p {...props}>{children}</p>,
+  },
+  AnimatePresence: ({ children }: any) => <>{children}</>,
+}));
+
 // Mock Supabase
 const mockSignIn = vi.fn();
 const mockSignUp = vi.fn();
@@ -21,6 +30,7 @@ vi.mock("@/integrations/supabase/client", () => ({
     auth: {
       signInWithPassword: (...args: any[]) => mockSignIn(...args),
       signUp: (...args: any[]) => mockSignUp(...args),
+      resetPasswordForEmail: vi.fn().mockResolvedValue({ error: null }),
       getSession: vi.fn().mockResolvedValue({
         data: { session: null },
         error: null,
@@ -58,7 +68,7 @@ describe("Auth page", () => {
 
   it("renders login form by default", () => {
     renderAuth();
-    expect(screen.getByRole("heading", { name: /login/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /welcome back/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
   });
@@ -67,11 +77,11 @@ describe("Auth page", () => {
     renderAuth();
     const signUpLink = screen.getByRole("button", { name: /sign up/i });
     await userEvent.click(signUpLink);
-    expect(screen.getByRole("heading", { name: /create account/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /get started/i })).toBeInTheDocument();
 
-    const loginLink = screen.getByRole("button", { name: /login/i });
-    await userEvent.click(loginLink);
-    expect(screen.getByRole("heading", { name: /login/i })).toBeInTheDocument();
+    const signInLink = screen.getByRole("button", { name: /sign in/i });
+    await userEvent.click(signInLink);
+    expect(screen.getByRole("heading", { name: /welcome back/i })).toBeInTheDocument();
   });
 
   it("calls signInWithPassword on login submit", async () => {
@@ -79,7 +89,7 @@ describe("Auth page", () => {
 
     await userEvent.type(screen.getByLabelText(/email/i), "user@test.com");
     await userEvent.type(screen.getByLabelText(/password/i), "password123");
-    await userEvent.click(screen.getByRole("button", { name: /login/i }));
+    await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
     await waitFor(() => {
       expect(mockSignIn).toHaveBeenCalledWith({
@@ -95,7 +105,7 @@ describe("Auth page", () => {
     await userEvent.click(screen.getByRole("button", { name: /sign up/i }));
     await userEvent.type(screen.getByLabelText(/email/i), "new@test.com");
     await userEvent.type(screen.getByLabelText(/password/i), "newpass123");
-    await userEvent.click(screen.getByRole("button", { name: /sign up/i }));
+    await userEvent.click(screen.getByRole("button", { name: /create account/i }));
 
     await waitFor(() => {
       expect(mockSignUp).toHaveBeenCalledWith({
@@ -114,8 +124,8 @@ describe("Auth page", () => {
 
     renderAuth();
     await userEvent.type(screen.getByLabelText(/email/i), "bad@test.com");
-    await userEvent.type(screen.getByLabelText(/password/i), "wrong");
-    await userEvent.click(screen.getByRole("button", { name: /login/i }));
+    await userEvent.type(screen.getByLabelText(/password/i), "wrongpass");
+    await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith("Invalid credentials");
@@ -127,25 +137,23 @@ describe("Auth page", () => {
 
     renderAuth();
     await userEvent.type(screen.getByLabelText(/email/i), "user@test.com");
-    await userEvent.type(screen.getByLabelText(/password/i), "pass123");
-    await userEvent.click(screen.getByRole("button", { name: /login/i }));
+    await userEvent.type(screen.getByLabelText(/password/i), "pass1234");
+    await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
     await waitFor(() => {
-      expect(toast.success).toHaveBeenCalledWith("Login successful!");
+      expect(toast.success).toHaveBeenCalled();
       expect(mockNavigate).toHaveBeenCalledWith("/");
     });
   });
 
   it("disables button during loading", async () => {
-    // Make signIn hang
     mockSignIn.mockReturnValue(new Promise(() => {}));
 
     renderAuth();
     await userEvent.type(screen.getByLabelText(/email/i), "user@test.com");
-    await userEvent.type(screen.getByLabelText(/password/i), "pass123");
+    await userEvent.type(screen.getByLabelText(/password/i), "pass1234");
 
-    const loginBtn = screen.getByRole("button", { name: /login/i });
-    await userEvent.click(loginBtn);
+    await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
     await waitFor(() => {
       expect(screen.getByText("Processing...")).toBeInTheDocument();

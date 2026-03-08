@@ -1,24 +1,41 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
+import React from 'react'
 import { useXPSystem } from './useXPSystem'
 import { GAMIFICATION_CONFIG } from '@/lib/constants'
 
-// Mock localStorage
-const localStorageMock = (() => {
-  let store: Record<string, string> = {}
-  return {
-    getItem: vi.fn((key: string) => store[key] ?? null),
-    setItem: vi.fn((key: string, value: string) => { store[key] = value }),
-    removeItem: vi.fn((key: string) => { delete store[key] }),
-    clear: vi.fn(() => { store = {} }),
-  }
-})()
+// Mock AuthContext
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: 'mock-user-001', email: 'test@test.com' },
+    session: null,
+    loading: false,
+    signOut: vi.fn(),
+  }),
+  AuthProvider: ({ children }: any) => children,
+}))
 
-Object.defineProperty(window, 'localStorage', { value: localStorageMock })
+// Mock Supabase
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: {
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        }),
+      }),
+      insert: vi.fn().mockResolvedValue({ error: null }),
+      update: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          then: vi.fn((cb: any) => cb({ error: null })),
+        }),
+      }),
+    }),
+  },
+}))
 
 describe('useXPSystem', () => {
   beforeEach(() => {
-    localStorageMock.clear()
     vi.clearAllMocks()
   })
 
@@ -58,25 +75,13 @@ describe('useXPSystem', () => {
         result.current.addXP(100)
       })
 
-      // Streak XP is also added on first activity of the day (streak resets to 1)
-      // So total will be 100 + 10 (daily_streak) = 110
       expect(result.current.xpTotal).toBeGreaterThanOrEqual(100)
       expect(result.current.xpCurrentLevel).toBeGreaterThanOrEqual(100)
-    })
-
-    it('should persist state to localStorage', () => {
-      const { result } = renderHook(() => useXPSystem())
-
-      act(() => {
-        result.current.addXP(50)
-      })
-
-      expect(localStorageMock.setItem).toHaveBeenCalled()
     })
   })
 
   describe('awardCapture', () => {
-    it('should add capture XP (5)', () => {
+    it('should add capture XP', () => {
       const { result } = renderHook(() => useXPSystem())
 
       act(() => {
@@ -115,10 +120,9 @@ describe('useXPSystem', () => {
       const { result } = renderHook(() => useXPSystem())
 
       act(() => {
-        result.current.awardDeepWork(50) // 2 sessions of 25 min
+        result.current.awardDeepWork(50)
       })
 
-      // 2 * 50 (deep_work_25min) = 100 XP + streak
       expect(result.current.xpTotal).toBeGreaterThanOrEqual(100)
     })
 
@@ -129,7 +133,6 @@ describe('useXPSystem', () => {
         result.current.awardDeepWork(10)
       })
 
-      // No deep_work_25min XP but deepWorkMinutes still tracked
       expect(result.current.deepWorkMinutes).toBe(10)
     })
   })

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SmartCapture } from './SmartCapture'
 
@@ -11,13 +11,43 @@ vi.mock('sonner', () => ({
   },
 }))
 
-// Mock framer-motion to avoid animation issues in tests
+// Mock framer-motion
 vi.mock('framer-motion', () => ({
   motion: {
     span: ({ children, ...props }: any) => <span {...props}>{children}</span>,
     div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
   },
   AnimatePresence: ({ children }: any) => <>{children}</>,
+}))
+
+// Mock AuthContext
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: 'mock-user-001', email: 'test@test.com' },
+    session: null,
+    loading: false,
+    signOut: vi.fn(),
+  }),
+  AuthProvider: ({ children }: any) => children,
+}))
+
+// Mock Supabase
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: {
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        }),
+      }),
+      insert: vi.fn().mockResolvedValue({ error: null }),
+      update: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          then: vi.fn((cb: any) => cb({ error: null })),
+        }),
+      }),
+    }),
+  },
 }))
 
 // Mock localStorage
@@ -81,7 +111,6 @@ describe('SmartCapture', () => {
     const button = screen.getByRole('button', { name: /capture/i })
     fireEvent.click(button)
 
-    // Input should be disabled during processing
     expect(input).toBeDisabled()
   })
 
@@ -95,11 +124,9 @@ describe('SmartCapture', () => {
     const button = screen.getByRole('button', { name: /capture/i })
     await userEvent.click(button)
 
-    // Advance past the 1200ms simulated processing delay
     vi.advanceTimersByTime(1300)
 
     await waitFor(() => {
-      // After processing, classification result should appear with type badge
       expect(screen.getByText('study')).toBeInTheDocument()
     })
 
@@ -115,7 +142,6 @@ describe('SmartCapture', () => {
     const button = screen.getByRole('button', { name: /capture/i })
     fireEvent.click(button)
 
-    // Wait for the processing delay (1200ms) + clearing timeout (2500ms)
     await waitFor(() => {
       expect(input).toHaveValue('')
     }, { timeout: 5000 })
