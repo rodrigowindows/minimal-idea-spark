@@ -98,8 +98,6 @@ export function AppLayout() {
             </Button>
             <div className="flex items-center gap-1">
               <SyncStatusIndicator className="shrink-0" />
-              <NotificationCenter />
-              <PresenceIndicator presences={presences} currentUserId={currentUserId} maxDisplay={3} />
             </div>
           </header>
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
