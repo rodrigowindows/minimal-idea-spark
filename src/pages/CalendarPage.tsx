@@ -61,16 +61,16 @@ export function CalendarPage() {
   const handleSave = (data: Omit<CalendarEvent, 'id' | 'user_id' | 'created_at'>) => {
     if (editEvent) {
       updateEvent(editEvent.id, data)
-      toast.success('Evento atualizado')
+      toast.success(t('calendarPage.eventUpdated'))
     } else {
       addEvent(data)
-      toast.success('Evento criado')
+      toast.success(t('calendarPage.eventCreated'))
     }
   }
 
   const handleDelete = (id: string) => {
     deleteEvent(id)
-    toast.success('Evento excluido')
+    toast.success(t('calendarPage.eventDeleted'))
   }
 
   const handleAutoSchedule = () => {
