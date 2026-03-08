@@ -47,7 +47,7 @@ const moreNavItems = [
 ];
 
 // Swipeable pages (includes primary nav + journal in the sequence)
-const SWIPE_PAGES = ['/', '/nw/submit', '/nw/prompts', '/nw/logs', '/journal', '/analytics'];
+const SWIPE_PAGES = ['/', '/opportunities', '/journal', '/goals', '/analytics'];
 
 export function MobileNav() {
   const { t } = useTranslation();
