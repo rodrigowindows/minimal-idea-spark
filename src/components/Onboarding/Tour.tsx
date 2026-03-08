@@ -115,6 +115,9 @@ export function Tour({ forceOpen, onClose }: TourProps) {
     }
     const completed = localStorage.getItem(TOUR_STORAGE_KEY)
     if (completed === 'true') return
+    // Don't auto-open if welcome modal hasn't been dismissed yet
+    const welcomeDismissed = localStorage.getItem('lifeos_welcome_dismissed')
+    if (!welcomeDismissed) return
     const timer = setTimeout(() => setOpen(true), 800)
     return () => clearTimeout(timer)
   }, [forceOpen])
