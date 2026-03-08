@@ -58,10 +58,11 @@ export function CommandPalette() {
     debounceMs: 200,
     minQueryLength: 1,
   })
-  const { recentPages } = useRecentPages(
-    NAV_ITEMS.map(({ to, labelKey }) => ({ to, labelKey })),
-    t
+  const navItemsForRecent = useMemo(
+    () => NAV_ITEMS.map(({ to, labelKey }) => ({ to, labelKey })),
+    []
   )
+  const { recentPages } = useRecentPages(navItemsForRecent, t)
 
   const quickActions = [
     { id: 'new-opportunity', label: t('commandPalette.newOpportunity'), icon: Target, path: '/opportunities', trigger: 'new' },
