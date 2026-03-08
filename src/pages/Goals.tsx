@@ -80,6 +80,7 @@ export function Goals() {
       key_results: [],
       cycle: newCycle,
       status: 'active',
+      priority_level: newPriority,
     })
 
     setNewTitle('')
