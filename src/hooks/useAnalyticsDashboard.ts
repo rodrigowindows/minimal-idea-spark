@@ -181,11 +181,15 @@ export function useAnalyticsDashboard() {
 
   const predictionPoints: DataPoint[] = useMemo(
     () =>
-      [0, 1, 2, 3, 4, 5, 6].map((index) => ({
-        date: format(subDays(new Date(), 6 - index), 'yyyy-MM-dd'),
-        value: opportunitiesCompleted + Math.floor(Math.random() * 3) - 1,
-      })),
-    [opportunitiesCompleted],
+      [0, 1, 2, 3, 4, 5, 6].map((index) => {
+        const date = format(subDays(new Date(), 6 - index), 'yyyy-MM-dd')
+        const dayTasks = opportunities.filter(o => {
+          if (o.status !== 'done') return false
+          try { return format(parseISO(o.created_at), 'yyyy-MM-dd') === date } catch { return false }
+        }).length
+        return { date, value: dayTasks }
+      }),
+    [opportunities],
   )
   const prediction = useMemo(() => predictTrend(predictionPoints, 'tasks'), [predictionPoints])
 
