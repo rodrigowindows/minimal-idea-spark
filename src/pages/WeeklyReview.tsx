@@ -402,7 +402,7 @@ export function WeeklyReview() {
           {/* Domain breakdown */}
           <Card className="rounded-xl">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Domain Focus</CardTitle>
+              <CardTitle className="text-lg">{t('weeklyReview.domainFocus')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               {Object.entries(weekStats.domainCounts).map(([name, count]) => {
