@@ -1,10 +1,8 @@
 import { ChevronDown } from 'lucide-react'
-import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import { cn } from '@/lib/utils'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import type { PromptItem } from '@/types/night-worker'
 
 import { SidebarNavItem } from './SidebarNavItem'
 import { SidebarRecentPages } from './SidebarRecentPages'
@@ -22,9 +20,6 @@ interface SidebarNavigationProps {
   sections: Record<NavSection, NavItem[]>
   favoriteNavItems: SidebarItem[]
   recentNavItems: SidebarItem[]
-  promptData?: PromptItem[]
-  promptsSubmenuOpen: boolean
-  onSetPromptsSubmenuOpen: (open: boolean) => void
   isSectionOpen: (key: string) => boolean
   onToggleSection: (key: string) => void
   onToggleFavorite: (path: string) => void
@@ -37,9 +32,6 @@ export function SidebarNavigation({
   sections,
   favoriteNavItems,
   recentNavItems,
-  promptData,
-  promptsSubmenuOpen,
-  onSetPromptsSubmenuOpen,
   isSectionOpen,
   onToggleSection,
   onToggleFavorite,
@@ -108,6 +100,7 @@ export function SidebarNavigation({
           }
 
           const items = sections[sectionKey as NavSection]
+          if (!items || items.length === 0) return null
           const sectionLabelKey = SECTION_LABELS[sectionKey]
           const open = isSectionOpen(sectionLabelKey)
           const showItems = collapsed || open
@@ -131,109 +124,22 @@ export function SidebarNavigation({
               )}
               {showItems && (
                 <ul id={`nav-section-${sectionKey}`} role="list" className="space-y-0.5">
-                  {items.map((item) => {
-                    if (item.to === '/nw/prompts' && !collapsed) {
-                      return (
-                        <li key={item.to} className="space-y-0.5">
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => onSetPromptsSubmenuOpen(true)}
-                              className="flex-1 text-left"
-                            >
-                              <SidebarNavItem
-                                item={{
-                                  to: item.to,
-                                  icon: item.icon,
-                                  label: t(item.labelKey),
-                                  shortcut: item.shortcut,
-                                  badge: item.badge,
-                                }}
-                                collapsed={false}
-                                isFavorite={favorites.includes(item.to)}
-                                onToggleFavorite={() => onToggleFavorite(item.to)}
-                              />
-                            </button>
-                            <button
-                              onClick={() => onSetPromptsSubmenuOpen(!promptsSubmenuOpen)}
-                              className="rounded-md p-2 transition-colors hover:bg-sidebar-accent"
-                              aria-expanded={promptsSubmenuOpen}
-                            >
-                              <ChevronDown
-                                className={cn(
-                                  'h-3.5 w-3.5 text-muted-foreground transition-transform',
-                                  !promptsSubmenuOpen && '-rotate-90',
-                                )}
-                              />
-                            </button>
-                          </div>
-
-                          {promptsSubmenuOpen && promptData && promptData.length > 0 && (
-                            <ul className="ml-6 mt-1 space-y-0.5 border-l-2 border-border/50 pl-2">
-                              {promptData.slice(0, 10).map((prompt) => (
-                                <li key={prompt.id}>
-                                  <NavLink
-                                    to={`/nw/prompts/${prompt.id}`}
-                                    className={({ isActive }) =>
-                                      cn(
-                                        'flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition-colors',
-                                        'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                                        isActive
-                                          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                                          : 'text-muted-foreground',
-                                      )
-                                    }
-                                  >
-                                    <span
-                                      className={cn(
-                                        'h-1.5 w-1.5 shrink-0 rounded-full',
-                                        prompt.status === 'pending'
-                                          ? 'bg-amber-400'
-                                          : prompt.status === 'done'
-                                            ? 'bg-green-400'
-                                            : prompt.status === 'failed'
-                                              ? 'bg-red-400'
-                                              : 'bg-blue-400',
-                                      )}
-                                    />
-                                    <span className="truncate">
-                                      {prompt.name || `Prompt #${prompt.id.slice(0, 8)}`}
-                                    </span>
-                                  </NavLink>
-                                </li>
-                              ))}
-                              {promptData.length > 10 && (
-                                <li>
-                                  <NavLink
-                                    to="/nw/prompts"
-                                    className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs italic text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                                  >
-                                    +{promptData.length - 10} more...
-                                  </NavLink>
-                                </li>
-                              )}
-                            </ul>
-                          )}
-                        </li>
-                      )
-                    }
-
-                    return (
-                      <li key={item.to}>
-                        <SidebarNavItem
-                          item={{
-                            to: item.to,
-                            icon: item.icon,
-                            label: t(item.labelKey),
-                            shortcut: item.shortcut,
-                            badge: item.badge,
-                          }}
-                          collapsed={collapsed}
-                          isFavorite={favorites.includes(item.to)}
-                          onToggleFavorite={() => onToggleFavorite(item.to)}
-                        />
-                      </li>
-                    )
-                  })}
+                  {items.map((item) => (
+                    <li key={item.to}>
+                      <SidebarNavItem
+                        item={{
+                          to: item.to,
+                          icon: item.icon,
+                          label: t(item.labelKey),
+                          shortcut: item.shortcut,
+                          badge: item.badge,
+                        }}
+                        collapsed={collapsed}
+                        isFavorite={favorites.includes(item.to)}
+                        onToggleFavorite={() => onToggleFavorite(item.to)}
+                      />
+                    </li>
+                  ))}
                 </ul>
               )}
             </div>
@@ -243,4 +149,3 @@ export function SidebarNavigation({
     </TooltipProvider>
   )
 }
-
