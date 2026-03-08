@@ -79,7 +79,6 @@ export function CalendarPage() {
       toast.info(t('calendarPage.noDoingOpps'))
       return
     }
-    }
 
     const date = selectedDate || new Date()
     const suggestions = autoScheduleDay(doingOpps, date, events, blocks)
@@ -87,7 +86,6 @@ export function CalendarPage() {
     if (suggestions.length === 0) {
       toast.info(t('calendarPage.noSlots'))
       return
-    }
     }
 
     for (const s of suggestions) {
