@@ -123,10 +123,11 @@ export function Tour({ forceOpen, onClose }: TourProps) {
   }, [forceOpen])
 
   const handleClose = useCallback(() => {
-    if (dontShowAgain) localStorage.setItem(TOUR_STORAGE_KEY, 'true')
+    // Always save tour as completed when user explicitly closes/skips
+    localStorage.setItem(TOUR_STORAGE_KEY, 'true')
     setOpen(false)
     onClose?.()
-  }, [dontShowAgain, onClose])
+  }, [onClose])
 
   const handleFinish = useCallback(() => {
     localStorage.setItem(TOUR_STORAGE_KEY, 'true')
