@@ -148,7 +148,7 @@ export function DemoSettings() {
         </CardContent>
       </Card>
 
-      <TranscriptionHistory />
+      
 
       <Card className="rounded-xl lg:col-span-2">
         <CardHeader className="pb-3">

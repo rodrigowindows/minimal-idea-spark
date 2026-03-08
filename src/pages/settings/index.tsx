@@ -22,8 +22,6 @@ export function Settings() {
       <div className="grid gap-6 lg:grid-cols-2">
         <GeneralSettings />
         <SecuritySettings />
-        <IntegrationSettings />
-        <BackupSettings />
         <DomainSettings />
         <TagSettings />
         <DemoSettings />
