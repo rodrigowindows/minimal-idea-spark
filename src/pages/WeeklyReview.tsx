@@ -39,7 +39,7 @@ export function WeeklyReview() {
   const [reflections, setReflections] = useState('')
   const [nextWeekPlan, setNextWeekPlan] = useState('')
   const [saved, setSaved] = useState(false)
-  const loadedRef = useRef(false)
+  const loadedRef = useRef<string | null>(null)
 
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
   const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 })
