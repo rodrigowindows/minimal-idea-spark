@@ -6,9 +6,6 @@ import { usePWA } from '@/hooks/usePWA';
 import { useAppContext } from '@/contexts/AppContext';
 import {
   LayoutDashboard,
-  Send,
-  ListChecks,
-  Terminal,
   MoreHorizontal,
   WifiOff,
   RefreshCw,
@@ -23,10 +20,8 @@ import {
   BarChart3,
   Star,
   TrendingUp,
-  GitBranch,
   Bell,
   HelpCircle,
-  Moon,
   Settings2,
 } from 'lucide-react';
 
