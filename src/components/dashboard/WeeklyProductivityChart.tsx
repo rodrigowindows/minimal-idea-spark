@@ -11,26 +11,49 @@ import {
   Tooltip,
   CartesianGrid,
 } from 'recharts'
-
-function generateWeekData() {
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-  const today = new Date().getDay() // 0=Sun, 1=Mon...
-  const adjustedToday = today === 0 ? 6 : today - 1 // 0=Mon
-
-  return days.map((day, i) => {
-    const isPast = i <= adjustedToday
-    const tasks = isPast ? Math.floor(Math.random() * 6) + 1 : 0
-    const focus = isPast ? Math.round(Math.random() * 3 * 10) / 10 : 0
-    const xp = isPast ? tasks * 15 + Math.floor(Math.random() * 30) : 0
-    return { day, tasks, focus, xp }
-  })
-}
+import { useLocalData } from '@/hooks/useLocalData'
+import { format, subDays, startOfWeek, addDays, parseISO } from 'date-fns'
 
 export function WeeklyProductivityChart() {
-  const data = useMemo(() => generateWeekData(), [])
+  const { opportunities } = useLocalData()
+
+  const data = useMemo(() => {
+    const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    const today = new Date()
+
+    return days.map((day, i) => {
+      const date = addDays(weekStart, i)
+      const dateStr = format(date, 'yyyy-MM-dd')
+      const isPast = date <= today
+
+      if (!isPast) return { day, tasks: 0, xp: 0 }
+
+      // Count tasks completed on this date (done status, created on this day)
+      const dayTasks = opportunities.filter(o => {
+        if (o.status !== 'done') return false
+        try {
+          return format(parseISO(o.created_at), 'yyyy-MM-dd') === dateStr
+        } catch { return false }
+      }).length
+
+      // Estimate XP from tasks (strategic_value based)
+      const dayXP = opportunities.filter(o => {
+        if (o.status !== 'done') return false
+        try {
+          return format(parseISO(o.created_at), 'yyyy-MM-dd') === dateStr
+        } catch { return false }
+      }).reduce((sum, o) => {
+        const sv = o.strategic_value ?? 5
+        return sum + (sv * 30) // approximate XP
+      }, 0)
+
+      return { day, tasks: dayTasks, xp: dayXP }
+    })
+  }, [opportunities])
 
   const totalTasks = data.reduce((s, d) => s + d.tasks, 0)
-  const totalFocus = data.reduce((s, d) => s + d.focus, 0)
+  const totalXP = data.reduce((s, d) => s + d.xp, 0)
 
   return (
     <motion.div
@@ -50,7 +73,7 @@ export function WeeklyProductivityChart() {
                 <span className="font-semibold text-foreground">{totalTasks}</span> tasks
               </span>
               <span>
-                <span className="font-semibold text-foreground">{totalFocus.toFixed(1)}</span>h focus
+                <span className="font-semibold text-foreground">{totalXP}</span> XP
               </span>
             </div>
           </div>
@@ -111,8 +134,6 @@ export function WeeklyProductivityChart() {
               </AreaChart>
             </ResponsiveContainer>
           </div>
-
-          {/* Legend */}
           <div className="mt-1 flex items-center justify-center gap-5 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-primary" />

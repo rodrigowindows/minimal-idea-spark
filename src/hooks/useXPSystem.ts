@@ -1,4 +1,6 @@
-import { useState, useCallback, useMemo, useRef } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
+import { supabase } from '@/integrations/supabase/client'
 import { GAMIFICATION_CONFIG } from '@/lib/constants'
 import type { Achievement } from '@/types'
 
@@ -26,24 +28,6 @@ function emitXPEvent(event: Parameters<XPEventListener>[0]) {
   xpListeners.forEach(fn => fn(event))
 }
 
-const STORAGE_KEY = 'minimal_idea_spark_xp_state'
-
-function getInitialState(): XPState {
-  if (typeof window === 'undefined') {
-    return createDefaultState()
-  }
-
-  const stored = localStorage.getItem(STORAGE_KEY)
-  if (stored) {
-    try {
-      return JSON.parse(stored)
-    } catch {
-      return createDefaultState()
-    }
-  }
-  return createDefaultState()
-}
-
 function createDefaultState(): XPState {
   return {
     level: 1,
@@ -60,7 +44,97 @@ function createDefaultState(): XPState {
 }
 
 export function useXPSystem() {
-  const [state, setState] = useState<XPState>(getInitialState)
+  const { user } = useAuth()
+  const userId = user?.id
+  const loadedForUser = useRef<string | null>(null)
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const [state, setState] = useState<XPState>(createDefaultState)
+
+  // Load from Supabase on login
+  useEffect(() => {
+    if (!userId) {
+      setState(createDefaultState())
+      loadedForUser.current = null
+      return
+    }
+    if (loadedForUser.current === userId) return
+    loadedForUser.current = userId
+
+    async function load() {
+      try {
+        const { data, error } = await supabase
+          .from('xp_summaries')
+          .select('*')
+          .eq('user_id', userId!)
+          .maybeSingle()
+
+        if (!error && data) {
+          setState({
+            level: data.level,
+            xpTotal: data.xp_total,
+            xpCurrentLevel: data.xp_current_level,
+            streakDays: data.streak_days,
+            achievements: (data.achievements as unknown as Achievement[]) ?? [],
+            weekScore: data.week_score,
+            deepWorkMinutes: data.deep_work_minutes,
+            opportunitiesCompleted: data.opportunities_completed,
+            insightsLogged: data.insights_logged,
+            lastActivityDate: data.last_activity_date,
+          })
+        } else if (!error && !data) {
+          // Create initial row
+          await supabase.from('xp_summaries').insert({ user_id: userId! })
+          // Also migrate from localStorage if exists
+          const stored = localStorage.getItem('minimal_idea_spark_xp_state')
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored) as XPState
+              if (parsed.xpTotal > 0) {
+                setState(parsed)
+                await supabase.from('xp_summaries').update({
+                  level: parsed.level,
+                  xp_total: parsed.xpTotal,
+                  xp_current_level: parsed.xpCurrentLevel,
+                  streak_days: parsed.streakDays,
+                  achievements: JSON.parse(JSON.stringify(parsed.achievements)),
+                  week_score: parsed.weekScore,
+                  deep_work_minutes: parsed.deepWorkMinutes,
+                  opportunities_completed: parsed.opportunitiesCompleted,
+                  insights_logged: parsed.insightsLogged,
+                  last_activity_date: parsed.lastActivityDate,
+                }).eq('user_id', userId!)
+                localStorage.removeItem('minimal_idea_spark_xp_state')
+              }
+            } catch { /* ignore */ }
+          }
+        }
+      } catch { /* ignore */ }
+    }
+    load()
+  }, [userId])
+
+  // Debounced save to Supabase
+  const persistState = useCallback((newState: XPState) => {
+    if (!userId) return
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => {
+      supabase.from('xp_summaries').update({
+        level: newState.level,
+        xp_total: newState.xpTotal,
+        xp_current_level: newState.xpCurrentLevel,
+        streak_days: newState.streakDays,
+        achievements: JSON.parse(JSON.stringify(newState.achievements)),
+        week_score: newState.weekScore,
+        deep_work_minutes: newState.deepWorkMinutes,
+        opportunities_completed: newState.opportunitiesCompleted,
+        insights_logged: newState.insightsLogged,
+        last_activity_date: newState.lastActivityDate,
+      }).eq('user_id', userId).then(({ error }) => {
+        if (error) console.error('[persistXP]', error)
+      })
+    }, 500)
+  }, [userId])
 
   const xpToNextLevel = useMemo(
     () => GAMIFICATION_CONFIG.XP_PER_LEVEL(state.level),
@@ -78,37 +152,19 @@ export function useXPSystem() {
     return titles[index]
   }, [state.level])
 
-  const persistState = useCallback((newState: XPState) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newState))
-  }, [])
-
   const checkAndUnlockAchievements = useCallback((currentState: XPState): Achievement[] => {
     const newAchievements: Achievement[] = []
     const unlockedNames = new Set(currentState.achievements.map(a => a.name))
 
     for (const def of GAMIFICATION_CONFIG.ACHIEVEMENTS) {
       if (unlockedNames.has(def.name)) continue
-
       let shouldUnlock = false
-
-      if ('unlock_at_xp' in def && currentState.xpTotal >= def.unlock_at_xp) {
-        shouldUnlock = true
-      }
-      if ('unlock_at_streak' in def && currentState.streakDays >= def.unlock_at_streak) {
-        shouldUnlock = true
-      }
-      if ('unlock_at_deep_work' in def && currentState.deepWorkMinutes >= def.unlock_at_deep_work) {
-        shouldUnlock = true
-      }
-      if ('unlock_at_completed' in def && currentState.opportunitiesCompleted >= def.unlock_at_completed) {
-        shouldUnlock = true
-      }
-      if ('unlock_at_insights' in def && currentState.insightsLogged >= def.unlock_at_insights) {
-        shouldUnlock = true
-      }
-      if ('unlock_at_week_score' in def && currentState.weekScore && currentState.weekScore >= def.unlock_at_week_score) {
-        shouldUnlock = true
-      }
+      if ('unlock_at_xp' in def && currentState.xpTotal >= def.unlock_at_xp) shouldUnlock = true
+      if ('unlock_at_streak' in def && currentState.streakDays >= def.unlock_at_streak) shouldUnlock = true
+      if ('unlock_at_deep_work' in def && currentState.deepWorkMinutes >= def.unlock_at_deep_work) shouldUnlock = true
+      if ('unlock_at_completed' in def && currentState.opportunitiesCompleted >= def.unlock_at_completed) shouldUnlock = true
+      if ('unlock_at_insights' in def && currentState.insightsLogged >= def.unlock_at_insights) shouldUnlock = true
+      if ('unlock_at_week_score' in def && currentState.weekScore && currentState.weekScore >= def.unlock_at_week_score) shouldUnlock = true
 
       if (shouldUnlock) {
         newAchievements.push({
@@ -120,25 +176,22 @@ export function useXPSystem() {
         })
       }
     }
-
     return newAchievements
   }, [])
 
-  const addXP = useCallback((amount: number, reason?: string) => {
+  const addXP = useCallback((amount: number, _reason?: string) => {
     setState(prev => {
       let newXpTotal = prev.xpTotal + amount
       let newXpCurrentLevel = prev.xpCurrentLevel + amount
       let newLevel = prev.level
       let leveledUp = false
 
-      // Check for level up
       while (newXpCurrentLevel >= GAMIFICATION_CONFIG.XP_PER_LEVEL(newLevel)) {
         newXpCurrentLevel -= GAMIFICATION_CONFIG.XP_PER_LEVEL(newLevel)
         newLevel++
         leveledUp = true
       }
 
-      // Update streak
       const today = new Date().toISOString().split('T')[0]
       const lastDate = prev.lastActivityDate
       let newStreakDays = prev.streakDays
@@ -147,10 +200,8 @@ export function useXPSystem() {
         const yesterday = new Date()
         yesterday.setDate(yesterday.getDate() - 1)
         const yesterdayStr = yesterday.toISOString().split('T')[0]
-
         if (lastDate === yesterdayStr) {
           newStreakDays = prev.streakDays + 1
-          // Award streak bonus
           newXpTotal += GAMIFICATION_CONFIG.XP_RULES.daily_streak
           newXpCurrentLevel += GAMIFICATION_CONFIG.XP_RULES.daily_streak
         } else if (lastDate !== today) {
@@ -167,11 +218,9 @@ export function useXPSystem() {
         lastActivityDate: today,
       }
 
-      // Check for new achievements
       const newAchievements = checkAndUnlockAchievements(newState)
       if (newAchievements.length > 0) {
         newState.achievements = [...prev.achievements, ...newAchievements]
-        // Add achievement XP
         const achievementXP = newAchievements.reduce((sum, a) => sum + a.xp_reward, 0)
         newState.xpTotal += achievementXP
         newState.xpCurrentLevel += achievementXP
@@ -179,24 +228,17 @@ export function useXPSystem() {
 
       persistState(newState)
 
-      // Emit global XP events (deferred to avoid setState-in-render)
       setTimeout(() => {
         emitXPEvent({ type: 'xp_gained', amount })
-        if (leveledUp) {
-          emitXPEvent({ type: 'level_up', level: newLevel })
-        }
-        newAchievements.forEach(a => {
-          emitXPEvent({ type: 'achievement', achievement: a })
-        })
+        if (leveledUp) emitXPEvent({ type: 'level_up', level: newLevel })
+        newAchievements.forEach(a => emitXPEvent({ type: 'achievement', achievement: a }))
       }, 0)
 
       return newState
     })
   }, [persistState, checkAndUnlockAchievements])
 
-  const awardCapture = useCallback(() => {
-    addXP(GAMIFICATION_CONFIG.XP_RULES.capture, 'capture')
-  }, [addXP])
+  const awardCapture = useCallback(() => addXP(GAMIFICATION_CONFIG.XP_RULES.capture, 'capture'), [addXP])
 
   const awardTaskComplete = useCallback(() => {
     setState(prev => {
@@ -214,9 +256,7 @@ export function useXPSystem() {
       return newState
     })
     const sessions = Math.floor(minutes / 25)
-    if (sessions > 0) {
-      addXP(sessions * GAMIFICATION_CONFIG.XP_RULES.deep_work_25min, 'deep_work')
-    }
+    if (sessions > 0) addXP(sessions * GAMIFICATION_CONFIG.XP_RULES.deep_work_25min, 'deep_work')
   }, [addXP, persistState])
 
   const awardInsight = useCallback(() => {
@@ -228,20 +268,15 @@ export function useXPSystem() {
     addXP(GAMIFICATION_CONFIG.XP_RULES.insight_added, 'insight')
   }, [addXP, persistState])
 
-  const awardNetworking = useCallback(() => {
-    addXP(GAMIFICATION_CONFIG.XP_RULES.networking, 'networking')
-  }, [addXP])
+  const awardNetworking = useCallback(() => addXP(GAMIFICATION_CONFIG.XP_RULES.networking, 'networking'), [addXP])
 
   const setWeekScore = useCallback((score: number) => {
     setState(prev => {
       const newState = { ...prev, weekScore: score }
-
-      // Check for week champion achievement
       const newAchievements = checkAndUnlockAchievements(newState)
       if (newAchievements.length > 0) {
         newState.achievements = [...prev.achievements, ...newAchievements]
       }
-
       persistState(newState)
       return newState
     })
@@ -254,7 +289,6 @@ export function useXPSystem() {
   }, [persistState])
 
   return {
-    // State
     level: state.level,
     xpTotal: state.xpTotal,
     xpCurrentLevel: state.xpCurrentLevel,
@@ -266,8 +300,6 @@ export function useXPSystem() {
     weekScore: state.weekScore,
     deepWorkMinutes: state.deepWorkMinutes,
     opportunitiesCompleted: state.opportunitiesCompleted,
-
-    // Actions
     addXP,
     awardCapture,
     awardTaskComplete,

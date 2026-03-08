@@ -4,39 +4,22 @@ import { supabase } from '@/integrations/supabase/client'
 import type { Habit } from './types'
 
 /**
- * Habits — synced with Supabase `habits` table.
- * Completions are stored client-side (localStorage) until a completions table is created.
+ * Habits — synced with Supabase `habits` + `habit_completions` tables.
  */
-const COMPLETIONS_KEY = 'lifeos_habit_completions'
-
-function loadCompletions(): Record<string, string[]> {
-  try {
-    const stored = localStorage.getItem(COMPLETIONS_KEY)
-    if (stored) return JSON.parse(stored)
-  } catch { /* ignore */ }
-  return {}
-}
-
-function saveCompletions(data: Record<string, string[]>) {
-  localStorage.setItem(COMPLETIONS_KEY, JSON.stringify(data))
-}
-
 export function useHabits() {
   const { user } = useAuth()
   const userId = user?.id
   const loadedForUser = useRef<string | null>(null)
 
   const [habits, setHabits] = useState<Habit[]>([])
-  const [completions, setCompletions] = useState<Record<string, string[]>>(loadCompletions)
+  const [completions, setCompletions] = useState<Record<string, string[]>>({})
   const [isLoading, setIsLoading] = useState(true)
 
-  // Persist completions to localStorage
-  useEffect(() => { saveCompletions(completions) }, [completions])
-
-  // Fetch from Supabase
+  // Fetch habits + completions from Supabase
   useEffect(() => {
     if (!userId) {
       setHabits([])
+      setCompletions({})
       setIsLoading(false)
       loadedForUser.current = null
       return
@@ -47,12 +30,22 @@ export function useHabits() {
     setIsLoading(true)
     async function load() {
       try {
-        const { data, error } = await supabase
-          .from('habits')
-          .select('*')
-          .order('created_at', { ascending: false })
-        if (!error && data) {
-          setHabits(data.map(h => ({
+        const [habitsRes, completionsRes] = await Promise.all([
+          supabase.from('habits').select('*').order('created_at', { ascending: false }),
+          supabase.from('habit_completions').select('*'),
+        ])
+
+        const completionMap: Record<string, string[]> = {}
+        if (!completionsRes.error && completionsRes.data) {
+          for (const c of completionsRes.data) {
+            if (!completionMap[c.habit_id]) completionMap[c.habit_id] = []
+            completionMap[c.habit_id].push(c.completed_date)
+          }
+        }
+        setCompletions(completionMap)
+
+        if (!habitsRes.error && habitsRes.data) {
+          setHabits(habitsRes.data.map(h => ({
             id: h.id,
             user_id: h.user_id,
             name: h.title,
@@ -61,7 +54,7 @@ export function useHabits() {
             target_count: h.target_count,
             color: '#8b5cf6',
             created_at: h.created_at,
-            completions: completions[h.id] ?? [],
+            completions: completionMap[h.id] ?? [],
           })))
         }
       } catch { /* ignore */ }
@@ -70,7 +63,7 @@ export function useHabits() {
     load()
   }, [userId])
 
-  // Merge completions into habits when completions change
+  // Merge completions into habits
   const habitsWithCompletions = habits.map(h => ({
     ...h,
     completions: completions[h.id] ?? [],
@@ -101,6 +94,8 @@ export function useHabits() {
   }, [userId])
 
   const toggleHabitCompletion = useCallback((habitId: string, date: string) => {
+    if (!userId) return
+
     setCompletions(prev => {
       const current = prev[habitId] ?? []
       const has = current.includes(date)
@@ -109,7 +104,23 @@ export function useHabits() {
         [habitId]: has ? current.filter(d => d !== date) : [...current, date],
       }
     })
-  }, [])
+
+    // Sync with Supabase
+    const current = completions[habitId] ?? []
+    const has = current.includes(date)
+
+    if (has) {
+      supabase.from('habit_completions')
+        .delete()
+        .eq('habit_id', habitId)
+        .eq('completed_date', date)
+        .then(({ error }) => { if (error) console.error('[toggleHabit:delete]', error) })
+    } else {
+      supabase.from('habit_completions')
+        .insert({ habit_id: habitId, user_id: userId, completed_date: date })
+        .then(({ error }) => { if (error) console.error('[toggleHabit:insert]', error) })
+    }
+  }, [userId, completions])
 
   const deleteHabit = useCallback((id: string) => {
     setHabits(prev => prev.filter(h => h.id !== id))
