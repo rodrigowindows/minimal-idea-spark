@@ -13,6 +13,7 @@ import { useXPSystem } from '@/hooks/useXPSystem'
 import { BookOpen, Plus, Calendar, Sparkles, Send, Trash2, Zap } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { VoiceInput } from '@/components/smart-capture/VoiceInput'
+import { JournalCoach } from '@/components/journal/JournalCoach'
 
 import { EmptyState } from '@/components/EmptyState'
 import { VirtualList } from '@/components/VirtualList'
@@ -247,6 +248,22 @@ export function Journal() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* AI Journal Coach - shows when creating new entry or always visible */}
+      {showNewEntry && (
+        <div className="mb-6">
+          <JournalCoach
+            currentMood={selectedMood ?? undefined}
+            currentEnergy={energyLevel}
+            recentEntries={sortedLogs.slice(0, 5).map(log => ({
+              date: log.log_date,
+              mood: log.mood ?? undefined,
+              energy: log.energy_level ?? undefined,
+              content: log.content,
+            }))}
+          />
+        </div>
       )}
 
       <ScrollArea className="h-[calc(100vh-200px)]">
