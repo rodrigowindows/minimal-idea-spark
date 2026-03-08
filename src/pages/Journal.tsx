@@ -34,6 +34,8 @@ export function Journal() {
   const [content, setContent] = useState('')
   const [selectedMood, setSelectedMood] = useState<string | null>(null)
   const [energyLevel, setEnergyLevel] = useState(5)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editContent, setEditContent] = useState('')
   const dateTargetRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
