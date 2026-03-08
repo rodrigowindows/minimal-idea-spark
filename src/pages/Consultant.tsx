@@ -19,7 +19,50 @@ import { useAuth } from '@/contexts/AuthContext'
 
 export function Consultant() {
   const { t } = useTranslation()
+  const { user } = useAuth()
   const rag = useRagChat()
+  const knownIdsRef = useRef(new Set<string>())
+
+  // Realtime: listen for new messages from other devices
+  useEffect(() => {
+    if (!user?.id || !rag.sessionId) return
+
+    const channel = supabase
+      .channel(`chat-${rag.sessionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_history',
+          filter: `session_id=eq.${rag.sessionId}`,
+        },
+        (payload) => {
+          const row = payload.new as any
+          // Skip if we already have this message locally (sent by this device)
+          if (knownIdsRef.current.has(row.id)) return
+          if (row.user_id !== user.id) return
+
+          const newMsg: ChatMessageType = {
+            id: row.id,
+            role: row.role as 'user' | 'assistant',
+            content: row.content,
+            timestamp: new Date(row.created_at),
+            sources: row.sources ? (row.sources as ContextSource[]) : undefined,
+          }
+          setMessages(prev => {
+            // Avoid duplicates
+            if (prev.some(m => m.id === row.id)) return prev
+            return [...prev, newMsg]
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [user?.id, rag.sessionId])
 
   const SUGGESTED_QUESTIONS = [
     t('consultant.suggestedQuestions.prioritize'),
