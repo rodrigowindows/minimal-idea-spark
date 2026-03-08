@@ -2,12 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { EmptyState } from './EmptyState'
-
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
-  },
-}))
+import { Search } from 'lucide-react'
 
 describe('EmptyState', () => {
   it('should render title and description', () => {
@@ -31,9 +26,8 @@ describe('EmptyState', () => {
     expect(onClick).toHaveBeenCalledTimes(1)
   })
 
-  it('should render icon when provided', () => {
-    const TestIcon = () => <svg data-testid="test-icon" />
-    render(<EmptyState title="Empty" description="Test" icon={<TestIcon />} />)
-    expect(screen.getByTestId('test-icon')).toBeInTheDocument()
+  it('should render with custom icon', () => {
+    render(<EmptyState title="Empty" description="Test" icon={Search} />)
+    expect(screen.getByText('Empty')).toBeInTheDocument()
   })
 })

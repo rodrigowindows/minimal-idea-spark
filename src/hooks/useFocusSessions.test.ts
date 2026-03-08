@@ -32,7 +32,8 @@ describe('useFocusSessions', () => {
         started_at: new Date().toISOString(),
         duration_minutes: 25,
         opportunity_id: 'opp-1',
-        type: 'pomodoro',
+        user_id: 'u1',
+        notes: null,
       })
     })
 
@@ -48,9 +49,9 @@ describe('useFocusSessions', () => {
     const yesterday = new Date(Date.now() - 86400000).toISOString()
 
     act(() => {
-      result.current.addSession({ started_at: today, duration_minutes: 25, type: 'pomodoro' })
-      result.current.addSession({ started_at: today, duration_minutes: 30, type: 'pomodoro' })
-      result.current.addSession({ started_at: yesterday, duration_minutes: 60, type: 'pomodoro' })
+      result.current.addSession({ started_at: today, duration_minutes: 25, user_id: 'u', opportunity_id: null, notes: null })
+      result.current.addSession({ started_at: today, duration_minutes: 30, user_id: 'u', opportunity_id: null, notes: null })
+      result.current.addSession({ started_at: yesterday, duration_minutes: 60, user_id: 'u', opportunity_id: null, notes: null })
     })
 
     expect(result.current.getTotalMinutesToday()).toBe(55)
@@ -63,7 +64,9 @@ describe('useFocusSessions', () => {
       result.current.addSession({
         started_at: new Date().toISOString(),
         duration_minutes: 45,
-        type: 'pomodoro',
+        user_id: 'u',
+        opportunity_id: null,
+        notes: null,
       })
     })
 
@@ -78,7 +81,9 @@ describe('useFocusSessions', () => {
         result.current.addSession({
           started_at: new Date().toISOString(),
           duration_minutes: 25,
-          type: 'pomodoro',
+          user_id: 'u',
+          opportunity_id: null,
+          notes: null,
         })
       }
     })
