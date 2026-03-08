@@ -5,16 +5,23 @@ import type { Opportunity, LifeDomain } from '@/types'
 
 export function useOpportunities(domains: LifeDomain[]) {
   const { user } = useAuth()
-  const userId = user?.id ?? 'local'
-  const initialLoadDone = useRef(false)
+  const userId = user?.id
+  const loadedForUser = useRef<string | null>(null)
 
   const [opportunities, setOpportunities] = useState<Opportunity[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    if (!user || initialLoadDone.current) return
-    initialLoadDone.current = true
+    if (!userId) {
+      setOpportunities([])
+      setIsLoading(false)
+      loadedForUser.current = null
+      return
+    }
+    if (loadedForUser.current === userId) return
+    loadedForUser.current = userId
 
+    setIsLoading(true)
     async function load() {
       try {
         const { data, error } = await supabase
@@ -26,7 +33,7 @@ export function useOpportunities(domains: LifeDomain[]) {
       setIsLoading(false)
     }
     load()
-  }, [user])
+  }, [userId])
 
   const enrichedOpportunities = opportunities.map(opp => ({
     ...opp,
@@ -34,6 +41,7 @@ export function useOpportunities(domains: LifeDomain[]) {
   }))
 
   const addOpportunity = useCallback((data: Omit<Opportunity, 'id' | 'user_id' | 'created_at' | 'domain'>) => {
+    if (!userId) return null as unknown as Opportunity
     const tempId = crypto.randomUUID()
     const newOpp: Opportunity = { ...data, id: tempId, user_id: userId, created_at: new Date().toISOString() }
     setOpportunities(prev => [newOpp, ...prev])
