@@ -28,7 +28,7 @@ import { supabase } from '@/integrations/supabase/client'
 export function Journal() {
   const { date: dateParam } = useParams<{ date?: string }>()
   const { t } = useTranslation()
-  const { dailyLogs, isLoading, addDailyLog, deleteDailyLog } = useLocalData()
+  const { dailyLogs, isLoading, addDailyLog, updateDailyLog, deleteDailyLog } = useLocalData()
   const { addXP } = useXPSystem()
   const [showNewEntry, setShowNewEntry] = useState(false)
   const [content, setContent] = useState('')
