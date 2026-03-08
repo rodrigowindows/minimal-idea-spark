@@ -141,18 +141,21 @@ export function WeeklyReview() {
     return Math.round(score)
   }, [xpTotal, opportunitiesCompleted, deepWorkMinutes, streakDays])
 
-  function handleSaveReview() {
-    // Save to localStorage
-    const reviews = JSON.parse(localStorage.getItem('lifeos_weekly_reviews') || '[]')
-    reviews.push({
-      id: `review-${Date.now()}`,
-      date: new Date().toISOString(),
+  async function handleSaveReview() {
+    if (!user?.id) return
+
+    // Save to Supabase
+    await (supabase as any).from('weekly_reviews').upsert({
+      user_id: user.id,
+      week_start: weekStartStr,
       score: overallScore,
       reflections,
-      nextWeekPlan,
+      next_week_plan: nextWeekPlan,
       stats: weekStats,
+    }, { onConflict: 'user_id,week_start' }).then(({ error }: any) => {
+      if (error) console.error('[saveWeeklyReview]', error)
     })
-    localStorage.setItem('lifeos_weekly_reviews', JSON.stringify(reviews))
+
     addXP(50)
     setSaved(true)
     toast.success(
