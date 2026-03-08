@@ -320,7 +320,7 @@ export function WeeklyReview() {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">
-                  Plan for next week
+                  {t('weeklyReview.nextWeekPlan')}
                 </label>
                 <div className="relative">
                   <Textarea
