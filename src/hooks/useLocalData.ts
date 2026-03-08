@@ -130,8 +130,17 @@ export function useLocalData() {
   )
 
   // Persist on change
+  useEffect(() => { saveToStorage(STORAGE_KEYS.domains, domains) }, [domains])
+  useEffect(() => { saveToStorage(STORAGE_KEYS.opportunities, opportunities) }, [opportunities])
+  useEffect(() => { saveToStorage(STORAGE_KEYS.dailyLogs, dailyLogs) }, [dailyLogs])
+  useEffect(() => { saveToStorage(STORAGE_KEYS.habits, habits) }, [habits])
+  useEffect(() => { saveToStorage(STORAGE_KEYS.goals, goals) }, [goals])
+  useEffect(() => { saveToStorage(STORAGE_KEYS.weeklyTargets, weeklyTargets) }, [weeklyTargets])
 
-  // Enrich opportunities with domain
+  // No-op auto snapshot (versioning removed)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const autoSnapshot = useCallback((_type: string, _id: string, _content: string, _comment: string) => {}, [])
+
   const enrichedOpportunities = opportunities.map(opp => ({
     ...opp,
     domain: domains.find(d => d.id === opp.domain_id),
