@@ -160,9 +160,3 @@ export async function streamChatCompletion(
 
   return response
 }
-
-// Keep backward compat for embedding (will be no-op for now)
-export async function createEmbedding(_text: string): Promise<number[]> {
-  console.warn('[createEmbedding] Not available via Lovable AI Gateway — returning empty')
-  return []
-}
