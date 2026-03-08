@@ -54,7 +54,7 @@ const NWTestDashboard = lazy(() => import("@/pages/NWTestDashboard"));
 const NWProjectDetail = lazy(() => import("@/pages/NWProjectDetail"));
 
 // Auth & shared pages
-const AcceptInvite = lazy(() => import("@/pages/AcceptInvite").then((m) => ({ default: m.AcceptInvite })));
+
 
 const Auth = lazy(() => import("@/pages/Auth").then((m) => ({ default: m.Auth })));
 
