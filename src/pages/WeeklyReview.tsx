@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -29,16 +29,42 @@ import { AIWeeklyInsights } from '@/components/analytics/AIWeeklyInsights'
 import { format, subDays, startOfWeek, endOfWeek } from 'date-fns'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { PageContent } from '@/components/layout/PageContent'
+import { supabase } from '@/integrations/supabase/client'
+import { useAuth } from '@/contexts/AuthContext'
 
 export function WeeklyReview() {
   const { opportunities, dailyLogs, habits, domains } = useLocalData()
+  const { user } = useAuth()
   const { xpTotal, streakDays, deepWorkMinutes, opportunitiesCompleted, level, addXP } = useXPSystem()
   const [reflections, setReflections] = useState('')
   const [nextWeekPlan, setNextWeekPlan] = useState('')
   const [saved, setSaved] = useState(false)
+  const loadedRef = useRef(false)
 
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
   const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 })
+  const weekStartStr = format(weekStart, 'yyyy-MM-dd')
+
+  // Load existing review from Supabase
+  useEffect(() => {
+    if (!user?.id || loadedRef.current) return
+    loadedRef.current = true
+
+    async function load() {
+      const { data } = await (supabase as any)
+        .from('weekly_reviews')
+        .select('*')
+        .eq('week_start', weekStartStr)
+        .maybeSingle()
+
+      if (data) {
+        setReflections(data.reflections || '')
+        setNextWeekPlan(data.next_week_plan || '')
+        if (data.reflections || data.next_week_plan) setSaved(true)
+      }
+    }
+    load()
+  }, [user?.id, weekStartStr])
 
   const weekStats = useMemo(() => {
     const doneThisWeek = opportunities.filter(o => o.status === 'done').length
@@ -115,18 +141,21 @@ export function WeeklyReview() {
     return Math.round(score)
   }, [xpTotal, opportunitiesCompleted, deepWorkMinutes, streakDays])
 
-  function handleSaveReview() {
-    // Save to localStorage
-    const reviews = JSON.parse(localStorage.getItem('lifeos_weekly_reviews') || '[]')
-    reviews.push({
-      id: `review-${Date.now()}`,
-      date: new Date().toISOString(),
+  async function handleSaveReview() {
+    if (!user?.id) return
+
+    // Save to Supabase
+    await (supabase as any).from('weekly_reviews').upsert({
+      user_id: user.id,
+      week_start: weekStartStr,
       score: overallScore,
       reflections,
-      nextWeekPlan,
+      next_week_plan: nextWeekPlan,
       stats: weekStats,
+    }, { onConflict: 'user_id,week_start' }).then(({ error }: any) => {
+      if (error) console.error('[saveWeeklyReview]', error)
     })
-    localStorage.setItem('lifeos_weekly_reviews', JSON.stringify(reviews))
+
     addXP(50)
     setSaved(true)
     toast.success(
