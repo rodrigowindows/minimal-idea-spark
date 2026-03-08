@@ -11,7 +11,7 @@ import { usePromptsQuery } from '@/hooks/useNightWorkerApi'
 import { useRecentPages } from '@/hooks/useRecentPages'
 import { NotificationCenter } from '@/components/NotificationCenter'
 import { SyncStatusIndicator } from '@/components/SyncStatusIndicator'
-import { WorkspaceSwitcher } from '@/components/WorkspaceSwitcher'
+
 
 import { SidebarFooter } from './SidebarFooter'
 import { SidebarNavigation } from './SidebarNavigation'
