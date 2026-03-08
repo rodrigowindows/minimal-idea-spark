@@ -426,7 +426,7 @@ export function useLocalData() {
       if (data.habits) setHabits(data.habits)
       if (data.goals) setGoals(data.goals)
       if (data.weeklyTargets) setWeeklyTargets(data.weeklyTargets)
-      if (data.automations) setAutomations(data.automations)
+      
       if (data.xpState) localStorage.setItem('minimal_idea_spark_xp_state', data.xpState)
       return true
     } catch {
