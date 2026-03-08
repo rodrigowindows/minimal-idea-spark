@@ -90,6 +90,7 @@ export function Goals() {
     setNewStartDate(new Date().toISOString().split('T')[0])
     setNewCycle(getCurrentCycle())
     setNewMilestones([''])
+    setNewPriority('medium')
     setShowNew(false)
     toast.success(t('goals.goalCreated'))
   }
