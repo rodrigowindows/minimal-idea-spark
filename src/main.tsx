@@ -16,6 +16,7 @@ if ("serviceWorker" in navigator) {
   });
 }
 
+console.log('[main] Mounting app...');
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <App />
