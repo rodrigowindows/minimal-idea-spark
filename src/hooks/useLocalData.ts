@@ -5,7 +5,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import type { DailyLog, LifeDomain, Opportunity } from '@/types'
 import { useAuth } from '@/contexts/AuthContext'
-import type { EntityType } from '@/lib/db/schema-versions'
+
 import { enqueue } from '@/lib/pwa/sync-queue'
 import { calculateGoalProgress } from '@/lib/goals/goal-service'
 
