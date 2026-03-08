@@ -63,11 +63,11 @@ export function useGoals(opportunities: Opportunity[]) {
 
   const addGoal = useCallback((data: Omit<Goal, 'id' | 'user_id' | 'created_at'>) => {
     const newGoal: Goal = {
-      key_results: [],
-      cycle: 'custom' as OKRCycle,
-      status: 'active',
-      start_date: new Date().toISOString().split('T')[0],
       ...data,
+      key_results: data.key_results ?? [],
+      cycle: data.cycle ?? ('custom' as OKRCycle),
+      status: data.status ?? 'active',
+      start_date: data.start_date ?? new Date().toISOString().split('T')[0],
       id: crypto.randomUUID(),
       user_id: userId,
       created_at: new Date().toISOString(),

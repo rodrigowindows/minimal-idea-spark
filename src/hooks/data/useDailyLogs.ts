@@ -15,15 +15,17 @@ export function useDailyLogs() {
     if (!user || initialLoadDone.current) return
     initialLoadDone.current = true
 
-    supabase
-      .from('daily_logs')
-      .select('*')
-      .order('log_date', { ascending: false })
-      .then(({ data, error }) => {
+    async function load() {
+      try {
+        const { data, error } = await supabase
+          .from('daily_logs')
+          .select('*')
+          .order('log_date', { ascending: false })
         if (!error && data) setDailyLogs(data as unknown as DailyLog[])
-        setIsLoading(false)
-      })
-      .catch(() => setIsLoading(false))
+      } catch { /* ignore */ }
+      setIsLoading(false)
+    }
+    load()
   }, [user])
 
   const addDailyLog = useCallback((data: Omit<DailyLog, 'id' | 'user_id' | 'created_at'>) => {

@@ -38,11 +38,12 @@ export function useHabits() {
     if (!user || initialLoadDone.current) return
     initialLoadDone.current = true
 
-    supabase
-      .from('habits')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .then(({ data, error }) => {
+    async function load() {
+      try {
+        const { data, error } = await supabase
+          .from('habits')
+          .select('*')
+          .order('created_at', { ascending: false })
         if (!error && data) {
           setHabits(data.map(h => ({
             id: h.id,
@@ -56,9 +57,10 @@ export function useHabits() {
             completions: completions[h.id] ?? [],
           })))
         }
-        setIsLoading(false)
-      })
-      .catch(() => setIsLoading(false))
+      } catch { /* ignore */ }
+      setIsLoading(false)
+    }
+    load()
   }, [user])
 
   // Merge completions into habits when completions change

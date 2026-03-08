@@ -15,15 +15,17 @@ export function useOpportunities(domains: LifeDomain[]) {
     if (!user || initialLoadDone.current) return
     initialLoadDone.current = true
 
-    supabase
-      .from('opportunities')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .then(({ data, error }) => {
+    async function load() {
+      try {
+        const { data, error } = await supabase
+          .from('opportunities')
+          .select('*')
+          .order('created_at', { ascending: false })
         if (!error && data) setOpportunities(data as unknown as Opportunity[])
-        setIsLoading(false)
-      })
-      .catch(() => setIsLoading(false))
+      } catch { /* ignore */ }
+      setIsLoading(false)
+    }
+    load()
   }, [user])
 
   const enrichedOpportunities = opportunities.map(opp => ({
