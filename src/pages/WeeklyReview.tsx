@@ -24,6 +24,7 @@ import {
   Send,
 } from 'lucide-react'
 import { VoiceInput } from '@/components/smart-capture/VoiceInput'
+import { AIWeeklyInsights } from '@/components/analytics/AIWeeklyInsights'
 
 import { format, subDays, startOfWeek, endOfWeek } from 'date-fns'
 import { PageHeader } from '@/components/layout/PageHeader'
@@ -308,12 +309,29 @@ export function WeeklyReview() {
 
         {/* Sidebar */}
         <div className="space-y-6 lg:col-span-4">
-          {/* AI Insights */}
+          {/* AI-Powered Insights */}
+          <AIWeeklyInsights
+            metrics={{
+              tasks_completed: weekStats.doneThisWeek,
+              tasks_doing: weekStats.doingCount,
+              deep_work_minutes: deepWorkMinutes,
+              streak_days: streakDays,
+              xp_gained: xpTotal,
+              avg_mood: weekStats.avgMood > 0 ? String(weekStats.avgMood.toFixed(1)) : undefined,
+              avg_energy: undefined,
+              habits_rate: weekStats.totalHabitSlots > 0 ? Math.round((weekStats.habitCompletions / weekStats.totalHabitSlots) * 100) : undefined,
+              goals_count: 0,
+              goals_progress: 0,
+              domains: Object.keys(weekStats.domainCounts),
+            }}
+          />
+
+          {/* Rule-based Insights */}
           <Card className="rounded-xl">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Lightbulb className="h-5 w-5 text-amber-400" />
-                Insights
+                Quick Insights
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">

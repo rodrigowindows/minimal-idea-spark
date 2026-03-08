@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { useXPSystem } from '@/hooks/useXPSystem'
 import { calculateXPReward } from '@/lib/constants'
 import { VoiceInput } from './VoiceInput'
+import { useAICategorize } from '@/hooks/useAIFeatures'
 
 const QUICK_ACTIONS = [
   { label: 'Quick Log', icon: Zap, type: 'log' as const },
@@ -103,6 +104,7 @@ export function SmartCapture({ onCapture }: SmartCaptureProps = {}) {
   const [showXP, setShowXP] = useState(false)
   const [lastXP, setLastXP] = useState(0)
   const { addXP, awardCapture, awardInsight } = useXPSystem()
+  const { categorize: aiCategorize } = useAICategorize()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -110,9 +112,27 @@ export function SmartCapture({ onCapture }: SmartCaptureProps = {}) {
     setIsProcessing(true)
     setClassifications([])
 
-    await new Promise((resolve) => setTimeout(resolve, 1200))
+    // Try AI categorization first, fall back to local
+    let results: ClassificationResult[]
+    const aiResult = await aiCategorize(input.trim())
+    if (aiResult) {
+      const typeMap: Record<string, ClassificationResult['type']> = {
+        action: 'action', idea: 'insight', resource: 'study', connection: 'networking', event: 'action',
+      }
+      const mappedType = typeMap[aiResult.type] ?? 'action'
+      results = [{
+        title: input.trim(),
+        type: mappedType,
+        domain: 'Career',
+        strategicValue: aiResult.priority,
+        xpReward: calculateXPReward(mappedType, aiResult.priority),
+      }]
+    } else {
+      // Fallback to local classification
+      await new Promise((resolve) => setTimeout(resolve, 600))
+      results = mockClassify(input)
+    }
 
-    const results = mockClassify(input)
     setClassifications(results)
 
     let totalXP = 0
@@ -122,7 +142,6 @@ export function SmartCapture({ onCapture }: SmartCaptureProps = {}) {
       if (result.type === 'insight') awardInsight()
       else awardCapture()
 
-      // Notify parent to save each opportunity
       onCapture?.({
         title: result.title,
         type: result.type,
