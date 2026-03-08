@@ -226,7 +226,7 @@ function AuthGate() {
       <Routes>
         <Route path="/auth" element={<Suspense fallback={<PageFallback />}><Auth /></Suspense>} />
         <Route path="/invite/:token" element={<Suspense fallback={<PageFallback />}><AcceptInvite /></Suspense>} />
-        <Route path="/shared/:token" element={<Suspense fallback={<PageFallback />}><SharedView /></Suspense>} />
+        
         <Route path="/connect" element={<Suspense fallback={<PageFallback />}><NWConnect /></Suspense>} />
         <Route path="*" element={<Navigate to="/auth" replace />} />
       </Routes>
