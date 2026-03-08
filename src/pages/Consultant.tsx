@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ChatMessage as ChatMessageType, ContextSource } from '@/types'
 import { ChatMessage } from '@/components/consultant/ChatMessage'
@@ -14,6 +14,8 @@ import { AIFeatureInfo } from '@/components/AIFeatureInfo'
 import { useRagChat } from '@/hooks/useRagChat'
 import { Badge } from '@/components/ui/badge'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { supabase } from '@/integrations/supabase/client'
+import { useAuth } from '@/contexts/AuthContext'
 
 export function Consultant() {
   const { t } = useTranslation()
