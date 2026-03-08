@@ -216,7 +216,7 @@ export function CalendarPage() {
       {/* Upcoming Events */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Proximos Eventos</CardTitle>
+          <CardTitle className="text-base">{t('calendarPage.upcomingEvents')}</CardTitle>
         </CardHeader>
         <CardContent>
           {(() => {
