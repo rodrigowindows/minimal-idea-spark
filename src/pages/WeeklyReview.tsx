@@ -312,16 +312,16 @@ export function WeeklyReview() {
           {/* AI-Powered Insights */}
           <AIWeeklyInsights
             metrics={{
-              tasks_completed: weekStats.done,
-              tasks_doing: weekStats.doing,
+              tasks_completed: weekStats.doneThisWeek,
+              tasks_doing: weekStats.doingCount,
               deep_work_minutes: deepWorkMinutes,
               streak_days: streakDays,
               xp_gained: xpTotal,
               avg_mood: undefined,
               avg_energy: undefined,
               habits_rate: undefined,
-              goals_count: weekStats.goalsActive,
-              goals_progress: weekStats.goalsProgress,
+              goals_count: weekStats.topGoals?.length ?? 0,
+              goals_progress: weekStats.avgProgress,
               domains: Object.keys(weekStats.domainCounts),
             }}
           />
