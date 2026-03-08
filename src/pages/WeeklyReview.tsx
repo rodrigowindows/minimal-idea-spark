@@ -269,11 +269,6 @@ export function WeeklyReview() {
                     <VoiceInput
                       onTranscript={(text) => setReflections((prev) => prev ? prev + ' ' + text : text)}
                     />
-                    <AudioToText
-                      onTranscription={(text) => setReflections((prev) => prev ? prev + ' ' + text : text)}
-                      sourcePage="weekly-review"
-                      compact
-                    />
                   </div>
                 </div>
               </div>
