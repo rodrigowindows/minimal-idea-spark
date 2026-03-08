@@ -55,7 +55,7 @@ const NWProjectDetail = lazy(() => import("@/pages/NWProjectDetail"));
 
 // Auth & shared pages
 const AcceptInvite = lazy(() => import("@/pages/AcceptInvite").then((m) => ({ default: m.AcceptInvite })));
-const SharedView = lazy(() => import("@/pages/SharedView").then((m) => ({ default: m.SharedView })));
+
 const Auth = lazy(() => import("@/pages/Auth").then((m) => ({ default: m.Auth })));
 
 const PageFallback = () => (
