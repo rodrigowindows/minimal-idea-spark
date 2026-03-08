@@ -29,6 +29,8 @@ import { AIWeeklyInsights } from '@/components/analytics/AIWeeklyInsights'
 import { format, subDays, startOfWeek, endOfWeek } from 'date-fns'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { PageContent } from '@/components/layout/PageContent'
+import { supabase } from '@/integrations/supabase/client'
+import { useAuth } from '@/contexts/AuthContext'
 
 export function WeeklyReview() {
   const { opportunities, dailyLogs, habits, domains } = useLocalData()
