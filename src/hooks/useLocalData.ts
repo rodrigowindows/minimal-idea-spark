@@ -470,12 +470,6 @@ export function useLocalData() {
     setWeeklyTarget,
     removeWeeklyTarget,
 
-    // Automation actions
-    automations,
-    addAutomation,
-    updateAutomation,
-    deleteAutomation,
-    toggleAutomation,
 
     // Export/Import
     exportData,
