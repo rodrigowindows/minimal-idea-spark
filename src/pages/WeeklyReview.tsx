@@ -428,7 +428,7 @@ export function WeeklyReview() {
                 )
               })}
               {Object.keys(weekStats.domainCounts).length === 0 && (
-                <p className="py-4 text-center text-sm text-muted-foreground">No domain data yet</p>
+                <p className="py-4 text-center text-sm text-muted-foreground">{t('weeklyReview.noDomainData')}</p>
               )}
             </CardContent>
           </Card>
