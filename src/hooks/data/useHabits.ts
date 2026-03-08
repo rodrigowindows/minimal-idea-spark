@@ -23,8 +23,8 @@ function saveCompletions(data: Record<string, string[]>) {
 
 export function useHabits() {
   const { user } = useAuth()
-  const userId = user?.id ?? 'local'
-  const initialLoadDone = useRef(false)
+  const userId = user?.id
+  const loadedForUser = useRef<string | null>(null)
 
   const [habits, setHabits] = useState<Habit[]>([])
   const [completions, setCompletions] = useState<Record<string, string[]>>(loadCompletions)
@@ -35,9 +35,16 @@ export function useHabits() {
 
   // Fetch from Supabase
   useEffect(() => {
-    if (!user || initialLoadDone.current) return
-    initialLoadDone.current = true
+    if (!userId) {
+      setHabits([])
+      setIsLoading(false)
+      loadedForUser.current = null
+      return
+    }
+    if (loadedForUser.current === userId) return
+    loadedForUser.current = userId
 
+    setIsLoading(true)
     async function load() {
       try {
         const { data, error } = await supabase
@@ -61,7 +68,7 @@ export function useHabits() {
       setIsLoading(false)
     }
     load()
-  }, [user])
+  }, [userId])
 
   // Merge completions into habits when completions change
   const habitsWithCompletions = habits.map(h => ({
@@ -70,6 +77,7 @@ export function useHabits() {
   }))
 
   const addHabit = useCallback((data: Omit<Habit, 'id' | 'user_id' | 'created_at' | 'completions'>) => {
+    if (!userId) return null as unknown as Habit
     const tempId = crypto.randomUUID()
     const newHabit: Habit = {
       ...data,

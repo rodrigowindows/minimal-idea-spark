@@ -10,16 +10,23 @@ import type { Opportunity } from '@/types'
  */
 export function useGoals(opportunities: Opportunity[]) {
   const { user } = useAuth()
-  const userId = user?.id ?? 'local'
-  const initialLoadDone = useRef(false)
+  const userId = user?.id
+  const loadedForUser = useRef<string | null>(null)
 
   const [goals, setGoals] = useState<Goal[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    if (!user || initialLoadDone.current) return
-    initialLoadDone.current = true
+    if (!userId) {
+      setGoals([])
+      setIsLoading(false)
+      loadedForUser.current = null
+      return
+    }
+    if (loadedForUser.current === userId) return
+    loadedForUser.current = userId
 
+    setIsLoading(true)
     async function load() {
       try {
         const { data, error } = await supabase
@@ -48,7 +55,7 @@ export function useGoals(opportunities: Opportunity[]) {
       setIsLoading(false)
     }
     load()
-  }, [user])
+  }, [userId])
 
   const persistGoal = useCallback((goal: Goal) => {
     const { created_at, ...rest } = goal
@@ -62,6 +69,7 @@ export function useGoals(opportunities: Opportunity[]) {
   }, [])
 
   const addGoal = useCallback((data: Omit<Goal, 'id' | 'user_id' | 'created_at'>) => {
+    if (!userId) return null as unknown as Goal
     const newGoal: Goal = {
       ...data,
       key_results: data.key_results ?? [],
