@@ -307,7 +307,7 @@ export function WeeklyReview() {
                   <Textarea
                     value={reflections}
                     onChange={(e) => setReflections(e.target.value)}
-                    placeholder="Celebrate your wins, big and small..."
+                    placeholder={t('weeklyReview.reflectionsPlaceholder')}
                     rows={3}
                     className="resize-none pr-20"
                   />
