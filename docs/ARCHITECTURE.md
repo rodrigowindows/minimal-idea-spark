@@ -19,14 +19,12 @@
 5. **Supabase (Lovable Cloud)**  
    Cliente em `src/integrations/supabase/client`. Migrations em `supabase/migrations/`. Edge Functions em `supabase/functions/`.
 
-## Edge Functions (5 ativas)
+## Edge Functions (3 ativas)
 
 | Function | Uso | Gateway |
 |---|---|---|
 | `assistant-chat` | Consultant AI, auto-categorize, journal coach, weekly insights | Lovable AI (gemini-3-flash-preview) |
 | `rag-chat` | RAG Consultant com contexto completo do usuário (streaming SSE) | Lovable AI |
-| `generate-embedding` | Geração de embeddings (placeholder — retorna vazio) | — |
-| `vector-search` | Busca semântica na knowledge_base | Supabase client |
 | `calendar-sync` | Sync com Google Calendar | Supabase client |
 
 Shared module: `_shared/ai-gateway.ts` (wrapper do Lovable AI Gateway), `_shared/cors.ts`, `_shared/supabase.ts`.
