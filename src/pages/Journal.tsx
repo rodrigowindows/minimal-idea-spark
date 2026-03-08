@@ -344,15 +344,18 @@ export function Journal() {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
+                          onClick={() => handleStartEdit(log)}
+                        >
+                          <Pencil className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
                           onClick={() => handleDelete(log.id)}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
-                      </div>
-                    </div>
-                    <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">
-                      {log.content}
-                    </p>
                   </CardContent>
                 </Card>
                 </div>
