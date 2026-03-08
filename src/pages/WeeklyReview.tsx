@@ -24,6 +24,7 @@ import {
   Send,
 } from 'lucide-react'
 import { VoiceInput } from '@/components/smart-capture/VoiceInput'
+import { AIWeeklyInsights } from '@/components/analytics/AIWeeklyInsights'
 
 import { format, subDays, startOfWeek, endOfWeek } from 'date-fns'
 import { PageHeader } from '@/components/layout/PageHeader'
