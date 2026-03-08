@@ -1,5 +1,5 @@
-import { supabase } from '@/integrations/supabase/client'
-import { recordAIUsage, setRateLimited, isRateLimited } from '@/lib/ai/usage-tracker'
+// DB-backed functions removed — priorities now live in the goals table.
+// Keeping pure utility functions for RAG context building.
 
 export type PriorityLevel = 'critical' | 'high' | 'medium' | 'low'
 export type PriorityStatus = 'active' | 'completed' | 'archived'
