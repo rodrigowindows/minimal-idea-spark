@@ -10,7 +10,7 @@ export const STORAGE_KEYS = {
   THEME: 'theme',
   LANGUAGE: 'language',
   SIDEBAR_COLLAPSED: 'sidebar-collapsed',
-  NIGHTWORKER_CONFIG: 'nightworker_config_v1',
+  
 } as const
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS] | string

@@ -18,7 +18,6 @@ export interface BackupSummary {
   goals: number
   domains: number
   calendarEvents: number
-  priorities: number
   weeklyTargets: number
   weeklyReviews: number
   totalKeys: number
@@ -36,7 +35,6 @@ export async function generateBackupFromSupabase(): Promise<BackupPayload> {
     'goals',
     'life_domains',
     'calendar_events',
-    'user_priorities',
     'weekly_targets',
     'weekly_reviews',
     'xp_summaries',
@@ -100,7 +98,6 @@ export function getBackupSummary(payload: BackupPayload): BackupSummary {
     goals: count('goals'),
     domains: count('life_domains'),
     calendarEvents: count('calendar_events'),
-    priorities: count('user_priorities'),
     weeklyTargets: count('weekly_targets'),
     weeklyReviews: count('weekly_reviews'),
     totalKeys: Object.keys(payload.data).length,
