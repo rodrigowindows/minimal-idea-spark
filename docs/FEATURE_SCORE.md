@@ -12,10 +12,10 @@
 | :--- | :--- | :--- | :--- | :--- |
 | **Dashboard** | ✅ Alta | xp_summaries, opportunities | — | Centro do app. Primeiro contato do usuário. Essencial. |
 | **Opportunities (Kanban)** | ✅ Alta | opportunities | — | Feature principal de produtividade. Kanban + Eisenhower são diferenciais. |
-| **Journal** | ✅ Alta | daily_logs | smart-capture, transcribe-audio | Captura rápida de ideias. Integra com AI para extrair oportunidades. Alto valor percebido. |
-| **Goals / OKRs** | ✅ Alta | goals | — | Dá propósito ao sistema. Sem goals, o app vira lista de tarefas genérica. |
-| **Consultant (AI Chat)** | ✅ Alta | chat_history, knowledge_base | rag-chat, assistant-chat | Diferencial competitivo #1. AI que conhece seu contexto pessoal. |
-| **Auth + RLS** | ✅ Alta | (auth schema) | — | Fundação de segurança. Sem isso nada funciona. |
+| **Journal** | ✅ Alta | daily_logs | — | Captura rápida de ideias. Integra com AI para extrair oportunidades. Alto valor percebido. |
+| **Goals / OKRs** | ✅ Alta | goals | — | Dá propósito ao sistema. Priority levels integrados (critical/high/medium/low). |
+| **Consultant (AI Chat)** | ✅ Alta | chat_history, knowledge_base | rag-chat, assistant-chat | Diferencial competitivo #1. AI via Lovable AI Gateway (sem API key do usuário). |
+| **Auth + RLS** | ✅ Alta | (auth schema) | — | Fundação de segurança. Todas as tabelas com RLS por user_id. |
 
 ---
 
@@ -23,100 +23,54 @@
 
 | Feature | Score | Tabelas DB | Edge Functions | Nota |
 | :--- | :--- | :--- | :--- | :--- |
-| **Habits** | 🟡 Média | habits, habit_completions | — | Bom complemento mas já existem apps excelentes (Streaks, Habitica). Pode ser simplificado. |
-| **Calendar** | 🟡 Média | calendar_events | calendar-sync | Overlap com Google Calendar. Valor real só com integração bidirecional. Sem ela, é redundante. |
-| **Analytics** | 🟡 Média | (lê de várias tabelas) | generate-insights | Bonito mas poucos usuários revisam analytics regularmente. Manter simples. |
-| **Weekly Review** | 🟡 Média | weekly_reviews | — | Boa prática mas baixa frequência (1x/semana). Pode ser um modal no Dashboard. |
-| **Notifications** | 🟡 Média | notifications | send-notification | Necessário mas não é feature — é infraestrutura. Manter in-app, não over-engineer. |
-| **Priorities (RAG)** | 🟡 Média | user_priorities | rag-priority | Conceito interessante mas overlap com Goals. Considerar merge com Goals. |
-| **XP / Gamification** | 🟡 Média | xp_summaries | — | Engajamento no curto prazo. Pode cansar no longo prazo. Manter sutil. |
+| **Habits** | 🟡 Média | habits, habit_completions | — | Bom complemento. Streaks e frequência configurável. |
+| **Calendar** | 🟡 Média | calendar_events | calendar-sync | Valor real com integração Google Calendar. |
+| **Analytics** | 🟡 Média | (lê de várias tabelas) | — | AI weekly insights via assistant-chat. Manter simples. |
+| **Weekly Review** | 🟡 Média | weekly_reviews | — | Boa prática, baixa frequência (1x/semana). |
+| **Notifications** | 🟡 Média | notifications | — | In-app only. Infraestrutura, não feature. |
+| **XP / Gamification** | 🟡 Média | xp_summaries | — | Engajamento no curto prazo. Manter sutil. |
 
 ---
 
 ## 🔵 Score Baixa — Considerar simplificar ou remover
 
-| Feature | Score | Tabelas DB | Edge Functions | Nota |
-| :--- | :--- | :--- | :--- | :--- |
-| **Smart Search (semantic)** | 🔵 Baixa | search_history | vector-search, generate-embedding | Over-engineering. Busca simples por texto resolve 95% dos casos. Embeddings são custo sem retorno claro. |
-| **Deep Work / Pomodoro** | 🔵 Baixa | — (local) | — | Já existem centenas de apps. Não é diferencial. Timer simples basta. |
-| **Time Blocking** | 🔵 Baixa | — | — | Overlap com Calendar. Complexo de manter. Poucos usariam. |
-| **Template Marketplace** | 🔵 Baixa | — | template-marketplace | Prematuro. Precisa de base de usuários primeiro. |
-| **Onboarding Tour** | 🔵 Baixa | — (local) | — | Útil mas pode ser substituído por bom design. Over-engineered atualmente. |
-| **Help Center** | 🔵 Baixa | — | — | Página estática. Pode ser link externo (docs/FAQ). |
-| **War Room / Widgets** | 🔵 Baixa | — | — | Conceito ambicioso mas UX complexa. Dashboard já resolve. |
-
----
-
-## 🚫 Score N/A — Remover ou não priorizar
-
 | Feature | Score | Nota |
 | :--- | :--- | :--- |
-| **Night Worker UI** | 🚫 N/A | Já removido da sidebar. Backend pode ficar, UI não faz sentido no LifeOS. |
-| **PWA Offline completo** | 🚫 N/A | Complexidade enorme para pouco ganho. Service worker básico basta. |
-| **Email Digest** | 🚫 N/A | Requer infraestrutura de email. ROI baixíssimo. |
-| **Webhooks / API pública** | 🚫 N/A | Prematuro. Sem base de usuários, API pública é desperdício. |
-| **Workspace / Multi-account** | 🚫 N/A | Complexidade de multi-tenancy sem público definido. |
-| **Image Generation** | 🚫 N/A | Não se encaixa no propósito do produto. |
-| **Collaboration (Realtime)** | 🚫 N/A | LifeOS é pessoal. Colaboração adiciona complexidade sem valor. |
+| **Smart Search (semantic)** | 🔵 Baixa | Usa generate-embedding + vector-search. Embedding retorna vazio (placeholder). Busca simples resolve 95% dos casos. |
+| **Deep Work / Pomodoro** | 🔵 Baixa | Local only. Timer simples. |
+| **Time Blocking** | 🔵 Baixa | Overlap com Calendar. |
+| **Onboarding Tour** | 🔵 Baixa | Pode ser substituído por bom design. |
+| **Help Center** | 🔵 Baixa | Página estática. Pode ser link externo. |
+| **War Room / Widgets** | 🔵 Baixa | Dashboard já resolve. |
 
 ---
 
-## 🎯 Recomendação: Foco no Core Loop
-
-O **core loop** do LifeOS que gera valor real é:
+## 🎯 Core Loop
 
 ```
 Journal (captura) → AI (processa) → Opportunities (organiza) → Goals (direciona) → Dashboard (visualiza)
 ```
 
-### Ações sugeridas:
+---
 
-1. **Manter forte**: Dashboard, Opportunities, Journal, Goals, Consultant
-2. **Simplificar**: Habits (menos campos), Calendar (integração ou remover), Analytics (1 tela simples)
-3. **Merge**: Priorities → Goals (são conceitualmente a mesma coisa)
-4. **Remover da UI**: Help Center (→ link externo), War Room, Time Blocking, Template Marketplace
-5. **Limpar código**: ~15 edge functions que não são usadas ativamente
+## 📐 Estado atual do projeto
 
-### Edge Functions — Score de uso real
-
-| Function | Usada? | Nota |
+| Área | Quantidade | Nota |
 | :--- | :--- | :--- |
-| assistant-chat | ✅ Sim | Core do Consultant |
-| rag-chat | ✅ Sim | RAG com contexto |
-| smart-capture | ✅ Sim | Journal AI processing |
-| transcribe-audio | 🟡 Talvez | Depende se voice input funciona |
-| generate-insights | 🟡 Talvez | Analytics AI |
-| calendar-sync | ❌ Não | Sem integração real |
-| generate-content | ❌ Não | Sem uso no frontend |
-| generate-embedding | ❌ Não | Semantic search desligada |
-| vector-search | ❌ Não | Idem |
-| generate-image | ❌ Não | Sem uso |
-| create-snapshot | ❌ Não | Sem uso |
-| email-inbound | ❌ Não | Sem uso |
-| send-digest | ❌ Não | Sem uso |
-| template-marketplace | ❌ Não | Sem uso |
-| webhook-deliver | ❌ Não | Sem uso |
-| webhook-inbound | ❌ Não | Sem uso |
-| invite-member | ❌ Não | Sem uso |
-| run-automation | ❌ Não | Sem uso |
-| send-notification | ❌ Não | Sem uso |
-| nightworker-prompts | ❌ Não | Backend NW |
-| api-auth | ❌ Não | API pública não existe |
-| rag-priority | 🟡 Talvez | Priorities page |
-| rag-query | ❌ Não | Sem uso direto |
+| Edge Functions | 5 ativas | assistant-chat, rag-chat, generate-embedding, vector-search, calendar-sync |
+| Tabelas DB | 14 tabelas | Todas com RLS. Sem tabelas órfãs. |
+| AI Gateway | Lovable AI | gemini-3-flash-preview via `_shared/ai-gateway.ts` |
+| DB Functions | 1 (update_updated_at) | Funções NW removidas. |
+
+### Limpezas realizadas
+
+- ❌ Removidas 17 edge functions sem uso no frontend
+- ❌ Removidas 8 tabelas (6 NW + user_priorities + ideas)
+- ❌ Removidas 3 DB functions NW (claim_prompts, reset_stalled, reorder_prioritized)
+- ❌ Removidos ~10 docs NightWorker
+- ✅ Priorities merged into Goals (campo priority_level)
+- ✅ Renomeado _shared/openai.ts → _shared/ai-gateway.ts
 
 ---
 
-## 📐 Métricas de complexidade
-
-| Área | Arquivos | Nota |
-| :--- | :--- | :--- |
-| Night Worker (frontend) | ~30 arquivos | Removido da UI mas código ainda existe. Candidato a limpeza. |
-| Edge Functions | 22 functions | ~12 sem uso real. Candidatas a remoção. |
-| Tabelas DB | 21 tabelas | ~5 são NW-only. Core usa ~10. |
-| Contexts | 8 contexts | Muitos. Considerar consolidar. |
-| Hooks | ~40 hooks | Over-engineered. Muitos hooks fazem pouco. |
-
----
-
-**Resumo**: O LifeOS tem um core loop excelente (Journal → AI → Opportunities → Goals) enterrado sob muitas features de baixo ROI. Simplificar agressivamente aumentaria qualidade percebida e velocidade de desenvolvimento.
+**Resumo**: O LifeOS tem um core loop excelente (Journal → AI → Opportunities → Goals) agora limpo de dívida técnica. Foco em polimento das 8 features core.
