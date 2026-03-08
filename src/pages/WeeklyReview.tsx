@@ -288,7 +288,7 @@ export function WeeklyReview() {
               <CardContent className="py-4 text-center">
                 <Flame className="mx-auto h-5 w-5 text-orange-400" />
                 <p className="mt-1 text-xl font-bold">{streakDays}</p>
-                <p className="text-xs text-muted-foreground">Day Streak</p>
+                <p className="text-xs text-muted-foreground">{t('dashboard.dayStreak')}</p>
               </CardContent>
             </Card>
           </div>
