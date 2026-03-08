@@ -35,11 +35,6 @@ const Habits = lazy(() => import("@/pages/Habits").then((m) => ({ default: m.Hab
 const Goals = lazy(() => import("@/pages/Goals").then((m) => ({ default: m.Goals })));
 const CalendarPage = lazy(() => import("@/pages/CalendarPage").then((m) => ({ default: m.CalendarPage })));
 const WeeklyReview = lazy(() => import("@/pages/WeeklyReview").then((m) => ({ default: m.WeeklyReview })));
-const ContentGeneratorPage = lazy(() => import("@/pages/ContentGeneratorPage").then((m) => ({ default: m.ContentGeneratorPage })));
-const AutomationPage = lazy(() => import("@/pages/AutomationPage").then((m) => ({ default: m.AutomationPage })));
-const TemplatesPage = lazy(() => import("@/pages/TemplatesPage").then((m) => ({ default: m.TemplatesPage })));
-const ImageGenerationPage = lazy(() => import("@/pages/ImageGenerationPage").then((m) => ({ default: m.ImageGenerationPage })));
-const VersionHistoryPage = lazy(() => import("@/pages/VersionHistoryPage").then((m) => ({ default: m.VersionHistoryPage })));
 const NotificationsPage = lazy(() => import("@/pages/Notifications").then((m) => ({ default: m.NotificationsPage })));
 const Help = lazy(() => import("@/pages/Help").then((m) => ({ default: m.Help })));
 const ImportPage = lazy(() => import("@/pages/ImportPage").then((m) => ({ default: m.ImportPage })));
