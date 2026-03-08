@@ -281,7 +281,7 @@ export function WeeklyReview() {
               <CardContent className="py-4 text-center">
                 <Brain className="mx-auto h-5 w-5 text-purple-400" />
                 <p className="mt-1 text-xl font-bold">{weekStats.deepWorkHours}h</p>
-                <p className="text-xs text-muted-foreground">Deep Work</p>
+                <p className="text-xs text-muted-foreground">{t('dashboard.deepWork')}</p>
               </CardContent>
             </Card>
             <Card className="rounded-xl">
