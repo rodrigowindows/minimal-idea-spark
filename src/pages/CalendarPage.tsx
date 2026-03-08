@@ -76,8 +76,9 @@ export function CalendarPage() {
   const handleAutoSchedule = () => {
     const doingOpps = opportunities.filter(o => o.status === 'doing')
     if (doingOpps.length === 0) {
-      toast.info('Nenhuma oportunidade em andamento para agendar')
+      toast.info(t('calendarPage.noDoingOpps'))
       return
+    }
     }
 
     const date = selectedDate || new Date()
