@@ -267,7 +267,7 @@ export function WeeklyReview() {
               <CardContent className="py-4 text-center">
                 <Zap className="mx-auto h-5 w-5 text-amber-400" />
                 <p className="mt-1 text-xl font-bold">{xpTotal}</p>
-                <p className="text-xs text-muted-foreground">XP Earned</p>
+                <p className="text-xs text-muted-foreground">{t('dashboard.xpEarned')}</p>
               </CardContent>
             </Card>
             <Card className="rounded-xl">
