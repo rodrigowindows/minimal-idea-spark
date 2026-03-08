@@ -131,7 +131,7 @@ export function CalendarPage() {
                 <CalendarDays className="h-4 w-4 text-blue-500" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Total Eventos</p>
+                <p className="text-xs text-muted-foreground">{t('calendarPage.totalEvents')}</p>
                 <p className="text-xl font-bold">{stats.totalEvents}</p>
               </div>
             </div>
