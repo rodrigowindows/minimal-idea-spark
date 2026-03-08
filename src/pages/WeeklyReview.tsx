@@ -317,11 +317,11 @@ export function WeeklyReview() {
               deep_work_minutes: deepWorkMinutes,
               streak_days: streakDays,
               xp_gained: xpTotal,
-              avg_mood: undefined,
+              avg_mood: weekStats.avgMood > 0 ? String(weekStats.avgMood.toFixed(1)) : undefined,
               avg_energy: undefined,
-              habits_rate: undefined,
-              goals_count: weekStats.topGoals?.length ?? 0,
-              goals_progress: weekStats.avgProgress,
+              habits_rate: weekStats.totalHabitSlots > 0 ? Math.round((weekStats.habitCompletions / weekStats.totalHabitSlots) * 100) : undefined,
+              goals_count: 0,
+              goals_progress: 0,
               domains: Object.keys(weekStats.domainCounts),
             }}
           />
