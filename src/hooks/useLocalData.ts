@@ -66,7 +66,7 @@ export function useLocalData() {
   return {
     domains, opportunities, dailyLogs, habits, goals, isLoading,
     addOpportunity, updateOpportunity, deleteOpportunity, moveOpportunityStatus,
-    addDailyLog, deleteDailyLog,
+    addDailyLog, updateDailyLog, deleteDailyLog,
     addDomain,
     addHabit, toggleHabitCompletion, deleteHabit,
     addGoal, updateGoal, toggleMilestone, deleteGoal,
