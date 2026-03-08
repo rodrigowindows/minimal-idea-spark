@@ -404,7 +404,7 @@ export function useLocalData() {
       habits,
       goals,
       weeklyTargets,
-      automations,
+      
       xpState: localStorage.getItem('minimal_idea_spark_xp_state'),
     }
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
