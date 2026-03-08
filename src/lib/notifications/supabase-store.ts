@@ -9,7 +9,7 @@ import type { AppNotification, NotificationChannel, NotificationType, Notificati
 const PREFS_KEY = 'minimal_idea_spark_notification_prefs'
 
 // Map DB row to AppNotification
-function rowToNotification(row: any): AppNotification {
+export function rowToNotification(row: any): AppNotification {
   return {
     id: row.id,
     title: row.title,
