@@ -18,7 +18,6 @@ export interface BackupSummary {
   goals: number
   domains: number
   calendarEvents: number
-  priorities: number
   weeklyTargets: number
   weeklyReviews: number
   totalKeys: number
