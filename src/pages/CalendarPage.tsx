@@ -170,7 +170,7 @@ export function CalendarPage() {
                 <Zap className="h-4 w-4 text-green-500" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Carga Hoje</p>
+                <p className="text-xs text-muted-foreground">{t('calendarPage.todayLoad')}</p>
                 <p className="text-xl font-bold">{todayWorkload.utilizationPercent}%</p>
               </div>
             </div>
