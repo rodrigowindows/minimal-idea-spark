@@ -23,7 +23,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { PageContent } from '@/components/layout/PageContent'
 import { toast } from 'sonner'
 import { supabase } from '@/integrations/supabase/client'
-import { enqueue } from '@/lib/pwa/sync-queue'
+
 
 export function Journal() {
   const { date: dateParam } = useParams<{ date?: string }>()
