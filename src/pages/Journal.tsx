@@ -112,7 +112,26 @@ export function Journal() {
 
   function handleDelete(id: string) {
     deleteDailyLog(id)
+    if (editingId === id) setEditingId(null)
     toast.success(t('journal.entryDeleted'))
+  }
+
+  function handleStartEdit(log: { id: string; content: string }) {
+    setEditingId(log.id)
+    setEditContent(log.content)
+  }
+
+  function handleSaveEdit(id: string) {
+    if (!editContent.trim()) return
+    updateDailyLog(id, { content: editContent.trim() })
+    setEditingId(null)
+    setEditContent('')
+    toast.success(t('journal.entryUpdated', 'Entry updated'))
+  }
+
+  function handleCancelEdit() {
+    setEditingId(null)
+    setEditContent('')
   }
 
   const getMoodEmoji = (mood: string | null) => {
