@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { localSearch, loadSearchIndex, getSuggestions as getLocalSuggestions } from './indexer';
-import type { IndexedItem, LocalSearchFilters } from './indexer';
+import type { LocalSearchFilters } from './indexer';
 
 export interface SearchResult {
   id: string;
@@ -21,84 +21,22 @@ export interface SearchFilters {
   author?: string;
 }
 
-export async function semanticSearch(
+/**
+ * Primary search — uses local index with keyword matching.
+ * Semantic/vector search was removed (embeddings were placeholder).
+ */
+export function semanticSearch(
   query: string,
   filters?: SearchFilters,
-  limit = 20
 ): Promise<SearchResult[]> {
-  try {
-    const embeddingResponse = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-embedding`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-        },
-        body: JSON.stringify({ text: query }),
-      }
-    );
-
-    const { embedding } = await embeddingResponse.json();
-
-    const searchResponse = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vector-search`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-        },
-        body: JSON.stringify({
-          embedding,
-          filters,
-          limit,
-        }),
-      }
-    );
-
-    const { results } = await searchResponse.json();
-    return results;
-  } catch (error) {
-    console.error('Semantic search error, falling back to local search:', error);
-    return localFallbackSearch(query, filters);
-  }
+  return Promise.resolve(localFallbackSearch(query, filters));
 }
 
-export async function textSearch(
+export function textSearch(
   query: string,
-  filters?: SearchFilters
+  filters?: SearchFilters,
 ): Promise<SearchResult[]> {
-  try {
-    let queryBuilder = (supabase as any)
-      .from('searchable_content')
-      .select('*')
-      .textSearch('content', query, { type: 'websearch' });
-
-    if (filters?.types) {
-      queryBuilder = queryBuilder.in('type', filters.types);
-    }
-
-    if (filters?.dateFrom) {
-      queryBuilder = queryBuilder.gte('created_at', filters.dateFrom.toISOString());
-    }
-
-    if (filters?.dateTo) {
-      queryBuilder = queryBuilder.lte('created_at', filters.dateTo.toISOString());
-    }
-
-    if (filters?.tags) {
-      queryBuilder = queryBuilder.contains('tags', filters.tags);
-    }
-
-    const { data, error } = await queryBuilder.limit(50);
-
-    if (error) throw error;
-    return data || [];
-  } catch (error) {
-    console.error('Text search error, falling back to local search:', error);
-    return localFallbackSearch(query, filters);
-  }
+  return Promise.resolve(localFallbackSearch(query, filters));
 }
 
 function localFallbackSearch(query: string, filters?: SearchFilters): SearchResult[] {
@@ -135,7 +73,7 @@ function markSearchHistoryRemoteDisabled() {
   searchHistoryRemoteDisabled = true;
 }
 
-export async function saveSearchQuery(query: string, resultsCount: number) {
+export async function saveSearchQuery(query: string, _resultsCount: number) {
   saveSearchToLocalHistory(query);
 
   if (searchHistoryRemoteDisabled) return;
@@ -146,7 +84,6 @@ export async function saveSearchQuery(query: string, resultsCount: number) {
     const { error } = await (supabase as any).from('search_history').insert({
       user_id: user.id,
       query,
-      results_count: resultsCount,
       created_at: new Date().toISOString(),
     });
     if (error && (error.code === 'PGRST116' || error.message?.includes('404') || (error as any).status === 404)) markSearchHistoryRemoteDisabled();
@@ -215,17 +152,13 @@ export async function getSuggestedSearches(query: string): Promise<string[]> {
     }
   }
 
-  // Local suggestions from index
   const index = loadSearchIndex();
   const localSuggs = getLocalSuggestions(index, query, 5);
-
-  // Also check local history
   const history = getLocalSearchHistory();
   const historySuggs = history
     .filter(h => h.toLowerCase().includes(query.toLowerCase()))
     .slice(0, 3);
 
-  // Merge, deduplicate
   const merged = [...new Set([...historySuggs, ...localSuggs])];
   return merged.slice(0, 5);
 }
