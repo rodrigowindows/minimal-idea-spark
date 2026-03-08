@@ -11,7 +11,7 @@ import { ReminderChecker } from "@/components/ReminderChecker";
 import { useNotificationGenerator } from "@/hooks/useNotificationGenerator";
 import { useAppContext } from "@/contexts/AppContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { PriorityDashboard } from "@/components/PriorityDashboard";
+const PriorityDashboard = lazy(() => import("@/components/PriorityDashboard").then((m) => ({ default: m.PriorityDashboard })));
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
