@@ -6,7 +6,7 @@ import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AppProvider } from '@/contexts/AppContext'
-import { WorkspaceProvider } from '@/contexts/WorkspaceContext'
+
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { WarRoomLayoutProvider } from '@/contexts/WarRoomLayoutContext'
