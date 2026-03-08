@@ -70,8 +70,13 @@ export function WeeklyReview() {
     load()
   }, [user?.id, weekStartStr])
 
-  // Reset saved state when user edits
+  // Reset saved state when user edits after initial load
+  const initialLoadDone = useRef(false)
   useEffect(() => {
+    if (!initialLoadDone.current) {
+      initialLoadDone.current = true
+      return
+    }
     setSaved(false)
   }, [reflections, nextWeekPlan])
 
