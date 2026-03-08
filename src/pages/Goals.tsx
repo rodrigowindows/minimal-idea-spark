@@ -291,7 +291,7 @@ export function Goals() {
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>{t('goals.domain')}</Label>
                 <Select value={newDomainId} onValueChange={setNewDomainId}>
@@ -312,6 +312,18 @@ export function Goals() {
                     {(['Q1', 'Q2', 'Q3', 'Q4', 'S1', 'S2', 'annual', 'custom'] as OKRCycle[]).map(c => (
                       <SelectItem key={c} value={c}>{getCycleLabel(c)}</SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Priority</Label>
+                <Select value={newPriority} onValueChange={(v) => setNewPriority(v as PriorityLevel)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="critical">🔴 Critical</SelectItem>
+                    <SelectItem value="high">🟠 High</SelectItem>
+                    <SelectItem value="medium">🔵 Medium</SelectItem>
+                    <SelectItem value="low">⚪ Low</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
