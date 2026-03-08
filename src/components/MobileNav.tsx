@@ -18,7 +18,7 @@ import {
   Calendar,
   CheckSquare,
   BarChart3,
-  Star,
+  
   TrendingUp,
   Bell,
   HelpCircle,
