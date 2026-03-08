@@ -296,7 +296,7 @@ export function WeeklyReview() {
           {/* Reflections */}
           <Card className="rounded-xl">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Reflections</CardTitle>
+              <CardTitle className="text-lg">{t('weeklyReview.reflections')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
