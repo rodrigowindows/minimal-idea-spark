@@ -10,7 +10,7 @@ import { toast } from 'sonner'
 import { useLocalData } from '@/hooks/useLocalData'
 import { useXPSystem } from '@/hooks/useXPSystem'
 import { VoiceInput } from '@/components/smart-capture/VoiceInput'
-import { AudioToText } from '@/components/AudioToText'
+
 
 export function QuickJournal() {
   const [content, setContent] = useState('')
