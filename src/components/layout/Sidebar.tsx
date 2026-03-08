@@ -149,7 +149,6 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     const grouped: Record<NavSection, NavItem[]> = {
       principal: [],
       tools: [],
-      nightworker: [],
       config: [],
     }
     navItemsWithBadges.forEach((item) => {
