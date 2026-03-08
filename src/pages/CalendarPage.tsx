@@ -85,8 +85,9 @@ export function CalendarPage() {
     const suggestions = autoScheduleDay(doingOpps, date, events, blocks)
 
     if (suggestions.length === 0) {
-      toast.info('Sem horarios disponiveis para hoje')
+      toast.info(t('calendarPage.noSlots'))
       return
+    }
     }
 
     for (const s of suggestions) {
