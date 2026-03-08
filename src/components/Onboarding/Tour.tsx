@@ -115,15 +115,19 @@ export function Tour({ forceOpen, onClose }: TourProps) {
     }
     const completed = localStorage.getItem(TOUR_STORAGE_KEY)
     if (completed === 'true') return
+    // Don't auto-open if welcome modal hasn't been dismissed yet
+    const welcomeDismissed = localStorage.getItem('lifeos_welcome_dismissed')
+    if (!welcomeDismissed) return
     const timer = setTimeout(() => setOpen(true), 800)
     return () => clearTimeout(timer)
   }, [forceOpen])
 
   const handleClose = useCallback(() => {
-    if (dontShowAgain) localStorage.setItem(TOUR_STORAGE_KEY, 'true')
+    // Always save tour as completed when user explicitly closes/skips
+    localStorage.setItem(TOUR_STORAGE_KEY, 'true')
     setOpen(false)
     onClose?.()
-  }, [dontShowAgain, onClose])
+  }, [onClose])
 
   const handleFinish = useCallback(() => {
     localStorage.setItem(TOUR_STORAGE_KEY, 'true')
