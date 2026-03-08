@@ -61,6 +61,7 @@ export function Goals() {
   const [newStartDate, setNewStartDate] = useState(new Date().toISOString().split('T')[0])
   const [newCycle, setNewCycle] = useState<OKRCycle>(getCurrentCycle())
   const [newMilestones, setNewMilestones] = useState<string[]>([''])
+  const [newPriority, setNewPriority] = useState<PriorityLevel>('medium')
 
   function handleCreateGoal(e: React.FormEvent) {
     e.preventDefault()
