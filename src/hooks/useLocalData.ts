@@ -383,29 +383,6 @@ export function useLocalData() {
     setWeeklyTargets(prev => prev.filter(t => t.domain_id !== domainId))
   }, [])
 
-  // ---- Automation CRUD ----
-  const addAutomation = useCallback((data: { name: string; description: string; enabled: boolean; trigger: Trigger; actions: Action[] }) => {
-    const newAuto: Automation = {
-      ...data,
-      id: `auto-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      runCount: 0,
-    }
-    setAutomations(prev => [newAuto, ...prev])
-    return newAuto
-  }, [])
-
-  const updateAutomation = useCallback((id: string, data: Partial<Automation>) => {
-    setAutomations(prev => prev.map(a => a.id === id ? { ...a, ...data } : a))
-  }, [])
-
-  const deleteAutomation = useCallback((id: string) => {
-    setAutomations(prev => prev.filter(a => a.id !== id))
-  }, [])
-
-  const toggleAutomation = useCallback((id: string) => {
-    setAutomations(prev => prev.map(a => a.id === id ? { ...a, enabled: !a.enabled } : a))
-  }, [])
 
   // ---- Export / Import ----
   const exportData = useCallback(() => {
