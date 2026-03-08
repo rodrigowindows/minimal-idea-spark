@@ -27,14 +27,6 @@ const NAV_ITEMS: { to: string; labelKey: string; icon: typeof LayoutDashboard }[
   { to: '/priorities', labelKey: 'nav.priorities', icon: Target },
   { to: '/weekly-review', labelKey: 'nav.weeklyReview', icon: FileText },
   { to: '/notifications', labelKey: 'nav.notifications', icon: FileText },
-  { to: '/content-generator', labelKey: 'nav.contentGenerator', icon: FileText },
-  { to: '/automation', labelKey: 'nav.automation', icon: FileText },
-  { to: '/templates', labelKey: 'nav.templates', icon: FileText },
-  { to: '/images', labelKey: 'nav.images', icon: FileText },
-  { to: '/version-history', labelKey: 'nav.versionHistory', icon: FileText },
-  { to: '/workspace', labelKey: 'nav.workspace', icon: FileText },
-  { to: '/import', labelKey: 'nav.import', icon: FileText },
-  { to: '/reports', labelKey: 'nav.reports', icon: FileText },
   { to: '/settings', labelKey: 'nav.settings', icon: Settings2 },
 ]
 
