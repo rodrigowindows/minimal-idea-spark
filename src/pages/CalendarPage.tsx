@@ -157,7 +157,7 @@ export function CalendarPage() {
                 <TrendingUp className="h-4 w-4 text-amber-500" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Pico Produtividade</p>
+                <p className="text-xs text-muted-foreground">{t('calendarPage.peakProductivity')}</p>
                 <p className="text-xl font-bold">{stats.peakHour}:00</p>
               </div>
             </div>
