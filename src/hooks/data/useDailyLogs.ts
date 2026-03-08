@@ -50,6 +50,14 @@ export function useDailyLogs() {
     return newLog
   }, [userId])
 
+  const updateDailyLog = useCallback((id: string, data: Partial<DailyLog>) => {
+    setDailyLogs(prev => prev.map(log => log.id === id ? { ...log, ...data } : log))
+    const { id: _id, user_id: _uid, created_at: _ca, ...dbData } = data as any
+    supabase.from('daily_logs').update(dbData).eq('id', id).then(({ error }) => {
+      if (error) console.error('[updateDailyLog]', error)
+    })
+  }, [])
+
   const deleteDailyLog = useCallback((id: string) => {
     setDailyLogs(prev => prev.filter(log => log.id !== id))
     supabase.from('daily_logs').delete().eq('id', id).then(({ error }) => {
@@ -57,5 +65,5 @@ export function useDailyLogs() {
     })
   }, [])
 
-  return { dailyLogs, isLoading, addDailyLog, deleteDailyLog }
+  return { dailyLogs, isLoading, addDailyLog, updateDailyLog, deleteDailyLog }
 }
