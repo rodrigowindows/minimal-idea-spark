@@ -326,7 +326,7 @@ export function WeeklyReview() {
                   <Textarea
                     value={nextWeekPlan}
                     onChange={(e) => setNextWeekPlan(e.target.value)}
-                    placeholder="Top 3 priorities for next week..."
+                    placeholder={t('weeklyReview.nextWeekPlanPlaceholder')}
                     rows={3}
                     className="resize-none pr-20"
                   />
