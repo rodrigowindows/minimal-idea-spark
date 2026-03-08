@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -35,6 +36,7 @@ import { useAuth } from '@/contexts/AuthContext'
 export function WeeklyReview() {
   const { opportunities, dailyLogs, habits, domains } = useLocalData()
   const { user } = useAuth()
+  const { t } = useTranslation()
   const { xpTotal, streakDays, deepWorkMinutes, opportunitiesCompleted, level, addXP } = useXPSystem()
   const [reflections, setReflections] = useState('')
   const [nextWeekPlan, setNextWeekPlan] = useState('')
@@ -213,7 +215,7 @@ export function WeeklyReview() {
     <PageContent>
       <PageHeader
         icon={<ClipboardCheck className="h-6 w-6 text-primary" />}
-        title="Weekly Review"
+        title={t('weeklyReview.title')}
         description={`${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`}
         variant="compact"
       />
@@ -265,28 +267,28 @@ export function WeeklyReview() {
               <CardContent className="py-4 text-center">
                 <Zap className="mx-auto h-5 w-5 text-amber-400" />
                 <p className="mt-1 text-xl font-bold">{xpTotal}</p>
-                <p className="text-xs text-muted-foreground">XP Earned</p>
+                <p className="text-xs text-muted-foreground">{t('dashboard.xpEarned')}</p>
               </CardContent>
             </Card>
             <Card className="rounded-xl">
               <CardContent className="py-4 text-center">
                 <Target className="mx-auto h-5 w-5 text-green-400" />
                 <p className="mt-1 text-xl font-bold">{weekStats.doneThisWeek}</p>
-                <p className="text-xs text-muted-foreground">Completed</p>
+                <p className="text-xs text-muted-foreground">{t('dashboard.completed')}</p>
               </CardContent>
             </Card>
             <Card className="rounded-xl">
               <CardContent className="py-4 text-center">
                 <Brain className="mx-auto h-5 w-5 text-purple-400" />
                 <p className="mt-1 text-xl font-bold">{weekStats.deepWorkHours}h</p>
-                <p className="text-xs text-muted-foreground">Deep Work</p>
+                <p className="text-xs text-muted-foreground">{t('dashboard.deepWork')}</p>
               </CardContent>
             </Card>
             <Card className="rounded-xl">
               <CardContent className="py-4 text-center">
                 <Flame className="mx-auto h-5 w-5 text-orange-400" />
                 <p className="mt-1 text-xl font-bold">{streakDays}</p>
-                <p className="text-xs text-muted-foreground">Day Streak</p>
+                <p className="text-xs text-muted-foreground">{t('dashboard.dayStreak')}</p>
               </CardContent>
             </Card>
           </div>
@@ -294,18 +296,18 @@ export function WeeklyReview() {
           {/* Reflections */}
           <Card className="rounded-xl">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Reflections</CardTitle>
+              <CardTitle className="text-lg">{t('weeklyReview.reflections')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">
-                  What went well this week?
+                  {t('weeklyReview.whatWentWell')}
                 </label>
                 <div className="relative">
                   <Textarea
                     value={reflections}
                     onChange={(e) => setReflections(e.target.value)}
-                    placeholder="Celebrate your wins, big and small..."
+                    placeholder={t('weeklyReview.reflectionsPlaceholder')}
                     rows={3}
                     className="resize-none pr-20"
                   />
@@ -318,13 +320,13 @@ export function WeeklyReview() {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">
-                  Plan for next week
+                  {t('weeklyReview.nextWeekPlan')}
                 </label>
                 <div className="relative">
                   <Textarea
                     value={nextWeekPlan}
                     onChange={(e) => setNextWeekPlan(e.target.value)}
-                    placeholder="Top 3 priorities for next week..."
+                    placeholder={t('weeklyReview.nextWeekPlanPlaceholder')}
                     rows={3}
                     className="resize-none pr-20"
                   />
@@ -341,9 +343,9 @@ export function WeeklyReview() {
                 className="gap-2"
               >
                 {saved ? (
-                  <><CheckCircle2 className="h-4 w-4" />Saved!</>
+                  <><CheckCircle2 className="h-4 w-4" />{t('weeklyReview.saved')}</>
                 ) : (
-                  <><Send className="h-4 w-4" />Save Review</>
+                  <><Send className="h-4 w-4" />{t('weeklyReview.saveReview')}</>
                 )}
               </Button>
             </CardContent>
@@ -374,7 +376,7 @@ export function WeeklyReview() {
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Lightbulb className="h-5 w-5 text-amber-400" />
-                Quick Insights
+                {t('weeklyReview.quickInsights')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -400,7 +402,7 @@ export function WeeklyReview() {
           {/* Domain breakdown */}
           <Card className="rounded-xl">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Domain Focus</CardTitle>
+              <CardTitle className="text-lg">{t('weeklyReview.domainFocus')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               {Object.entries(weekStats.domainCounts).map(([name, count]) => {
@@ -426,7 +428,7 @@ export function WeeklyReview() {
                 )
               })}
               {Object.keys(weekStats.domainCounts).length === 0 && (
-                <p className="py-4 text-center text-sm text-muted-foreground">No domain data yet</p>
+                <p className="py-4 text-center text-sm text-muted-foreground">{t('weeklyReview.noDomainData')}</p>
               )}
             </CardContent>
           </Card>

@@ -288,10 +288,28 @@
     "focus": "focus",
     "theOneThing": "The One Thing",
     "level": "Level",
+    "completed": "Completed",
+    "xpEarned": "XP Earned",
+    "deepWork": "Deep Work",
     "customizeWarRoom": "Customize War Room",
     "warRoomCustomizeTitle": "Customize War Room",
     "warRoomCustomizeDescription": "Drag to reorder. Toggle visibility with the switch.",
     "warRoomRestoreDefault": "Restore default"
+  },
+  "weeklyReview": {
+    "title": "Weekly Review",
+    "reflections": "Reflections",
+    "whatWentWell": "What went well this week?",
+    "reflectionsPlaceholder": "Celebrate your wins, big and small...",
+    "nextWeekPlan": "Plan for next week",
+    "nextWeekPlanPlaceholder": "Top 3 priorities for next week...",
+    "saveReview": "Save Review",
+    "saved": "Saved!",
+    "quickInsights": "Quick Insights",
+    "domainFocus": "Domain Focus",
+    "noDomainData": "No domain data yet",
+    "habitRate": "Habit Rate",
+    "xpBreakdown": "XP by Type"
   },
   "smartCapture": {
     "placeholder": "Capture anything... AI classifies automatically",

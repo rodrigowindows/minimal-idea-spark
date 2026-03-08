@@ -1,0 +1,1 @@
+ALTER TABLE public.weekly_targets ADD CONSTRAINT weekly_targets_user_domain_unique UNIQUE (user_id, domain_id);

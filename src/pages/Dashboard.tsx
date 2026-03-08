@@ -244,7 +244,7 @@ export function Dashboard() {
           />
           <AnimatedStatCard
             icon={Trophy}
-            label="Completed"
+            label={t('dashboard.completed')}
             value={doneCount}
             color="text-primary"
             gradientFrom="from-blue-500"

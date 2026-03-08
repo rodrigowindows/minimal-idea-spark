@@ -21,7 +21,7 @@ export function useLocalData() {
     opportunities, isLoading: oppLoading,
     addOpportunity, updateOpportunity, deleteOpportunity, moveOpportunityStatus,
   } = useOpportunities(domains)
-  const { dailyLogs, isLoading: logsLoading, addDailyLog, deleteDailyLog } = useDailyLogs()
+  const { dailyLogs, isLoading: logsLoading, addDailyLog, updateDailyLog, deleteDailyLog } = useDailyLogs()
   const { habits, addHabit, toggleHabitCompletion, deleteHabit } = useHabits()
   const {
     goals, addGoal, updateGoal, toggleMilestone, deleteGoal,
@@ -66,7 +66,7 @@ export function useLocalData() {
   return {
     domains, opportunities, dailyLogs, habits, goals, isLoading,
     addOpportunity, updateOpportunity, deleteOpportunity, moveOpportunityStatus,
-    addDailyLog, deleteDailyLog,
+    addDailyLog, updateDailyLog, deleteDailyLog,
     addDomain,
     addHabit, toggleHabitCompletion, deleteHabit,
     addGoal, updateGoal, toggleMilestone, deleteGoal,

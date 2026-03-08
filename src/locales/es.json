@@ -288,10 +288,28 @@
     "focus": "enfoque",
     "theOneThing": "Lo Más Importante",
     "level": "Nivel",
+    "completed": "Completados",
+    "xpEarned": "XP Ganados",
+    "deepWork": "Trabajo Profundo",
     "customizeWarRoom": "Personalizar War Room",
     "warRoomCustomizeTitle": "Personalizar War Room",
     "warRoomCustomizeDescription": "Arrastra para reordenar. Usa el interruptor para mostrar u ocultar.",
     "warRoomRestoreDefault": "Restaurar predeterminado"
+  },
+  "weeklyReview": {
+    "title": "Revisión Semanal",
+    "reflections": "Reflexiones",
+    "whatWentWell": "¿Qué salió bien esta semana?",
+    "reflectionsPlaceholder": "Celebra tus victorias, grandes y pequeñas...",
+    "nextWeekPlan": "Plan para la próxima semana",
+    "nextWeekPlanPlaceholder": "Top 3 prioridades para la próxima semana...",
+    "saveReview": "Guardar Revisión",
+    "saved": "¡Guardado!",
+    "quickInsights": "Insights Rápidos",
+    "domainFocus": "Enfoque por Dominio",
+    "noDomainData": "Sin datos de dominio aún",
+    "habitRate": "Tasa de Hábitos",
+    "xpBreakdown": "XP por Tipo"
   },
   "smartCapture": {
     "placeholder": "Captura cualquier cosa... IA clasifica automáticamente",

@@ -11,7 +11,7 @@ import { ReminderChecker } from "@/components/ReminderChecker";
 import { useNotificationGenerator } from "@/hooks/useNotificationGenerator";
 import { useAppContext } from "@/contexts/AppContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { PriorityDashboard } from "@/components/PriorityDashboard";
+const PriorityDashboard = lazy(() => import("@/components/PriorityDashboard").then((m) => ({ default: m.PriorityDashboard })));
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -118,7 +118,7 @@ function AppContent() {
           <Route path="/habits" element={<Suspense fallback={<PageFallback />}><Habits /></Suspense>} />
           <Route path="/goals" element={<Suspense fallback={<PageFallback />}><Goals /></Suspense>} />
           <Route path="/calendar" element={<Suspense fallback={<PageFallback />}><CalendarPage /></Suspense>} />
-          <Route path="/priorities" element={<PriorityDashboard />} />
+          <Route path="/priorities" element={<Suspense fallback={<PageFallback />}><PriorityDashboard /></Suspense>} />
           <Route path="/weekly-review" element={<Suspense fallback={<PageFallback />}><WeeklyReview /></Suspense>} />
           <Route path="/notifications" element={<Suspense fallback={<PageFallback />}><NotificationsPage /></Suspense>} />
           <Route path="/settings" element={<Suspense fallback={<PageFallback />}><Settings /></Suspense>} />
