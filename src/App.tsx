@@ -125,6 +125,7 @@ function AppContent() {
           <Route path="/help" element={<Suspense fallback={<PageFallback />}><Help /></Suspense>} />
         </Route>
         <Route path="/auth" element={<Navigate to="/" replace />} />
+        <Route path="/reset-password" element={<Suspense fallback={<PageFallback />}><ResetPassword /></Suspense>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <DeepWorkOverlay />
