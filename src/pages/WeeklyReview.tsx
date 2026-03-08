@@ -343,9 +343,9 @@ export function WeeklyReview() {
                 className="gap-2"
               >
                 {saved ? (
-                  <><CheckCircle2 className="h-4 w-4" />Saved!</>
+                  <><CheckCircle2 className="h-4 w-4" />{t('weeklyReview.saved')}</>
                 ) : (
-                  <><Send className="h-4 w-4" />Save Review</>
+                  <><Send className="h-4 w-4" />{t('weeklyReview.saveReview')}</>
                 )}
               </Button>
             </CardContent>
