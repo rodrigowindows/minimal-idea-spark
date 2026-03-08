@@ -320,25 +320,31 @@ serve(async (req) => {
       })
     } else {
       // --- Non-streaming JSON Response ---
-      const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      if (!LOVABLE_API_KEY) {
+        throw new Error('LOVABLE_API_KEY is not configured')
+      }
+
+      const aiResponse = await fetch(AI_GATEWAY_URL, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'google/gemini-3-flash-preview',
           messages,
           temperature: 0.7,
           max_tokens: 1024,
         }),
       })
 
-      if (!openaiResponse.ok) {
-        throw new Error(`OpenAI API error: ${openaiResponse.statusText}`)
+      if (!aiResponse.ok) {
+        const errText = await aiResponse.text()
+        console.error('AI gateway error:', aiResponse.status, errText)
+        throw new Error(`AI gateway error: ${aiResponse.status}`)
       }
 
-      const data = await openaiResponse.json()
+      const data = await aiResponse.json()
       const assistantResponse = data.choices[0].message.content
 
       await supabase.from('chat_history').insert({
