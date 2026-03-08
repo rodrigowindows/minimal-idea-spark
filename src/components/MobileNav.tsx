@@ -18,7 +18,7 @@ import {
   Calendar,
   CheckSquare,
   BarChart3,
-  Star,
+  
   TrendingUp,
   Bell,
   HelpCircle,
@@ -39,7 +39,7 @@ const moreNavItems = [
   { to: '/habits', icon: CheckSquare, labelKey: 'nav.habits' },
   { to: '/calendar', icon: Calendar, labelKey: 'nav.calendar' },
   { to: '/analytics', icon: BarChart3, labelKey: 'nav.analytics' },
-  { to: '/priorities', icon: Star, labelKey: 'nav.priorities' },
+  
   { to: '/weekly-review', icon: TrendingUp, labelKey: 'nav.weeklyReview' },
   { to: '/notifications', icon: Bell, labelKey: 'nav.notifications' },
   { to: '/settings', icon: Settings2, labelKey: 'nav.settings' },

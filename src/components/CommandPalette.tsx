@@ -24,7 +24,7 @@ const NAV_ITEMS: { to: string; labelKey: string; icon: typeof LayoutDashboard }[
   { to: '/habits', labelKey: 'nav.habits', icon: FileText },
   { to: '/goals', labelKey: 'nav.goals', icon: Target },
   { to: '/calendar', labelKey: 'nav.calendar', icon: FileText },
-  { to: '/priorities', labelKey: 'nav.priorities', icon: Target },
+  
   { to: '/weekly-review', labelKey: 'nav.weeklyReview', icon: FileText },
   { to: '/notifications', labelKey: 'nav.notifications', icon: FileText },
   { to: '/settings', labelKey: 'nav.settings', icon: Settings2 },

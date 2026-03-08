@@ -12,7 +12,7 @@ import {
   Settings2,
   Target,
   TrendingUp,
-  Star,
+  
 } from 'lucide-react'
 
 export type NavSection = 'principal' | 'tools' | 'config'
@@ -50,7 +50,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/habits', icon: CheckSquare, labelKey: 'nav.habits', section: 'principal' },
   { to: '/calendar', icon: Calendar, labelKey: 'nav.calendar', section: 'principal' },
   { to: '/analytics', icon: BarChart3, labelKey: 'nav.analytics', section: 'principal' },
-  { to: '/priorities', icon: Star, labelKey: 'nav.priorities', section: 'principal' },
+  
   { to: '/weekly-review', icon: TrendingUp, labelKey: 'nav.weeklyReview', section: 'tools' },
   { to: '/notifications', icon: Bell, labelKey: 'nav.notifications', section: 'config' },
   { to: '/settings', icon: Settings2, labelKey: 'nav.settings', section: 'config', shortcut: 'Alt+9' },
