@@ -67,11 +67,12 @@ Tests are in `*.test.ts` / `*.test.tsx` files alongside their source modules:
 
 | Category | Files | What they cover |
 |----------|-------|-----------------|
-| **Hook unit tests** | `src/hooks/useXPSystem.test.ts`, `usePriorities.test.ts`, `useRagChat.test.ts` | XP gamification, priority CRUD, RAG chat streaming |
-| **Component tests** | `src/components/smart-capture/SmartCapture.test.tsx`, `src/components/war-room/TheOneThing.test.tsx` | UI interactions, rendering, user events |
-| **Integration tests** | `src/pages/Auth.test.tsx`, `Opportunities.test.tsx`, `Journal.test.tsx` | Full page flows: login/signup, opportunity list/filter, journal create/list |
-| **Utility tests** | `src/lib/constants.test.ts` | XP reward calculations, gamification config |
-| **Accessibility tests** | `src/test/accessibility.test.tsx` | jest-axe a11y checks for core UI components |
+| **Hook unit tests** | `useXPSystem.test.ts`, `useRagChat.test.ts`, `useFocusSessions.test.ts`, `useOnlineStatus.test.ts` | XP gamification, RAG chat, focus sessions, online/offline |
+| **Component tests** | `SmartCapture.test.tsx`, `TheOneThing.test.tsx`, `EmptyState.test.tsx` | UI interactions, rendering, user events |
+| **Integration tests** | `Auth.test.tsx`, `Opportunities.test.tsx`, `Journal.test.tsx` | Full page flows: login/signup, opportunity list/filter, journal create/list |
+| **Utility tests** | `constants.test.ts`, `goal-service.test.ts`, `backup.test.ts` | XP rewards, goal progress, backup/export |
+| **Lib tests** | `priority-engine.test.ts`, `semantic-search.test.ts`, `sync-queue.test.ts` | Notification priority scoring, search, offline queue |
+| **Accessibility tests** | `accessibility.test.tsx` | jest-axe a11y checks for core UI components |
 
 ### E2E Tests (Playwright)
 

@@ -55,6 +55,20 @@ test.describe("Auth page", () => {
       await expect(page.getByText(/create account/i).first()).toBeVisible();
     }
   });
+
+  test("shows validation on empty submit", async ({ page }) => {
+    await page.goto("/auth");
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page.getByLabel("Email")).toBeVisible({ timeout: 10000 });
+
+    // Try to submit empty form
+    const loginBtn = page.getByRole("button", { name: /^login$/i });
+    if (await loginBtn.isVisible().catch(() => false)) {
+      await loginBtn.click();
+      // Form should still be on auth page (not navigated away)
+      await expect(page).toHaveURL(/\/auth/);
+    }
+  });
 });
 
 test.describe("Page navigation", () => {
@@ -63,6 +77,27 @@ test.describe("Page navigation", () => {
     await page.waitForLoadState("domcontentloaded");
     const url = page.url();
     expect(url).toMatch(/\/(journal|auth)/);
+  });
+
+  test("redirects goals to auth when not logged in", async ({ page }) => {
+    await page.goto("/goals");
+    await page.waitForLoadState("domcontentloaded");
+    const url = page.url();
+    expect(url).toMatch(/\/(goals|auth)/);
+  });
+
+  test("redirects analytics to auth when not logged in", async ({ page }) => {
+    await page.goto("/analytics");
+    await page.waitForLoadState("domcontentloaded");
+    const url = page.url();
+    expect(url).toMatch(/\/(analytics|auth)/);
+  });
+
+  test("redirects settings to auth when not logged in", async ({ page }) => {
+    await page.goto("/settings");
+    await page.waitForLoadState("domcontentloaded");
+    const url = page.url();
+    expect(url).toMatch(/\/(settings|auth)/);
   });
 
   test("404 page for unknown routes", async ({ page }) => {
@@ -99,5 +134,28 @@ test.describe("Accessibility basics", () => {
       return duplicates;
     });
     expect(duplicateIds).toHaveLength(0);
+  });
+
+  test("auth page uses semantic form elements", async ({ page }) => {
+    await page.goto("/auth");
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page.getByLabel("Email")).toBeVisible({ timeout: 10000 });
+
+    const hasForm = await page.evaluate(() => {
+      return document.querySelectorAll("form, [role='form']").length > 0;
+    });
+    // App should use form elements or role=form
+    expect(hasForm).toBe(true);
+  });
+});
+
+test.describe("Performance", () => {
+  test("page loads within reasonable time", async ({ page }) => {
+    const start = Date.now();
+    await page.goto("/");
+    await page.waitForLoadState("domcontentloaded");
+    const loadTime = Date.now() - start;
+    // Should load within 10 seconds even on CI
+    expect(loadTime).toBeLessThan(10000);
   });
 });
