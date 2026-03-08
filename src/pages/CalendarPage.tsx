@@ -61,22 +61,22 @@ export function CalendarPage() {
   const handleSave = (data: Omit<CalendarEvent, 'id' | 'user_id' | 'created_at'>) => {
     if (editEvent) {
       updateEvent(editEvent.id, data)
-      toast.success('Evento atualizado')
+      toast.success(t('calendarPage.eventUpdated'))
     } else {
       addEvent(data)
-      toast.success('Evento criado')
+      toast.success(t('calendarPage.eventCreated'))
     }
   }
 
   const handleDelete = (id: string) => {
     deleteEvent(id)
-    toast.success('Evento excluido')
+    toast.success(t('calendarPage.eventDeleted'))
   }
 
   const handleAutoSchedule = () => {
     const doingOpps = opportunities.filter(o => o.status === 'doing')
     if (doingOpps.length === 0) {
-      toast.info('Nenhuma oportunidade em andamento para agendar')
+      toast.info(t('calendarPage.noDoingOpps'))
       return
     }
 
@@ -84,7 +84,7 @@ export function CalendarPage() {
     const suggestions = autoScheduleDay(doingOpps, date, events, blocks)
 
     if (suggestions.length === 0) {
-      toast.info('Sem horarios disponiveis para hoje')
+      toast.info(t('calendarPage.noSlots'))
       return
     }
 
@@ -102,20 +102,20 @@ export function CalendarPage() {
       })
     }
 
-    toast.success(`${suggestions.length} eventos agendados automaticamente`)
+    toast.success(t('calendarPage.autoScheduled', { count: suggestions.length }))
   }
 
   return (
     <PageContent>
       <PageHeader
         icon={<CalendarDays className="h-6 w-6 text-primary" />}
-        title="Calendario Inteligente"
-        description="Gerencie seu tempo com sugestoes inteligentes de agendamento"
+        title={t('calendarPage.title')}
+        description={t('calendarPage.description')}
         variant="compact"
         actions={
           <Button onClick={handleAutoSchedule} variant="outline" className="gap-2">
             <Sparkles className="h-4 w-4" />
-            Auto-Agendar Dia
+            {t('calendarPage.autoSchedule')}
           </Button>
         }
       />
@@ -129,7 +129,7 @@ export function CalendarPage() {
                 <CalendarDays className="h-4 w-4 text-blue-500" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Total Eventos</p>
+                <p className="text-xs text-muted-foreground">{t('calendarPage.totalEvents')}</p>
                 <p className="text-xl font-bold">{stats.totalEvents}</p>
               </div>
             </div>
@@ -142,7 +142,7 @@ export function CalendarPage() {
                 <Clock className="h-4 w-4 text-purple-500" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Horas Agendadas</p>
+                <p className="text-xs text-muted-foreground">{t('calendarPage.scheduledHours')}</p>
                 <p className="text-xl font-bold">{stats.totalHours}h</p>
               </div>
             </div>
@@ -155,7 +155,7 @@ export function CalendarPage() {
                 <TrendingUp className="h-4 w-4 text-amber-500" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Pico Produtividade</p>
+                <p className="text-xs text-muted-foreground">{t('calendarPage.peakProductivity')}</p>
                 <p className="text-xl font-bold">{stats.peakHour}:00</p>
               </div>
             </div>
@@ -168,7 +168,7 @@ export function CalendarPage() {
                 <Zap className="h-4 w-4 text-green-500" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Carga Hoje</p>
+                <p className="text-xs text-muted-foreground">{t('calendarPage.todayLoad')}</p>
                 <p className="text-xl font-bold">{todayWorkload.utilizationPercent}%</p>
               </div>
             </div>
@@ -182,18 +182,18 @@ export function CalendarPage() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Carga de Trabalho Hoje</span>
+              <span className="text-sm font-medium">{t('calendarPage.workloadToday')}</span>
             </div>
             <Badge
               variant={todayWorkload.level === 'heavy' ? 'destructive' : 'secondary'}
             >
-              {todayWorkload.level === 'heavy' ? 'Pesada' : todayWorkload.level === 'moderate' ? 'Moderada' : 'Leve'}
+              {todayWorkload.level === 'heavy' ? t('calendarPage.heavy') : todayWorkload.level === 'moderate' ? t('calendarPage.moderate') : t('calendarPage.light')}
             </Badge>
           </div>
           <Progress value={todayWorkload.utilizationPercent} className="h-2" />
           <div className="flex justify-between text-xs text-muted-foreground mt-1">
-            <span>{todayWorkload.totalEvents} eventos</span>
-            <span>{Math.round(todayWorkload.totalMinutes / 60 * 10) / 10}h de 8h</span>
+            <span>{todayWorkload.totalEvents} {t('calendarPage.events')}</span>
+            <span>{Math.round(todayWorkload.totalMinutes / 60 * 10) / 10}h {t('calendarPage.of8h')}</span>
           </div>
         </CardContent>
       </Card>
@@ -214,7 +214,7 @@ export function CalendarPage() {
       {/* Upcoming Events */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Proximos Eventos</CardTitle>
+          <CardTitle className="text-base">{t('calendarPage.upcomingEvents')}</CardTitle>
         </CardHeader>
         <CardContent>
           {(() => {

@@ -803,6 +803,28 @@
     "serverTitle": "Server error",
     "serverDescription": "Something went wrong on our end. Please try again in a few moments."
   },
+  "calendarPage": {
+    "title": "Smart Calendar",
+    "description": "Manage your time with intelligent scheduling suggestions",
+    "autoSchedule": "Auto-Schedule Day",
+    "totalEvents": "Total Events",
+    "scheduledHours": "Scheduled Hours",
+    "peakProductivity": "Peak Productivity",
+    "todayLoad": "Today's Load",
+    "workloadToday": "Today's Workload",
+    "heavy": "Heavy",
+    "moderate": "Moderate",
+    "light": "Light",
+    "events": "events",
+    "of8h": "of 8h",
+    "upcomingEvents": "Upcoming Events",
+    "eventUpdated": "Event updated",
+    "eventCreated": "Event created",
+    "eventDeleted": "Event deleted",
+    "noDoingOpps": "No in-progress opportunities to schedule",
+    "noSlots": "No available slots for today",
+    "autoScheduled": "{{count}} events auto-scheduled"
+  },
   "emptyStates": {
     "journal": "No journal entries yet. Start reflecting on your day!",
     "journalAction": "Write first entry",

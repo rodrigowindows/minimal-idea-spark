@@ -636,6 +636,36 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_targets: {
+        Row: {
+          created_at: string
+          domain_id: string
+          hours_target: number
+          id: string
+          opportunities_target: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          domain_id: string
+          hours_target?: number
+          id?: string
+          opportunities_target?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          domain_id?: string
+          hours_target?: number
+          id?: string
+          opportunities_target?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       xp_summaries: {
         Row: {
           achievements: Json

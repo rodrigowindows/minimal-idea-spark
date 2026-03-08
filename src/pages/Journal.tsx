@@ -23,7 +23,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { PageContent } from '@/components/layout/PageContent'
 import { toast } from 'sonner'
 import { supabase } from '@/integrations/supabase/client'
-import { enqueue } from '@/lib/pwa/sync-queue'
+
 
 export function Journal() {
   const { date: dateParam } = useParams<{ date?: string }>()
@@ -52,7 +52,7 @@ export function Journal() {
   async function generateEmbeddingForLog(logId: string, text: string) {
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) return // Not authenticated, skip embedding
+      if (!session?.access_token) return
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
       await fetch(`${supabaseUrl}/functions/v1/generate-embedding`, {
@@ -69,36 +69,7 @@ export function Journal() {
         }),
       })
     } catch {
-      // Embedding generation is best-effort, don't block the user
-    }
-  }
-
-  async function syncLogToSupabase(logData: {
-    content: string
-    mood: string | null
-    energy_level: number
-    log_date: string
-  }) {
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user) return null // Not authenticated, skip sync
-
-      const { data, error } = await (supabase as any)
-        .from('daily_logs')
-        .insert({
-          user_id: session.user.id,
-          content: logData.content,
-          mood: logData.mood,
-          energy_level: logData.energy_level,
-          log_date: logData.log_date,
-        })
-        .select('id')
-        .single()
-
-      if (error || !data) return null
-      return data.id as string
-    } catch {
-      return null
+      // Embedding generation is best-effort
     }
   }
 
@@ -111,7 +82,7 @@ export function Journal() {
     const logDate = new Date().toISOString().split('T')[0]
     const trimmedContent = content.trim()
 
-    // Save locally
+    // addDailyLog already persists to Supabase — no dual-write needed
     const newLog = addDailyLog({
       content: trimmedContent,
       mood: selectedMood,
@@ -132,25 +103,9 @@ export function Journal() {
     setEnergyLevel(5)
     setShowNewEntry(false)
 
-    // Sync to Supabase and generate embedding (best-effort, async)
+    // Generate embedding (best-effort, async) — uses the ID already persisted by addDailyLog
     const embeddingText = `${trimmedContent} | Mood: ${selectedMood ?? 'N/A'} | Energy: ${energyLevel}/10 | Date: ${logDate}`
-    const supabaseLogId = await syncLogToSupabase({
-      content: trimmedContent,
-      mood: selectedMood,
-      energy_level: energyLevel,
-      log_date: logDate,
-    })
-    if (supabaseLogId) {
-      generateEmbeddingForLog(supabaseLogId, embeddingText)
-    } else if (!navigator.onLine) {
-      // Offline: ensure entry is in sync queue (addDailyLog already enqueues when offline; this is a fallback)
-      enqueue('create_daily_log', {
-        content: trimmedContent,
-        mood: selectedMood,
-        energy_level: energyLevel,
-        log_date: logDate,
-      }, newLog.id)
-    }
+    generateEmbeddingForLog(newLog.id, embeddingText)
   }
 
   function handleDelete(id: string) {

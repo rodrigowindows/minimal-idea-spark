@@ -44,10 +44,9 @@ export function useLocalData() {
 
   const exportData = useCallback(() => {
     const data = {
-      version: 3,
+      version: 4,
       exportDate: new Date().toISOString(),
       domains, opportunities, dailyLogs, habits, goals, weeklyTargets,
-      xpState: localStorage.getItem('minimal_idea_spark_xp_state'),
     }
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
