@@ -104,6 +104,7 @@ export function SmartCapture({ onCapture }: SmartCaptureProps = {}) {
   const [showXP, setShowXP] = useState(false)
   const [lastXP, setLastXP] = useState(0)
   const { addXP, awardCapture, awardInsight } = useXPSystem()
+  const { categorize: aiCategorize } = useAICategorize()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
