@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { SmartCapture } from '@/components/smart-capture/SmartCapture'
 import { TheOneThing } from '@/components/war-room/TheOneThing'
 import { OpportunityRadar } from '@/components/war-room/OpportunityRadar'
@@ -17,8 +18,79 @@ import type { WidgetId } from '@/contexts/WarRoomLayoutContext'
 import type { OpportunityTypeValue } from '@/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Flame, Target, Brain, SlidersHorizontal } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import { Flame, Target, Brain, SlidersHorizontal, Lightbulb, BookOpen, CheckSquare, ArrowRight } from 'lucide-react'
 import { PageContent } from '@/components/layout/PageContent'
+
+function NewUserWelcome() {
+  const navigate = useNavigate()
+
+  const quickActions = [
+    {
+      icon: Lightbulb,
+      title: 'Create your first opportunity',
+      description: 'Track tasks, ideas, and goals in one place',
+      action: () => navigate('/opportunities'),
+      color: 'text-amber-500',
+      bgColor: 'bg-amber-500/10',
+    },
+    {
+      icon: Target,
+      title: 'Set a goal',
+      description: 'Define OKRs and milestones to stay focused',
+      action: () => navigate('/goals'),
+      color: 'text-green-500',
+      bgColor: 'bg-green-500/10',
+    },
+    {
+      icon: BookOpen,
+      title: 'Write in your journal',
+      description: 'Track mood, energy, and daily reflections',
+      action: () => navigate('/journal'),
+      color: 'text-blue-500',
+      bgColor: 'bg-blue-500/10',
+    },
+    {
+      icon: CheckSquare,
+      title: 'Build a habit',
+      description: 'Create daily or weekly habits with streaks',
+      action: () => navigate('/habits'),
+      color: 'text-purple-500',
+      bgColor: 'bg-purple-500/10',
+    },
+  ]
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-primary/20 bg-primary/5 p-6">
+        <h2 className="text-lg font-semibold mb-1">Welcome to LifeOS 🚀</h2>
+        <p className="text-sm text-muted-foreground">
+          Your personal command center for goals, habits, and productivity. Start by picking one of these:
+        </p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {quickActions.map((action) => (
+          <Card
+            key={action.title}
+            className="cursor-pointer transition-all hover:shadow-md hover:border-primary/30"
+            onClick={action.action}
+          >
+            <CardContent className="flex items-start gap-3 p-4">
+              <div className={`rounded-lg p-2 ${action.bgColor}`}>
+                <action.icon className={`h-5 w-5 ${action.color}`} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm">{action.title}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{action.description}</p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export function Dashboard() {
   const { opportunities, domains, isLoading, addOpportunity } = useLocalData()
@@ -43,6 +115,11 @@ export function Dashboard() {
     if (!opportunities) return 0
     return opportunities.filter(o => o.status === 'doing').length
   }, [opportunities])
+
+  const isNewUser = useMemo(() => {
+    if (isLoading) return false
+    return !opportunities || opportunities.length === 0
+  }, [isLoading, opportunities])
 
   function getGreeting(): string {
     const hour = new Date().getHours()
@@ -110,20 +187,26 @@ export function Dashboard() {
             </Badge>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <SmartCapture onCapture={handleCapture} />
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setCustomizeOpen(true)}>
-            <SlidersHorizontal className="h-4 w-4" />
-            {t('dashboard.customizeWarRoom')}
-          </Button>
-        </div>
+        {!isNewUser && (
+          <div className="flex flex-wrap items-center gap-2">
+            <SmartCapture onCapture={handleCapture} />
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setCustomizeOpen(true)}>
+              <SlidersHorizontal className="h-4 w-4" />
+              {t('dashboard.customizeWarRoom')}
+            </Button>
+          </div>
+        )}
       </header>
 
-      <div id="main-content">
-        <WidgetGrid>
-          {(widgetId) => renderWidget(widgetId)}
-        </WidgetGrid>
-      </div>
+      {isNewUser ? (
+        <NewUserWelcome />
+      ) : (
+        <div id="main-content">
+          <WidgetGrid>
+            {(widgetId) => renderWidget(widgetId)}
+          </WidgetGrid>
+        </div>
+      )}
 
       <div className="mt-8">
         <OnboardingChecklist />
