@@ -1,11 +1,10 @@
 // RAG Chat Edge Function
-// Strategic Consultant with semantic search over user's data
+// Strategic Consultant powered by Lovable AI with full user context
 // Supports SSE streaming for real-time token delivery
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 import { getSupabaseClient } from '../_shared/supabase.ts'
-import { createEmbedding } from '../_shared/openai.ts'
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
 const AI_GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions'
@@ -16,37 +15,24 @@ interface ChatRequest {
   stream?: boolean
 }
 
-interface ContextSource {
-  title: string
-  type: 'opportunity' | 'journal' | 'knowledge'
-  content: string
-  relevance: number
-  metadata?: Record<string, unknown>
-}
+const SYSTEM_PROMPT = `You are a strategic mentor and life OS advisor. You have full access to the user's real-time data: opportunities, goals, habits, journal entries, and calendar events.
 
-const SYSTEM_PROMPT = `You are a strategic mentor and life OS advisor with RAG-powered context awareness. You have access to the user's priorities, objectives, daily journal logs, opportunities, and knowledge base.
+Your role:
+1. Help the user make better decisions about what to prioritize
+2. Identify patterns in their data (energy, productivity, mood, habits)
+3. Provide actionable advice aligned with their goals
+4. Be encouraging but honest about areas needing attention
+5. Consider energy levels and mood when suggesting tasks
+6. Reference specific data points — be concrete, not generic
 
-Your role is to:
-1. ALWAYS consider the user's active priorities and persistent objectives when giving advice
-2. Help the user make better decisions about what to prioritize
-3. Identify patterns in their data (energy, productivity, mood, fatigue)
-4. Provide actionable advice aligned with their goals and priorities
-5. Be encouraging but honest about areas needing attention
-6. Consider the user's energy level and mood when suggesting tasks
-7. Suggest actions that advance key results and priority progress
-
-When responding:
-- Reference specific priorities, key results, and objectives when relevant
-- Frame suggestions in terms of strategic value and priority alignment
-- If the user has critical priorities, always mention them in relevant contexts
+Style guidelines:
+- Use markdown formatting (headers, bold, lists)
 - Be concise but insightful
-- If mood/energy data is available, factor it into your recommendations
-- Proactively suggest priority updates when context indicates changes are needed
-
-Current context from user's data will be provided below.`
+- Always reference the user's actual data when relevant
+- If asked about something not in the data, say so honestly
+- Respond in the same language the user writes in`
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -55,7 +41,6 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization')
     const supabase = getSupabaseClient(authHeader)
 
-    // Verify user is authenticated
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       return new Response(
@@ -73,106 +58,88 @@ serve(async (req) => {
       )
     }
 
-    // Create embedding for the user's message
-    const queryEmbedding = await createEmbedding(message)
+    // Fetch all user context in parallel
+    const [oppsResult, goalsResult, habitsResult, logsResult, eventsResult, xpResult] = await Promise.all([
+      supabase.from('opportunities').select('title, type, status, priority, strategic_value, domain_id, due_date')
+        .eq('user_id', user.id).order('priority', { ascending: false }).limit(30),
+      supabase.from('goals').select('title, description, progress, status, cycle, target_date, key_results, milestones')
+        .eq('user_id', user.id).limit(20),
+      supabase.from('habits').select('title, frequency, current_streak, best_streak')
+        .eq('user_id', user.id).limit(20),
+      supabase.from('daily_logs').select('content, mood, energy_level, log_date')
+        .eq('user_id', user.id).order('log_date', { ascending: false }).limit(7),
+      supabase.from('calendar_events').select('title, start, end, category')
+        .eq('user_id', user.id).gte('start', new Date().toISOString()).order('start', { ascending: true }).limit(10),
+      supabase.from('xp_summaries').select('level, xp_total, streak_days, deep_work_minutes, opportunities_completed, week_score')
+        .eq('user_id', user.id).limit(1),
+    ])
 
-    // Use unified match_documents RPC for semantic search
-    const { data: documents } = await supabase.rpc('match_documents', {
-      query_embedding: queryEmbedding,
-      match_threshold: 0.6,
-      match_count: 10,
-      p_user_id: user.id,
-    })
+    // Build context from real data
+    let userContext = ''
 
-    // Build context sources from unified results
-    const contextSources: ContextSource[] = []
-    if (documents) {
-      for (const doc of documents) {
-        contextSources.push({
-          title: doc.title,
-          type: doc.source_type as ContextSource['type'],
-          content: doc.content,
-          relevance: doc.similarity,
-          metadata: doc.metadata,
-        })
+    const opps = oppsResult.data || []
+    if (opps.length > 0) {
+      const doing = opps.filter((o: any) => o.status === 'doing')
+      const backlog = opps.filter((o: any) => o.status === 'backlog')
+      const done = opps.filter((o: any) => o.status === 'done')
+      const review = opps.filter((o: any) => o.status === 'review')
+      userContext += `\n\n## Opportunities (${opps.length} total: ${doing.length} doing, ${review.length} review, ${backlog.length} backlog, ${done.length} done)\n`
+      for (const o of opps.filter((o: any) => o.status !== 'done').slice(0, 15)) {
+        const due = o.due_date ? ` | Due: ${o.due_date}` : ''
+        userContext += `- [${o.status}] "${o.title}" (${o.type}, P:${o.priority}/10, SV:${o.strategic_value ?? '?'}${due})\n`
       }
     }
 
-    // Take top 8 sources (already sorted by similarity from the RPC)
-    const topSources = contextSources.slice(0, 8)
-
-    // Also fetch recent daily_logs explicitly (semantic search may miss them)
-    const { data: recentLogs } = await supabase
-      .from('daily_logs')
-      .select('content, mood, energy_level, log_date')
-      .eq('user_id', user.id)
-      .order('log_date', { ascending: false })
-      .limit(7)
-
-    // Fetch active opportunities explicitly
-    const { data: activeOpps } = await supabase
-      .from('opportunities')
-      .select('title, type, status, priority, strategic_value')
-      .eq('user_id', user.id)
-      .in('status', ['doing', 'review'])
-      .order('priority', { ascending: false })
-      .limit(10)
-
-    // Fetch user priorities (always included in context)
-    const { data: userPriorities } = await supabase
-      .from('user_priorities')
-      .select('title, description, priority_level, category, progress, due_date, key_results, status')
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .order('priority_level', { ascending: true })
-      .limit(10)
-
-    // Build explicit context sections
-    let explicitContext = ''
-
-    // Always inject priorities first (most important context)
-    if (userPriorities && userPriorities.length > 0) {
-      explicitContext += '\n\nUser active priorities (ALWAYS consider these):\n'
-      for (const p of userPriorities) {
-        const krs = p.key_results?.length > 0
-          ? ` | KRs: ${p.key_results.map((kr: any) => `${kr.title}: ${kr.current}/${kr.target} ${kr.unit}`).join(', ')}`
-          : ''
-        const due = p.due_date ? ` | Due: ${p.due_date}` : ''
-        explicitContext += `- [${p.priority_level?.toUpperCase()}] ${p.title} (${p.category}, ${p.progress}%)${due}${krs}: ${p.description}\n`
+    const goals = goalsResult.data || []
+    if (goals.length > 0) {
+      userContext += `\n\n## Goals & OKRs (${goals.length})\n`
+      for (const g of goals) {
+        const krs = Array.isArray(g.key_results) ? (g.key_results as any[]) : []
+        const krSummary = krs.length > 0 ? ` | KRs: ${krs.map((kr: any) => `${kr.title}: ${kr.current ?? 0}/${kr.target ?? 100}`).join(', ')}` : ''
+        userContext += `- [${g.status}] "${g.title}" — ${g.progress}% (${g.cycle}, target: ${g.target_date})${krSummary}\n`
       }
     }
 
-    if (recentLogs && recentLogs.length > 0) {
-      explicitContext += '\n\nRecent daily logs:\n'
-      for (const log of recentLogs) {
-        explicitContext += `- [${log.log_date}] Mood: ${log.mood ?? 'N/A'}, Energy: ${log.energy_level ?? 'N/A'}/10. "${log.content}"\n`
+    const habits = habitsResult.data || []
+    if (habits.length > 0) {
+      userContext += `\n\n## Habits (${habits.length})\n`
+      for (const h of habits) {
+        userContext += `- "${h.title}" (${h.frequency}) — streak: ${h.current_streak}d, best: ${h.best_streak}d\n`
       }
     }
 
-    if (activeOpps && activeOpps.length > 0) {
-      explicitContext += '\n\nActive opportunities:\n'
-      for (const opp of activeOpps) {
-        explicitContext += `- [${opp.type}/${opp.status}] ${opp.title} (Priority: ${opp.priority}/10, Strategic Value: ${opp.strategic_value ?? 'N/A'})\n`
+    const logs = logsResult.data || []
+    if (logs.length > 0) {
+      userContext += `\n\n## Recent Journal (last ${logs.length} days)\n`
+      for (const l of logs) {
+        userContext += `- [${l.log_date}] Mood: ${l.mood ?? 'N/A'}, Energy: ${l.energy_level ?? '?'}/10 — "${l.content?.slice(0, 200)}"\n`
       }
     }
 
-    // Build context string for the LLM
-    const contextString = topSources.length > 0
-      ? `\n\nRelevant context from your data:\n${topSources.map((s, i) => {
-          const meta = s.metadata || {}
-          let detail = ''
-          if (s.type === 'opportunity') {
-            detail = `[${meta.type}/${meta.status}] ${s.title}${s.content ? ': ' + s.content : ''} (Priority: ${meta.priority}/10, Strategic Value: ${meta.strategic_value ?? 'N/A'})`
-          } else if (s.type === 'journal') {
-            detail = `[${meta.log_date}] Mood: ${meta.mood ?? 'N/A'}, Energy: ${meta.energy_level ?? 'N/A'}/10. "${s.content}"`
-          } else {
-            detail = `${s.title}: ${s.content}`
-          }
-          return `${i + 1}. [${s.type}] ${detail}`
-        }).join('\n')}`
-      : '\n\nNo directly relevant context found via semantic search.'
+    const events = eventsResult.data || []
+    if (events.length > 0) {
+      userContext += `\n\n## Upcoming Calendar Events\n`
+      for (const e of events) {
+        userContext += `- "${e.title}" (${e.category}) at ${e.start}\n`
+      }
+    }
 
-    // Get recent chat history for continuity
+    const xp = xpResult.data?.[0]
+    if (xp) {
+      userContext += `\n\n## XP & Gamification\nLevel ${xp.level} | ${xp.xp_total} XP | Streak: ${xp.streak_days}d | Deep Work: ${Math.round((xp.deep_work_minutes || 0) / 60)}h | Completed: ${xp.opportunities_completed} | Week Score: ${xp.week_score ?? 'N/A'}\n`
+    }
+
+    // Build sources for the UI
+    const sourcesPayload = [
+      ...(opps.length > 0 ? [{ title: 'Opportunities', type: 'opportunity', relevance: 0.95 }] : []),
+      ...(goals.length > 0 ? [{ title: 'Goals & OKRs', type: 'knowledge', relevance: 0.92 }] : []),
+      ...(logs.length > 0 ? [{ title: 'Journal Entries', type: 'journal', relevance: 0.88 }] : []),
+      ...(habits.length > 0 ? [{ title: 'Habit Tracking', type: 'knowledge', relevance: 0.85 }] : []),
+      ...(events.length > 0 ? [{ title: 'Calendar Events', type: 'knowledge', relevance: 0.80 }] : []),
+      ...(xp ? [{ title: 'XP Progress', type: 'knowledge', relevance: 0.75 }] : []),
+    ]
+
+    // Get chat history for continuity
     const currentSessionId = sessionId ?? crypto.randomUUID()
     const { data: chatHistory } = await supabase
       .from('chat_history')
@@ -180,33 +147,20 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .eq('session_id', currentSessionId)
       .order('created_at', { ascending: true })
-      .limit(10)
+      .limit(20)
 
-    // Build messages array for OpenAI
     const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
-      { role: 'system', content: SYSTEM_PROMPT + explicitContext + contextString },
+      { role: 'system', content: SYSTEM_PROMPT + userContext },
     ]
 
     if (chatHistory) {
       for (const msg of chatHistory) {
-        messages.push({
-          role: msg.role as 'user' | 'assistant',
-          content: msg.content,
-        })
+        messages.push({ role: msg.role as 'user' | 'assistant', content: msg.content })
       }
     }
-
     messages.push({ role: 'user', content: message })
 
-    // Prepare sources payload for the response
-    const sourcesPayload = topSources.map(s => ({
-      title: s.title,
-      type: s.type,
-      relevance: Math.round(s.relevance * 100) / 100,
-      metadata: s.metadata,
-    }))
-
-    // Store user message in chat history
+    // Store user message
     await supabase.from('chat_history').insert({
       user_id: user.id,
       session_id: currentSessionId,
@@ -214,12 +168,11 @@ serve(async (req) => {
       content: message,
     })
 
-    if (stream) {
-      // --- SSE Streaming Response ---
-      if (!LOVABLE_API_KEY) {
-        throw new Error('LOVABLE_API_KEY is not configured')
-      }
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY is not configured')
+    }
 
+    if (stream) {
       const aiResponse = await fetch(AI_GATEWAY_URL, {
         method: 'POST',
         headers: {
@@ -230,7 +183,7 @@ serve(async (req) => {
           model: 'google/gemini-3-flash-preview',
           messages,
           temperature: 0.7,
-          max_tokens: 1024,
+          max_tokens: 1500,
           stream: true,
         }),
       })
@@ -259,7 +212,7 @@ serve(async (req) => {
         async start(controller) {
           const encoder = new TextEncoder()
 
-          // Send sources as the first SSE event
+          // Send sources first
           controller.enqueue(encoder.encode(`event: sources\ndata: ${JSON.stringify({ sessionId: currentSessionId, sources: sourcesPayload })}\n\n`))
 
           try {
@@ -285,13 +238,11 @@ serve(async (req) => {
                     fullResponse += delta
                     controller.enqueue(encoder.encode(`event: token\ndata: ${JSON.stringify({ token: delta })}\n\n`))
                   }
-                } catch {
-                  // Skip unparseable chunks
-                }
+                } catch { /* skip */ }
               }
             }
 
-            // Store assistant response in chat history
+            // Store assistant response
             await supabase.from('chat_history').insert({
               user_id: user.id,
               session_id: currentSessionId,
@@ -300,7 +251,6 @@ serve(async (req) => {
               sources: sourcesPayload,
             })
 
-            // Send done event
             controller.enqueue(encoder.encode(`event: done\ndata: ${JSON.stringify({ sessionId: currentSessionId })}\n\n`))
             controller.close()
           } catch (err) {
@@ -319,11 +269,6 @@ serve(async (req) => {
         },
       })
     } else {
-      // --- Non-streaming JSON Response ---
-      if (!LOVABLE_API_KEY) {
-        throw new Error('LOVABLE_API_KEY is not configured')
-      }
-
       const aiResponse = await fetch(AI_GATEWAY_URL, {
         method: 'POST',
         headers: {
@@ -334,7 +279,7 @@ serve(async (req) => {
           model: 'google/gemini-3-flash-preview',
           messages,
           temperature: 0.7,
-          max_tokens: 1024,
+          max_tokens: 1500,
         }),
       })
 
@@ -356,18 +301,14 @@ serve(async (req) => {
       })
 
       return new Response(
-        JSON.stringify({
-          response: assistantResponse,
-          sessionId: currentSessionId,
-          sources: sourcesPayload,
-        }),
+        JSON.stringify({ response: assistantResponse, sessionId: currentSessionId, sources: sourcesPayload }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
   } catch (error) {
     console.error('RAG chat error:', error)
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
