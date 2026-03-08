@@ -144,7 +144,7 @@ export function CalendarPage() {
                 <Clock className="h-4 w-4 text-purple-500" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Horas Agendadas</p>
+                <p className="text-xs text-muted-foreground">{t('calendarPage.scheduledHours')}</p>
                 <p className="text-xl font-bold">{stats.totalHours}h</p>
               </div>
             </div>
