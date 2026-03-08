@@ -104,12 +104,26 @@ export function useAnalyticsDashboard() {
 
   const weeklyChartData = useMemo(() => {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-    return days.map((day, index) => ({
-      day,
-      xp: Math.floor(Math.random() * 60) + 20 + (index % 3) * 10,
-      tasks: Math.floor(Math.random() * 3) + 1,
-    }))
-  }, [])
+    const now = new Date()
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 })
+    return days.map((day, index) => {
+      const date = new Date(weekStart)
+      date.setDate(date.getDate() + index)
+      const dateStr = format(date, 'yyyy-MM-dd')
+
+      const dayTasks = opportunities.filter(o => {
+        if (o.status !== 'done') return false
+        try { return format(parseISO(o.created_at), 'yyyy-MM-dd') === dateStr } catch { return false }
+      }).length
+
+      const dayXP = opportunities.filter(o => {
+        if (o.status !== 'done') return false
+        try { return format(parseISO(o.created_at), 'yyyy-MM-dd') === dateStr } catch { return false }
+      }).reduce((sum, o) => sum + ((o.strategic_value ?? 5) * 30), 0)
+
+      return { day, xp: dayXP, tasks: dayTasks }
+    })
+  }, [opportunities])
 
   const domainChartData = useMemo(() => {
     if (!domains.length) return []
