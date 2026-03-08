@@ -13,6 +13,7 @@ import { useXPSystem } from '@/hooks/useXPSystem'
 import { BookOpen, Plus, Calendar, Sparkles, Send, Trash2, Zap } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { VoiceInput } from '@/components/smart-capture/VoiceInput'
+import { JournalCoach } from '@/components/journal/JournalCoach'
 
 import { EmptyState } from '@/components/EmptyState'
 import { VirtualList } from '@/components/VirtualList'
