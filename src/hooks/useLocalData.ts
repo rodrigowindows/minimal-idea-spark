@@ -128,31 +128,8 @@ export function useLocalData() {
   const [weeklyTargets, setWeeklyTargets] = useState<WeeklyTarget[]>(() =>
     loadFromStorage(STORAGE_KEYS.weeklyTargets, [])
   )
-  const [automations, setAutomations] = useState<Automation[]>(() =>
-    loadFromStorage(STORAGE_KEYS.automations, [])
-  )
 
   // Persist on change
-  useEffect(() => { saveToStorage(STORAGE_KEYS.domains, domains) }, [domains])
-  useEffect(() => { saveToStorage(STORAGE_KEYS.opportunities, opportunities) }, [opportunities])
-  useEffect(() => { saveToStorage(STORAGE_KEYS.dailyLogs, dailyLogs) }, [dailyLogs])
-  useEffect(() => { saveToStorage(STORAGE_KEYS.habits, habits) }, [habits])
-  useEffect(() => { saveToStorage(STORAGE_KEYS.goals, goals) }, [goals])
-  useEffect(() => { saveToStorage(STORAGE_KEYS.weeklyTargets, weeklyTargets) }, [weeklyTargets])
-  useEffect(() => { saveToStorage(STORAGE_KEYS.automations, automations) }, [automations])
-
-  // Auto-versioning: debounced snapshot creation on entity changes
-  const snapshotTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
-
-  const autoSnapshot = useCallback((entityType: EntityType, entityId: string, content: string, comment: string) => {
-    const key = `${entityType}:${entityId}`
-    if (snapshotTimers.current[key]) clearTimeout(snapshotTimers.current[key])
-    snapshotTimers.current[key] = setTimeout(() => {
-      try {
-        createSnapshot(entityType, entityId, content, comment)
-      } catch { /* silent fail for auto-snapshot */ }
-    }, 2000) // 2 second debounce to avoid excessive snapshots
-  }, [])
 
   // Enrich opportunities with domain
   const enrichedOpportunities = opportunities.map(opp => ({
