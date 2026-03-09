@@ -99,20 +99,58 @@ describe("Auth page", () => {
     });
   });
 
-  it("calls signUp on signup submit", async () => {
+  it("calls signUp on signup submit with matching passwords", async () => {
     renderAuth();
 
     await userEvent.click(screen.getByRole("button", { name: /sign up/i }));
     await userEvent.type(screen.getByLabelText(/email/i), "new@test.com");
-    await userEvent.type(screen.getByLabelText(/password/i), "newpass123");
+    await userEvent.type(screen.getByLabelText(/^senha/i), "Strong1!");
+    await userEvent.type(screen.getByLabelText(/confirmar senha/i), "Strong1!");
     await userEvent.click(screen.getByRole("button", { name: /create account/i }));
 
     await waitFor(() => {
       expect(mockSignUp).toHaveBeenCalledWith({
         email: "new@test.com",
-        password: "newpass123",
+        password: "Strong1!",
       });
     });
+  });
+
+  it("shows error when passwords don't match on signup", async () => {
+    renderAuth();
+
+    await userEvent.click(screen.getByRole("button", { name: /sign up/i }));
+    await userEvent.type(screen.getByLabelText(/email/i), "new@test.com");
+    await userEvent.type(screen.getByLabelText(/^senha/i), "Strong1!");
+    await userEvent.type(screen.getByLabelText(/confirmar senha/i), "Different1!");
+
+    expect(screen.getByText(/senhas não coincidem/i)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /create account/i }));
+
+    expect(mockSignUp).not.toHaveBeenCalled();
+  });
+
+  it("shows matching confirmation when passwords match", async () => {
+    renderAuth();
+
+    await userEvent.click(screen.getByRole("button", { name: /sign up/i }));
+    await userEvent.type(screen.getByLabelText(/^senha/i), "Strong1!");
+    await userEvent.type(screen.getByLabelText(/confirmar senha/i), "Strong1!");
+
+    expect(screen.getByText(/senhas coincidem/i)).toBeInTheDocument();
+  });
+
+  it("blocks signup when password is weak", async () => {
+    renderAuth();
+
+    await userEvent.click(screen.getByRole("button", { name: /sign up/i }));
+    await userEvent.type(screen.getByLabelText(/email/i), "new@test.com");
+    await userEvent.type(screen.getByLabelText(/^senha/i), "weak");
+    await userEvent.type(screen.getByLabelText(/confirmar senha/i), "weak");
+    await userEvent.click(screen.getByRole("button", { name: /create account/i }));
+
+    expect(mockSignUp).not.toHaveBeenCalled();
   });
 
   it("shows error toast on login failure", async () => {
