@@ -12,7 +12,7 @@ import {
   Settings2,
   Target,
   TrendingUp,
-  
+  Wand2,
 } from 'lucide-react'
 
 export type NavSection = 'principal' | 'tools' | 'config'
@@ -44,6 +44,7 @@ export const FLAG_MAP: Record<string, string> = {
 export const NAV_ITEMS: NavItem[] = [
   { to: '/', icon: LayoutDashboard, labelKey: 'nav.dashboard', section: 'principal', shortcut: 'Alt+1' },
   { to: '/consultant', icon: MessageSquare, labelKey: 'nav.consultant', section: 'principal', shortcut: 'Alt+2' },
+  { to: '/content-generator', icon: Wand2, labelKey: 'nav.contentGenerator', section: 'principal' },
   { to: '/opportunities', icon: Lightbulb, labelKey: 'nav.opportunities', section: 'principal' },
   { to: '/journal', icon: BookOpen, labelKey: 'nav.journal', section: 'principal', shortcut: 'Alt+3' },
   { to: '/goals', icon: Target, labelKey: 'nav.goals', section: 'principal' },

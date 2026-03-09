@@ -6,7 +6,7 @@ import {
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
-type AIFeatureKey = 'rag' | 'priorities' | 'automation' | 'content' | 'images' | 'insights' | 'assistant'
+type AIFeatureKey = 'rag' | 'priorities' | 'automation' | 'content' | 'images' | 'insights' | 'assistant' | 'content-generation'
 
 const featureDescriptions: Record<AIFeatureKey, { title: string; description: string }> = {
   rag: {
@@ -24,6 +24,10 @@ const featureDescriptions: Record<AIFeatureKey, { title: string; description: st
   content: {
     title: 'Geração de Conteúdo',
     description: 'Gera textos, expande tópicos e refina conteúdo com diferentes estilos usando modelos de linguagem.',
+  },
+  'content-generation': {
+    title: 'Content Generator',
+    description: 'Templates de prompts para criar, expandir e refinar conteúdo com diferentes tons e estilos. Suporta refinamento iterativo.',
   },
   images: {
     title: 'Geração de Imagens',

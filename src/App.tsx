@@ -26,6 +26,7 @@ import { AppProviders, AuthenticatedProviders } from "@/providers/AppProviders";
 // Main pages — lazy loaded
 const Dashboard = lazy(() => import("@/pages/Dashboard").then((m) => ({ default: m.Dashboard })));
 const Consultant = lazy(() => import("@/pages/Consultant").then((m) => ({ default: m.Consultant })));
+const ContentGen = lazy(() => import("@/pages/ContentGen").then((m) => ({ default: m.ContentGen })));
 const Opportunities = lazy(() => import("@/pages/Opportunities").then((m) => ({ default: m.Opportunities })));
 const Journal = lazy(() => import("@/pages/Journal").then((m) => ({ default: m.Journal })));
 const Analytics = lazy(() => import("@/pages/Analytics").then((m) => ({ default: m.Analytics })));
@@ -110,6 +111,7 @@ function AppContent() {
         <Route element={<AppLayout />}>
           <Route path="/" element={<Suspense fallback={<PageFallback />}><Dashboard /></Suspense>} />
           <Route path="/consultant" element={<Suspense fallback={<PageFallback />}><ErrorBoundary><Consultant /></ErrorBoundary></Suspense>} />
+          <Route path="/content-generator" element={<Suspense fallback={<PageFallback />}><ContentGen /></Suspense>} />
           <Route path="/opportunities/:id" element={<Suspense fallback={<PageFallback />}><Opportunities /></Suspense>} />
           <Route path="/opportunities" element={<Suspense fallback={<PageFallback />}><Opportunities /></Suspense>} />
           <Route path="/journal/:date" element={<Suspense fallback={<PageFallback />}><Journal /></Suspense>} />
