@@ -12,6 +12,7 @@ import {
   Settings2,
   Target,
   TrendingUp,
+  User,
   Wand2,
 } from 'lucide-react'
 
