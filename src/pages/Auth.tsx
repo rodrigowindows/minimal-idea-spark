@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Sparkles, Loader2, ArrowLeft } from 'lucide-react';
+import { PasswordStrengthMeter, isPasswordStrong } from '@/components/PasswordStrengthMeter';
 
 type AuthMode = 'login' | 'signup' | 'forgot';
 
@@ -19,8 +20,11 @@ export function Auth() {
   const navigate = useNavigate();
 
   const validate = (): string | null => {
-    if (!email.trim()) return 'Email is required';
-    if (mode !== 'forgot' && password.length < 6) return 'Password must be at least 6 characters';
+    if (!email.trim()) return 'Email é obrigatório';
+    if (mode === 'signup' && !isPasswordStrong(password)) {
+      return 'A senha não atende aos requisitos mínimos';
+    }
+    if (mode === 'login' && password.length < 6) return 'Senha deve ter pelo menos 6 caracteres';
     return null;
   };
 
