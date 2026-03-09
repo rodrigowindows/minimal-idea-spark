@@ -150,6 +150,25 @@ export function Auth() {
                       autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                     />
                     {mode === 'signup' && <PasswordStrengthMeter password={password} />}
+                    {mode === 'signup' && (
+                      <div className="pt-2">
+                        <FormField
+                          id="confirmPassword"
+                          label="Confirmar senha"
+                          type="password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          required
+                          autoComplete="new-password"
+                        />
+                        {confirmPassword && password !== confirmPassword && (
+                          <p className="text-xs text-destructive mt-1">As senhas não coincidem</p>
+                        )}
+                        {confirmPassword && password === confirmPassword && password.length > 0 && (
+                          <p className="text-xs text-green-600 mt-1">✓ Senhas coincidem</p>
+                        )}
+                      </div>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
