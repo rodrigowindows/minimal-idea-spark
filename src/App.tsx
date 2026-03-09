@@ -39,6 +39,7 @@ const Help = lazy(() => import("@/pages/Help").then((m) => ({ default: m.Help })
 const Settings = lazy(() => import("@/pages/Settings").then((m) => ({ default: m.Settings })));
 const Auth = lazy(() => import("@/pages/Auth").then((m) => ({ default: m.Auth })));
 const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
+const Profile = lazy(() => import("@/pages/Profile"));
 
 function PageFallback() {
   return (
@@ -124,6 +125,7 @@ function AppContent() {
           <Route path="/weekly-review" element={<Suspense fallback={<PageFallback />}><WeeklyReview /></Suspense>} />
           <Route path="/notifications" element={<Suspense fallback={<PageFallback />}><NotificationsPage /></Suspense>} />
           <Route path="/settings" element={<Suspense fallback={<PageFallback />}><Settings /></Suspense>} />
+          <Route path="/profile" element={<Suspense fallback={<PageFallback />}><Profile /></Suspense>} />
           <Route path="/help" element={<Suspense fallback={<PageFallback />}><Help /></Suspense>} />
         </Route>
         <Route path="/auth" element={<Navigate to="/" replace />} />
