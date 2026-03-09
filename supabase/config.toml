@@ -1,1 +1,13 @@
 project_id = "ekaflizdchjdryqcdlkq"
+
+[functions.rag-chat]
+verify_jwt = false
+
+[functions.generate-content]
+verify_jwt = false
+
+[functions.assistant-chat]
+verify_jwt = false
+
+[functions.calendar-sync]
+verify_jwt = false
