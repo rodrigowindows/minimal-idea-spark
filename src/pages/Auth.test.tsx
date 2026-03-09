@@ -175,7 +175,7 @@ describe("Auth page", () => {
 
     renderAuth();
     await userEvent.type(screen.getByLabelText(/email/i), "user@test.com");
-    await userEvent.type(screen.getByLabelText(/password/i), "pass1234");
+    await userEvent.type(screen.getByLabelText(/^senha/i), "pass1234");
     await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
     await waitFor(() => {
