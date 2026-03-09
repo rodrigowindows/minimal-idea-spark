@@ -14,6 +14,7 @@ type AuthMode = 'login' | 'signup' | 'forgot';
 export function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode] = useState<AuthMode>('login');
   const [formError, setFormError] = useState<string | null>(null);
@@ -23,6 +24,9 @@ export function Auth() {
     if (!email.trim()) return 'Email é obrigatório';
     if (mode === 'signup' && !isPasswordStrong(password)) {
       return 'A senha não atende aos requisitos mínimos';
+    }
+    if (mode === 'signup' && password !== confirmPassword) {
+      return 'As senhas não coincidem';
     }
     if (mode === 'login' && password.length < 6) return 'Senha deve ter pelo menos 6 caracteres';
     return null;
@@ -70,6 +74,7 @@ export function Auth() {
   const switchMode = (newMode: AuthMode) => {
     setMode(newMode);
     setFormError(null);
+    setConfirmPassword('');
   };
 
   const titles: Record<AuthMode, { title: string; desc: string }> = {
@@ -146,6 +151,25 @@ export function Auth() {
                       autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                     />
                     {mode === 'signup' && <PasswordStrengthMeter password={password} />}
+                    {mode === 'signup' && (
+                      <div className="pt-2">
+                        <FormField
+                          id="confirmPassword"
+                          label="Confirmar senha"
+                          type="password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          required
+                          autoComplete="new-password"
+                        />
+                        {confirmPassword && password !== confirmPassword && (
+                          <p className="text-xs text-destructive mt-1">As senhas não coincidem</p>
+                        )}
+                        {confirmPassword && password === confirmPassword && password.length > 0 && (
+                          <p className="text-xs text-green-600 mt-1">✓ Senhas coincidem</p>
+                        )}
+                      </div>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
