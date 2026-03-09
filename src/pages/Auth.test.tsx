@@ -43,10 +43,11 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 
 // Mock lovable auth
+const mockSignInWithOAuth = vi.fn().mockResolvedValue({ error: null });
 vi.mock("@/integrations/lovable/index", () => ({
   lovable: {
     auth: {
-      signInWithOAuth: vi.fn().mockResolvedValue({ error: null }),
+      signInWithOAuth: (...args: any[]) => mockSignInWithOAuth(...args),
     },
   },
 }));
@@ -65,6 +66,7 @@ describe("Auth page", () => {
     vi.clearAllMocks();
     mockSignIn.mockResolvedValue({ data: {}, error: null });
     mockSignUp.mockResolvedValue({ data: {}, error: null });
+    mockSignInWithOAuth.mockResolvedValue({ error: null });
   });
 
   function renderAuth() {
@@ -77,20 +79,18 @@ describe("Auth page", () => {
 
   it("renders login form by default", () => {
     renderAuth();
-    expect(screen.getByRole("heading", { name: /welcome back/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /bem-vindo de volta/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^senha/i)).toBeInTheDocument();
   });
 
   it("switches between login and signup", async () => {
     renderAuth();
-    const signUpLink = screen.getByRole("button", { name: /sign up/i });
-    await userEvent.click(signUpLink);
-    expect(screen.getByRole("heading", { name: /get started/i })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /criar conta/i }));
+    expect(screen.getByRole("heading", { name: /começar agora/i })).toBeInTheDocument();
 
-    const signInLink = screen.getByRole("button", { name: /sign in/i });
-    await userEvent.click(signInLink);
-    expect(screen.getByRole("heading", { name: /welcome back/i })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /entrar$/i }));
+    expect(screen.getByRole("heading", { name: /bem-vindo de volta/i })).toBeInTheDocument();
   });
 
   it("calls signInWithPassword on login submit", async () => {
@@ -98,7 +98,7 @@ describe("Auth page", () => {
 
     await userEvent.type(screen.getByLabelText(/email/i), "user@test.com");
     await userEvent.type(screen.getByLabelText(/^senha/i), "password123");
-    await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
+    await userEvent.click(screen.getByRole("button", { name: /entrar$/i }));
 
     await waitFor(() => {
       expect(mockSignIn).toHaveBeenCalledWith({
@@ -111,11 +111,11 @@ describe("Auth page", () => {
   it("calls signUp on signup submit with matching passwords", async () => {
     renderAuth();
 
-    await userEvent.click(screen.getByRole("button", { name: /sign up/i }));
+    await userEvent.click(screen.getByRole("button", { name: /criar conta/i }));
     await userEvent.type(screen.getByLabelText(/email/i), "new@test.com");
     await userEvent.type(screen.getByLabelText(/^senha/i), "Strong1!");
     await userEvent.type(screen.getByLabelText(/confirmar senha/i), "Strong1!");
-    await userEvent.click(screen.getByRole("button", { name: /create account/i }));
+    await userEvent.click(screen.getByRole("button", { name: /criar conta/i }));
 
     await waitFor(() => {
       expect(mockSignUp).toHaveBeenCalledWith({
@@ -128,14 +128,14 @@ describe("Auth page", () => {
   it("shows error when passwords don't match on signup", async () => {
     renderAuth();
 
-    await userEvent.click(screen.getByRole("button", { name: /sign up/i }));
+    await userEvent.click(screen.getByRole("button", { name: /criar conta/i }));
     await userEvent.type(screen.getByLabelText(/email/i), "new@test.com");
     await userEvent.type(screen.getByLabelText(/^senha/i), "Strong1!");
     await userEvent.type(screen.getByLabelText(/confirmar senha/i), "Different1!");
 
     expect(screen.getByText(/senhas não coincidem/i)).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: /create account/i }));
+    await userEvent.click(screen.getByRole("button", { name: /criar conta/i }));
 
     expect(mockSignUp).not.toHaveBeenCalled();
   });
@@ -143,7 +143,7 @@ describe("Auth page", () => {
   it("shows matching confirmation when passwords match", async () => {
     renderAuth();
 
-    await userEvent.click(screen.getByRole("button", { name: /sign up/i }));
+    await userEvent.click(screen.getByRole("button", { name: /criar conta/i }));
     await userEvent.type(screen.getByLabelText(/^senha/i), "Strong1!");
     await userEvent.type(screen.getByLabelText(/confirmar senha/i), "Strong1!");
 
@@ -153,11 +153,11 @@ describe("Auth page", () => {
   it("blocks signup when password is weak", async () => {
     renderAuth();
 
-    await userEvent.click(screen.getByRole("button", { name: /sign up/i }));
+    await userEvent.click(screen.getByRole("button", { name: /criar conta/i }));
     await userEvent.type(screen.getByLabelText(/email/i), "new@test.com");
     await userEvent.type(screen.getByLabelText(/^senha/i), "weak");
     await userEvent.type(screen.getByLabelText(/confirmar senha/i), "weak");
-    await userEvent.click(screen.getByRole("button", { name: /create account/i }));
+    await userEvent.click(screen.getByRole("button", { name: /criar conta/i }));
 
     expect(mockSignUp).not.toHaveBeenCalled();
   });
@@ -172,7 +172,7 @@ describe("Auth page", () => {
     renderAuth();
     await userEvent.type(screen.getByLabelText(/email/i), "bad@test.com");
     await userEvent.type(screen.getByLabelText(/^senha/i), "wrongpass");
-    await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
+    await userEvent.click(screen.getByRole("button", { name: /entrar$/i }));
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith("Invalid credentials");
@@ -185,7 +185,7 @@ describe("Auth page", () => {
     renderAuth();
     await userEvent.type(screen.getByLabelText(/email/i), "user@test.com");
     await userEvent.type(screen.getByLabelText(/^senha/i), "pass1234");
-    await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
+    await userEvent.click(screen.getByRole("button", { name: /entrar$/i }));
 
     await waitFor(() => {
       expect(toast.success).toHaveBeenCalled();
@@ -200,10 +200,33 @@ describe("Auth page", () => {
     await userEvent.type(screen.getByLabelText(/email/i), "user@test.com");
     await userEvent.type(screen.getByLabelText(/^senha/i), "pass1234");
 
-    await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
+    await userEvent.click(screen.getByRole("button", { name: /entrar$/i }));
 
     await waitFor(() => {
-      expect(screen.getByText("Processing...")).toBeInTheDocument();
+      expect(screen.getByText("Processando...")).toBeInTheDocument();
     });
+  });
+
+  it("renders Google login button on login page", () => {
+    renderAuth();
+    expect(screen.getByRole("button", { name: /continuar com google/i })).toBeInTheDocument();
+  });
+
+  it("calls signInWithOAuth when Google button is clicked", async () => {
+    renderAuth();
+    await userEvent.click(screen.getByRole("button", { name: /continuar com google/i }));
+
+    await waitFor(() => {
+      expect(mockSignInWithOAuth).toHaveBeenCalledWith("google", {
+        redirect_uri: window.location.origin,
+      });
+    });
+  });
+
+  it("hides Google button on forgot password mode", async () => {
+    renderAuth();
+    await userEvent.click(screen.getByRole("button", { name: /esqueceu a senha/i }));
+
+    expect(screen.queryByRole("button", { name: /continuar com google/i })).not.toBeInTheDocument();
   });
 });
