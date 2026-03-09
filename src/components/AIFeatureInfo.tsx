@@ -25,6 +25,10 @@ const featureDescriptions: Record<AIFeatureKey, { title: string; description: st
     title: 'Geração de Conteúdo',
     description: 'Gera textos, expande tópicos e refina conteúdo com diferentes estilos usando modelos de linguagem.',
   },
+  'content-generation': {
+    title: 'Content Generator',
+    description: 'Templates de prompts para criar, expandir e refinar conteúdo com diferentes tons e estilos. Suporta refinamento iterativo.',
+  },
   images: {
     title: 'Geração de Imagens',
     description: 'Cria imagens com DALL-E em diferentes tamanhos e estilos. Suporta variações e edição.',

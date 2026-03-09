@@ -111,6 +111,7 @@ function AppContent() {
         <Route element={<AppLayout />}>
           <Route path="/" element={<Suspense fallback={<PageFallback />}><Dashboard /></Suspense>} />
           <Route path="/consultant" element={<Suspense fallback={<PageFallback />}><ErrorBoundary><Consultant /></ErrorBoundary></Suspense>} />
+          <Route path="/content-generator" element={<Suspense fallback={<PageFallback />}><ContentGen /></Suspense>} />
           <Route path="/opportunities/:id" element={<Suspense fallback={<PageFallback />}><Opportunities /></Suspense>} />
           <Route path="/opportunities" element={<Suspense fallback={<PageFallback />}><Opportunities /></Suspense>} />
           <Route path="/journal/:date" element={<Suspense fallback={<PageFallback />}><Journal /></Suspense>} />
