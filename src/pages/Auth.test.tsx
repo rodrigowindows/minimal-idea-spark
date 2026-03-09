@@ -70,7 +70,7 @@ describe("Auth page", () => {
     renderAuth();
     expect(screen.getByRole("heading", { name: /welcome back/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^senha/i)).toBeInTheDocument();
   });
 
   it("switches between login and signup", async () => {
