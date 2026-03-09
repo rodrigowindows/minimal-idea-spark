@@ -138,13 +138,14 @@ export function Auth() {
                   >
                     <FormField
                       id="password"
-                      label="Password"
+                      label="Senha"
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
                       autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                     />
+                    {mode === 'signup' && <PasswordStrengthMeter password={password} />}
                   </motion.div>
                 )}
               </AnimatePresence>
