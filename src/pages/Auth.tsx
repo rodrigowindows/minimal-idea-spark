@@ -18,6 +18,7 @@ export function Auth() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [mode, setMode] = useState<AuthMode>('login');
   const [formError, setFormError] = useState<string | null>(null);
   const navigate = useNavigate();
