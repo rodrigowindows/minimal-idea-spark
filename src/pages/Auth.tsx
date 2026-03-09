@@ -25,6 +25,9 @@ export function Auth() {
     if (mode === 'signup' && !isPasswordStrong(password)) {
       return 'A senha não atende aos requisitos mínimos';
     }
+    if (mode === 'signup' && password !== confirmPassword) {
+      return 'As senhas não coincidem';
+    }
     if (mode === 'login' && password.length < 6) return 'Senha deve ter pelo menos 6 caracteres';
     return null;
   };
