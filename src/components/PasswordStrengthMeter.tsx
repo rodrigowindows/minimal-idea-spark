@@ -33,15 +33,15 @@ export function PasswordStrengthMeter({ password }: PasswordStrengthMeterProps) 
   const strengthLabel = useMemo(() => {
     if (score <= 1) return { text: 'Muito fraca', color: 'text-destructive' }
     if (score <= 2) return { text: 'Fraca', color: 'text-destructive' }
-    if (score <= 3) return { text: 'Razoável', color: 'text-yellow-500' }
-    if (score <= 4) return { text: 'Forte', color: 'text-green-500' }
-    return { text: 'Muito forte', color: 'text-green-600' }
+    if (score <= 3) return { text: 'Razoável', color: 'text-warning' }
+    if (score <= 4) return { text: 'Forte', color: 'text-success' }
+    return { text: 'Muito forte', color: 'text-success' }
   }, [score])
 
   const progressColor = useMemo(() => {
     if (score <= 2) return 'bg-destructive'
-    if (score <= 3) return 'bg-yellow-500'
-    return 'bg-green-500'
+    if (score <= 3) return 'bg-warning'
+    return 'bg-success'
   }, [score])
 
   if (!password) return null
@@ -69,7 +69,7 @@ export function PasswordStrengthMeter({ password }: PasswordStrengthMeterProps) 
             key={req.label}
             className={cn(
               'flex items-center gap-1.5 transition-colors',
-              passed[i] ? 'text-green-600' : 'text-muted-foreground'
+              passed[i] ? 'text-success' : 'text-muted-foreground'
             )}
           >
             {passed[i] ? (
