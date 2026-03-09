@@ -42,6 +42,15 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 
+// Mock lovable auth
+vi.mock("@/integrations/lovable/index", () => ({
+  lovable: {
+    auth: {
+      signInWithOAuth: vi.fn().mockResolvedValue({ error: null }),
+    },
+  },
+}));
+
 const mockNavigate = vi.fn();
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");

@@ -1,5 +1,4 @@
 import { useMemo } from 'react'
-import { Progress } from '@/components/ui/progress'
 import { Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
