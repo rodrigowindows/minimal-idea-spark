@@ -39,6 +39,7 @@ const Help = lazy(() => import("@/pages/Help").then((m) => ({ default: m.Help })
 const Settings = lazy(() => import("@/pages/Settings").then((m) => ({ default: m.Settings })));
 const Auth = lazy(() => import("@/pages/Auth").then((m) => ({ default: m.Auth })));
 const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
+const Profile = lazy(() => import("@/pages/Profile"));
 
 function PageFallback() {
   return (
