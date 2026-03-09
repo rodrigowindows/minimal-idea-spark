@@ -56,6 +56,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/weekly-review', icon: TrendingUp, labelKey: 'nav.weeklyReview', section: 'tools' },
   { to: '/notifications', icon: Bell, labelKey: 'nav.notifications', section: 'config' },
   { to: '/settings', icon: Settings2, labelKey: 'nav.settings', section: 'config', shortcut: 'Alt+9' },
+  { to: '/profile', icon: User, labelKey: 'nav.profile', section: 'config' },
   { to: '/help', icon: HelpCircle, labelKey: 'nav.help', section: 'config' },
 ]
 
