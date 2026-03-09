@@ -222,10 +222,10 @@ export function Auth() {
                         redirect_uri: window.location.origin,
                       });
                       if (result.error) {
-                        toast.error(result.error.message || 'Google sign-in failed');
+                        toast.error(result.error.message || 'Falha ao entrar com Google');
                       }
-                    } catch (err) {
-                      toast.error('Google sign-in failed');
+                    } catch {
+                      toast.error('Falha ao entrar com Google');
                     } finally {
                       setIsGoogleLoading(false);
                     }
