@@ -74,6 +74,7 @@ export function Auth() {
   const switchMode = (newMode: AuthMode) => {
     setMode(newMode);
     setFormError(null);
+    setConfirmPassword('');
   };
 
   const titles: Record<AuthMode, { title: string; desc: string }> = {
