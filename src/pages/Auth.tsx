@@ -8,6 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Sparkles, Loader2, ArrowLeft } from 'lucide-react';
 import { PasswordStrengthMeter, isPasswordStrong } from '@/components/PasswordStrengthMeter';
+import { lovable } from '@/integrations/lovable/index';
+import { Separator } from '@/components/ui/separator';
 
 type AuthMode = 'login' | 'signup' | 'forgot';
 
