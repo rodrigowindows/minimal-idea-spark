@@ -6,7 +6,7 @@ import {
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
-type AIFeatureKey = 'rag' | 'priorities' | 'automation' | 'content' | 'images' | 'insights' | 'assistant'
+type AIFeatureKey = 'rag' | 'priorities' | 'automation' | 'content' | 'images' | 'insights' | 'assistant' | 'content-generation'
 
 const featureDescriptions: Record<AIFeatureKey, { title: string; description: string }> = {
   rag: {
