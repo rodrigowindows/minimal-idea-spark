@@ -14,6 +14,7 @@ type AuthMode = 'login' | 'signup' | 'forgot';
 export function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode] = useState<AuthMode>('login');
   const [formError, setFormError] = useState<string | null>(null);
