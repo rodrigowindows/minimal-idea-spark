@@ -12,7 +12,7 @@ import {
   Settings2,
   Target,
   TrendingUp,
-  
+  Wand2,
 } from 'lucide-react'
 
 export type NavSection = 'principal' | 'tools' | 'config'
