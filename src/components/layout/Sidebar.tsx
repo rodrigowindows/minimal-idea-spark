@@ -12,6 +12,7 @@ import { NotificationCenter } from '@/components/NotificationCenter'
 import { SyncStatusIndicator } from '@/components/SyncStatusIndicator'
 
 import { SidebarFooter } from './SidebarFooter'
+import { SidebarUserCard } from './SidebarUserCard'
 import { SidebarNavigation } from './SidebarNavigation'
 import { SidebarXPBar } from './SidebarXPBar'
 import {
