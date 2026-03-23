@@ -190,6 +190,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         onClearRecent={clearRecent}
       />
 
+      <SidebarUserCard collapsed={collapsed} />
+
       <SidebarFooter
         collapsed={collapsed}
         deepWorkMode={deepWorkMode}
